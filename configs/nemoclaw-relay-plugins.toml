@@ -12,13 +12,13 @@ enabled = true
 
 [[components.config.atof.sinks]]
 type = "file"
-output_directory = "/sandbox/pa-flywheel-traces/replace-me/atof"
+output_directory = "/sandbox/hermes-flywheel-traces/replace-me/atof"
 filename = "events.jsonl"
 mode = "append"
 
 [components.config.atif]
 enabled = true
-output_directory = "/sandbox/pa-flywheel-traces/replace-me/atif"
+output_directory = "/sandbox/hermes-flywheel-traces/replace-me/atif"
 filename_template = "trajectory-{session_id}.json"
-agent_name = "Hermes-PA-style-mock"
+agent_name = "Hermes-enterprise-world"
 agent_version = "replace-me"

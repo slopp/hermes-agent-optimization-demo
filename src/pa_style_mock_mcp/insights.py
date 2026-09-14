@@ -41,7 +41,7 @@ def atif_to_insights_trace(
 
     steps = trajectory.get("steps")
     if not isinstance(steps, list):
-        raise ValueError("ATIF trajectory steps must be a list")
+        raise TypeError("ATIF trajectory steps must be a list")
 
     spans: list[dict[str, Any]] = []
     latest_user_text: str | None = None

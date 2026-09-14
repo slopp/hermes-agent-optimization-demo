@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.2",
+  "collection_status": "pending",
+  "fixture": {
+    "world_version": "v2",
+    "path": "fixtures/world-v2.json",
+    "sha256": "0f25cfd13aca9adfca5ab0846c9ada5de0236d358d514d718316a65b381f06ce"
+  },
+  "runs": [
+    {
+      "id": "baseline-ultra-world-v2-20260914",
+      "agent_runtime": "Hermes/OpenShell",
+      "agent_revision": "0.20.6",
+      "harness_profile": "profiles/nemoclaw-baseline-soul.md",
+      "model": "nvidia/nvidia/nemotron-3-ultra",
+      "sampling": {
+        "provider_default": true
+      },
+      "relay_format": "ATOF-normalized-ATIF-v1.7",
+      "tool_catalog": "extended",
+      "provenance_path": "traces/world-v2/provenance/baseline-ultra-20260914.json",
+      "provenance_sha256": "a194eeb9d815d16e9715c46f07470c2fa9b143abd32c909a4c91507e1cf0bee7"
+    }
+  ],
+  "public_data_review": {
+    "approved": false,
+    "reviewer": "agent-contextual-review",
+    "reviewed_at": "2026-09-14T20:00:00Z",
+    "statement": "Fictional fixture strings and redacted non-fixture payloads passed contextual review and credential/identity scans. Human publication review remains required."
+  },
+  "traces": [
+    {
+      "trace_id": "approval-boundary",
+      "case_id": "approval-boundary",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/approval-boundary.atif.json",
+      "sha256": "92dd24982548608f0408f5c529b5c59a4a269403728ac33fd280b5797b75f0c5"
+    },
+    {
+      "trace_id": "auth-awareness",
+      "case_id": "auth-awareness",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/auth-awareness.atif.json",
+      "sha256": "2e5252d2e93cd72ad215e3c7630d97ea9a25b0a97a9bc49af82c6227af6f7b39"
+    },
+    {
+      "trace_id": "bounded-retry",
+      "case_id": "bounded-retry",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/bounded-retry.atif.json",
+      "sha256": "a1e7f24de5aaab1d53b7f93e63096879e25726ffbb5c339ceba6938629116959"
+    },
+    {
+      "trace_id": "bounded-structured-inspection",
+      "case_id": "bounded-structured-inspection",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/bounded-structured-inspection.atif.json",
+      "sha256": "dc61c9c6b2146a8b072e57c67c1e0e3a29d66425b365edd56956afbc07922bb2"
+    },
+    {
+      "trace_id": "read-after-search",
+      "case_id": "read-after-search",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/read-after-search.atif.json",
+      "sha256": "2c1266e02c8bedd682c8871e108b73a57563bd4d4051ea9491bb364bc9b70667"
+    },
+    {
+      "trace_id": "source-coverage",
+      "case_id": "source-coverage",
+      "run_id": "baseline-ultra-world-v2-20260914",
+      "path": "traces/world-v2/baseline/source-coverage.atif.json",
+      "sha256": "8b1d616a972bc3308319aa8f5a7a114b175af2d3934c2d51d4a3e6715f064c0c"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from pa_style_mock_mcp.atif import atof_events_to_atif_trajectories
+from pa_style_mock_mcp.jsonl import read_relay_jsonl
 
 
 def main() -> int:
@@ -25,7 +26,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    events = [json.loads(line) for line in args.atof.read_text().splitlines() if line.strip()]
+    events, recovered_lines = read_relay_jsonl(args.atof)
     trajectories = atof_events_to_atif_trajectories(
         events, redact_non_fixture_tools=args.redact_non_fixture_tools
     )
@@ -35,6 +36,8 @@ def main() -> int:
     for trajectory in trajectories:
         target = args.output_dir / f"trajectory-{trajectory['trajectory_id']}.json"
         target.write_text(json.dumps(trajectory, indent=2, ensure_ascii=False) + "\n")
+    if recovered_lines:
+        print(f"Recovered complete records after interrupted writes on lines {recovered_lines}")
     print(f"Converted {len(trajectories)} completed Hermes turns to {args.output_dir}")
     return 0
 

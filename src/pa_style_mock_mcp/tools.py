@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .world import EnterpriseWorld
 

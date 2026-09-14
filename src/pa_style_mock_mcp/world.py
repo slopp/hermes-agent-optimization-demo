@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -19,12 +20,16 @@ class EnterpriseWorld:
         self.outbox: list[dict[str, Any]] = []
 
     @classmethod
-    def from_path(cls, path: str | Path) -> "EnterpriseWorld":
+    def from_path(cls, path: str | Path) -> EnterpriseWorld:
         return cls(json.loads(Path(path).read_text()))
 
     @classmethod
-    def default(cls) -> "EnterpriseWorld":
-        fixture_path = Path(__file__).parents[2] / "fixtures" / "world-v1.json"
+    def default(cls, fixture_path: str | Path | None = None) -> EnterpriseWorld:
+        fixture_path = Path(
+            fixture_path
+            or os.environ.get("PA_STYLE_WORLD_FIXTURE")
+            or Path(__file__).parents[2] / "fixtures" / "world-v1.json"
+        )
         return cls.from_path(fixture_path)
 
     def connector_status(self, connector: str) -> dict[str, str]:

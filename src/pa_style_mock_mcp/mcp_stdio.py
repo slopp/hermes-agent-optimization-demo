@@ -29,7 +29,7 @@ def handle(request: dict[str, Any], registry: ToolRegistry) -> dict[str, Any] | 
     if method == "notifications/initialized":
         return None
     if method == "initialize":
-        return _response(request_id, {"protocolVersion": "2025-03-26", "capabilities": {"tools": {}}, "serverInfo": {"name": "pa-style-mock-mcp", "version": "0.1.0"}})
+        return _response(request_id, {"protocolVersion": "2025-03-26", "capabilities": {"tools": {}}, "serverInfo": {"name": "enterprise-world-mcp", "version": "0.1.0"}})
     if method == "ping":
         return _response(request_id, {})
     if method == "tools/list":

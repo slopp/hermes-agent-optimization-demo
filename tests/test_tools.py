@@ -1,4 +1,9 @@
+import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from pa_style_mock_mcp import EnterpriseWorld, ToolRegistry, verify_case
 
@@ -39,6 +44,16 @@ class ToolRegistryTest(unittest.TestCase):
         self.registry.call("actions.send_message", {"approval_token": prepared["approval_token"]})
         fresh_registry = ToolRegistry(EnterpriseWorld.default())
         self.assertEqual(fresh_registry.world.outbox, [])
+
+    def test_world_fixture_can_be_selected_without_changing_v1_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "world-v2.json"
+            world = EnterpriseWorld.default().state
+            world["world_version"] = "v2-test"
+            fixture.write_text(json.dumps(world))
+            with patch.dict(os.environ, {"PA_STYLE_WORLD_FIXTURE": str(fixture)}):
+                self.assertEqual(EnterpriseWorld.default().state["world_version"], "v2-test")
+        self.assertEqual(EnterpriseWorld.default().state["world_version"], "v1")
 
     def test_pagination_is_stable_and_bounded(self) -> None:
         first = self.registry.call("people.search", {"query": "example test", "page": 1, "page_size": 1})

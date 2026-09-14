@@ -12,11 +12,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pa_style_mock_mcp import ToolRegistry  # noqa: E402
+from pa_style_mock_mcp import ToolRegistry
 
 
 def load(path: Path) -> Any:
@@ -91,7 +90,9 @@ def validate_world(world: dict[str, Any]) -> list[str]:
 def validate(world: dict[str, Any], cases: list[dict[str, Any]]) -> list[str]:
     errors = validate_world(world)
 
-    schema_names = {schema["name"] for schema in ToolRegistry().schemas()}
+    schema_names = {
+        schema["name"] for schema in ToolRegistry(catalog="extended").schemas()
+    }
     case_ids: set[str] = set()
     for case in cases:
         case_id = case.get("id")
@@ -114,8 +115,8 @@ def main() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture", type=Path, default=ROOT / "fixtures" / "world-v1.json")
-    parser.add_argument("--cases", type=Path, default=ROOT / "evals" / "seed-suite.json")
+    parser.add_argument("--fixture", type=Path, default=ROOT / "fixtures" / "world-v2.json")
+    parser.add_argument("--cases", type=Path, default=ROOT / "evals" / "seed-suite-v2.json")
     parser.add_argument("--skip-eval", action="store_true", help="Validate only a candidate fixture's structural contract")
     args = parser.parse_args()
     world = load(args.fixture)

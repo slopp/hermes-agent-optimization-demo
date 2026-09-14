@@ -1,25 +1,17 @@
 # Mock MCP container
 
-This packages the fixture-backed Streamable HTTP adapter for an approved
-deployment environment. The image contains only fictional fixture code and no
-credential, trace, or endpoint configuration.
-
-Build from the repository root:
+The image serves the deterministic world-v2 fixture over authenticated
+Streamable HTTP MCP.
 
 ```bash
-docker build -f deploy/mock-mcp/Dockerfile -t pa-style-mock-mcp:local .
-```
-
-For a local non-public smoke test, inject a disposable token only at runtime:
-
-```bash
+docker build -f deploy/mock-mcp/Dockerfile -t enterprise-world-mcp:local .
+export PA_STYLE_MOCK_MCP_TOKEN="$(openssl rand -hex 24)"
 docker run --rm -p 127.0.0.1:8000:8000 \
-  -e PA_STYLE_MOCK_MCP_TOKEN='<ephemeral-demo-token>' \
-  pa-style-mock-mcp:local
+  -e PA_STYLE_MOCK_MCP_TOKEN="$PA_STYLE_MOCK_MCP_TOKEN" \
+  enterprise-world-mcp:local \
+  --fixture /app/fixtures/world-v2.json
 ```
 
-The image binds cleartext HTTP inside the container. Put it behind approved TLS
-termination and a stable public hostname before managed NemoClaw registration.
-Pass the external endpoint as the adapter's `--issuer-url` and
-`--resource-server-url` arguments, and keep the token in the deployment secret
-manager. Never publish the local port mapping or a token in repository files.
+The container intentionally serves cleartext HTTP on loopback. Put it behind
+HTTPS before registering it with NemoClaw, and load its bearer token through
+the host environment or a secret manager.

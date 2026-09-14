@@ -8,11 +8,10 @@ import json
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pa_style_mock_mcp.insights import atif_to_insights_trace  # noqa: E402
+from pa_style_mock_mcp.insights import atif_to_insights_trace
 
 
 def _files(inputs: list[Path]) -> list[Path]:
@@ -38,7 +37,14 @@ def main() -> int:
         action="store_true",
         help="Use the ATIF file's containing directory as logical_case_id.",
     )
+    parser.add_argument(
+        "--case-id-from-stem",
+        action="store_true",
+        help="Use each ATIF filename before .atif.json as logical_case_id.",
+    )
     args = parser.parse_args()
+    if args.case_id_from_parent and args.case_id_from_stem:
+        parser.error("choose at most one case-ID inference mode")
 
     files = _files(args.inputs)
     if not files:
@@ -47,7 +53,13 @@ def main() -> int:
     seen: set[str] = set()
     for path in files:
         trajectory = json.loads(path.read_text())
-        case_id = path.parent.parent.parent.name if args.case_id_from_parent else None
+        if args.case_id_from_parent:
+            case_id = path.parent.parent.parent.name
+        elif args.case_id_from_stem:
+            suffix = ".atif.json"
+            case_id = path.name[: -len(suffix)] if path.name.endswith(suffix) else path.stem
+        else:
+            case_id = None
         trace = atif_to_insights_trace(trajectory, logical_case_id=case_id)
         if trace["id"] in seen:
             raise ValueError(f"duplicate trace id: {trace['id']}")

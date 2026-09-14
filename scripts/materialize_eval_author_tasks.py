@@ -12,10 +12,8 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TASK_ROOT = ROOT / ".eval-author" / "public-trace-environments"
-WORLD_PATH = ROOT / "fixtures" / "world-v1.json"
+DEFAULT_TASK_ROOT = ROOT / ".eval-author" / "world-v2-trace-environments"
 PYTHON_IMAGE = "python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea"
-WORLD_SHA256 = "00541d1716ac3bb27f956291ca1d2b1cac5222b3739f42f199f53f7e97ec230d"
 
 
 @dataclass(frozen=True)
@@ -109,13 +107,17 @@ def _instruction_from_safe_trace(path: Path) -> str:
     return user_steps[0]["message"].split("\n\nNemoClaw runtime context:", 1)[0].strip()
 
 
-def _candidate(case_id: str, case: Case, digest: str) -> dict[str, Any]:
+def _candidate(
+    case_id: str, case: Case, digest: str, world_path: Path
+) -> dict[str, Any]:
     requirement = f"Produce the requested structured artifact. {case.output_contract}"
+    world_sha256 = hashlib.sha256(world_path.read_bytes()).hexdigest()
+    world_ref = world_path.resolve().relative_to(ROOT.resolve())
     external = {
         "kind": "external",
         "step_ids": [],
-        "uri": "repo://fixtures/world-v1.json",
-        "revision": "sha256:" + WORLD_SHA256,
+        "uri": f"repo://{world_ref}",
+        "revision": "sha256:" + world_sha256,
         "source_id": case_id,
     }
     software = [
@@ -192,9 +194,9 @@ artifacts = []
 [task]
 name = "nvidia-demo/{case_id}"
 version = "1.0.0"
-description = "Offline PA-style enterprise evidence task derived from a Hermes trace."
+description = "Offline enterprise evidence task derived from a Hermes trace."
 authors = [{{ name = "NVIDIA Demo" }}]
-keywords = ["personal-assistant", "enterprise-retrieval", "trace-derived"]
+keywords = ["enterprise-assistant", "enterprise-retrieval", "trace-derived"]
 
 [verifier]
 timeout_sec = 60.0
@@ -242,7 +244,7 @@ The separate verifier parses the declared answer artifact and compares its objec
 
 ## Relevant experience
 
-This draft applies failure patterns observed in Hermes PA-style traces and the fixture contract in this repository. A human maintainer must review this section and the generalized task before publication readiness can be claimed.
+This draft applies failure patterns observed in the reviewed Hermes traces and the fixture contract in this repository. A human maintainer must review this section and the generalized task before publication readiness can be claimed.
 '''
 
 
@@ -294,7 +296,7 @@ class IncompleteSolution(BaseAgent):
 
     @staticmethod
     def name() -> str:
-        return "pa-incomplete-solution"
+        return "incomplete-solution"
 
     def version(self) -> str:
         return "1.0.0"
@@ -309,7 +311,9 @@ class IncompleteSolution(BaseAgent):
 '''
 
 
-def materialize(task_root: Path, case_id: str, *, replace: bool) -> None:
+def materialize(
+    task_root: Path, case_id: str, *, world_path: Path, replace: bool
+) -> None:
     case = CASES[case_id]
     task_dir = task_root / case_id
     safe_trace = task_dir / "safe" / "trace.atif.json"
@@ -330,14 +334,16 @@ def materialize(task_root: Path, case_id: str, *, replace: bool) -> None:
         archive.chmod(0o600)
     ground_truth = task_dir / "private" / "ground-truth" / "expected.json"
     digest = _write_json(ground_truth, case.expected, private=True)
-    _write_json(candidate_path, _candidate(case_id, case, digest), private=True)
+    _write_json(
+        candidate_path, _candidate(case_id, case, digest, world_path), private=True
+    )
 
     instruction = f"{case.instruction}\n\n{case.output_contract}\n"
     _write(task_path / "instruction.md", instruction)
     _write(task_path / "task.toml", _task_toml(case_id))
     _write(task_path / "README.md", _readme(case_id))
     _write(task_path / "environment" / "Dockerfile", f"FROM {PYTHON_IMAGE}\nWORKDIR /workspace\nCOPY world.json /opt/enterprise/world.json\nCOPY enterprise-query /usr/local/bin/enterprise-query\n")
-    shutil.copyfile(WORLD_PATH, task_path / "environment" / "world.json")
+    shutil.copyfile(world_path, task_path / "environment" / "world.json")
     (task_path / "environment" / "world.json").chmod(0o644)
     _write(task_path / "environment" / "enterprise-query", _enterprise_query(), executable=True)
     _write(
@@ -360,12 +366,25 @@ def materialize(task_root: Path, case_id: str, *, replace: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task-root", type=Path, default=DEFAULT_TASK_ROOT)
+    parser.add_argument(
+        "--world", type=Path, default=ROOT / "fixtures" / "world-v2.json"
+    )
     parser.add_argument("--case", action="append", choices=sorted(CASES))
     parser.add_argument("--replace-draft", action="store_true")
     args = parser.parse_args()
+    world_path = args.world.resolve()
+    if not world_path.is_file():
+        parser.error(f"world fixture does not exist: {world_path}")
+    try:
+        world_path.relative_to(ROOT.resolve())
+    except ValueError:
+        parser.error("world fixture must be inside the repository")
     selected = args.case or sorted(CASES)
     for case_id in selected:
-        materialize(args.task_root.resolve(), case_id, replace=args.replace_draft)
+        materialize(
+            args.task_root.resolve(), case_id,
+            world_path=world_path, replace=args.replace_draft,
+        )
         print(case_id)
     return 0
 

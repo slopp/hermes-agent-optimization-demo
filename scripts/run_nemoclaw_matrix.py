@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the PA fidelity matrix through a real NemoClaw/Hermes sandbox."""
+"""Run the enterprise fidelity matrix through a NemoClaw/Hermes sandbox."""
 
 from __future__ import annotations
 
@@ -32,9 +32,9 @@ for session_id in ids:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sandbox", default="pa-flywheel-demo")
+    parser.add_argument("--sandbox", default="hermes-flywheel-demo")
     parser.add_argument("--gateway", default="nemoclaw-18080")
-    parser.add_argument("--matrix", type=Path, default=Path("experiments/fidelity-matrix.json"))
+    parser.add_argument("--matrix", type=Path, default=Path("experiments/fidelity-matrix-v2.json"))
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--scenario", action="append", help="Run only the named scenario; repeatable.")
     parser.add_argument("--arm", choices=["baseline", "candidate"], required=True)
@@ -106,7 +106,13 @@ def main() -> int:
                 command.extend(["--model", args.model])
             if args.provider:
                 command.extend(["--provider", args.provider])
-            completed = subprocess.run(command, text=True, capture_output=True, timeout=args.timeout + 30)
+            completed = subprocess.run(
+                command,
+                text=True,
+                capture_output=True,
+                timeout=args.timeout + 30,
+                check=False,
+            )
             record = {
                 "schema_version": "nemoclaw-matrix-run-v1",
                 "arm": args.arm,

@@ -1,0 +1,642 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0a11d-eff6-7600-9b2e-26e3c1222584",
+  "trajectory_id": "01a0a11d-eff6-7600-9b2e-26e3c1222584",
+  "agent": {
+    "name": "Hermes-PA-style-mock",
+    "version": "nemoclaw-baseline-v1",
+    "model_name": "nvidia/nvidia/nemotron-3-ultra"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 259584,
+    "total_completion_tokens": 1022,
+    "total_steps": 28
+  },
+  "extra": {
+    "turn_outcome": "success",
+    "normalization": {
+      "source_format": "ATOF",
+      "source_turn_id": "01a0a11d-eff6-7600-9b2e-26e3c1222584",
+      "uncertainties": [
+        "Hermes 0.20.6 emitted no session-end event, so Relay 0.7.2 did not flush native ATIF."
+      ],
+      "losses": [
+        "ATOF scope nesting is flattened into sequential ATIF agent steps.",
+        "Non-fixture tool inputs and outputs were removed at the public-data boundary."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-14T18:11:28.886037055+00:00",
+      "source": "user",
+      "message": "What did Security say about the launch blocker?\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3.5-lightning-30b-a3b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-14T18:11:31.244040750+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-9b1c67eef34b44bfbfad440d38a38e37",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-9b1c67eef34b44bfbfad440d38a38e37",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-14T18:11:32.563761709+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-517bcca26f7b47e291f3227aaf34b224",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-517bcca26f7b47e291f3227aaf34b224",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-14T18:11:33.864861876+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-5138d0944d3a43ce8db141ebf7fc38f0",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-5138d0944d3a43ce8db141ebf7fc38f0",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-14T18:11:35.107216377+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-b3659244b5324b29824281401a70e9cd",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-b3659244b5324b29824281401a70e9cd",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-14T18:11:36.436204461+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-a4580147f0884a9293eb802376f17671",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-a4580147f0884a9293eb802376f17671",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-14T18:11:38.825313212+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-c81eed1fd50441509dd25d76edf5ee84",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-c81eed1fd50441509dd25d76edf5ee84",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-14T18:11:40.241704838+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-7495ef694db24dbd8e277f07e54b5290",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-7495ef694db24dbd8e277f07e54b5290",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-14T18:11:41.941106339+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-5796bb73e49c4b35aea84047a5b39279",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-5796bb73e49c4b35aea84047a5b39279",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-14T18:11:42.774867631+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-51e1faa6562840a1ae97bfa32a5e1411",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-51e1faa6562840a1ae97bfa32a5e1411",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-14T18:11:44.106396006+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-93de46b3dca244eeabc186d5caa24f70",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-93de46b3dca244eeabc186d5caa24f70",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-14T18:11:45.094673048+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-a05868f1c3204b30ab7289393e0ccc91",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-a05868f1c3204b30ab7289393e0ccc91",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-14T18:11:48.377138050+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-5aa2e7f26a44478ea2e56221b26fbf3f",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-5aa2e7f26a44478ea2e56221b26fbf3f",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-14T18:11:50.797978676+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ca00a3ebe2ab491399676a14c8d430cc",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ca00a3ebe2ab491399676a14c8d430cc",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-14T18:11:53.116230719+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-43d3b8ee1b8f4df789813d72476ddb0f",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-43d3b8ee1b8f4df789813d72476ddb0f",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-14T18:11:55.275255137+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-2d8676e409ed4115a637569f4e0af68a",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-2d8676e409ed4115a637569f4e0af68a",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-14T18:11:57.481217263+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-8869489ff07149ae83f74ece6222781d",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-8869489ff07149ae83f74ece6222781d",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-14T18:12:00.082494458+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-4a525c479e3a4f21bd54c6f4542568d0",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-4a525c479e3a4f21bd54c6f4542568d0",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-14T18:12:03.061996459+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-83880cee80364b57a2e0fda2223c3b3d",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-83880cee80364b57a2e0fda2223c3b3d",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-14T18:12:08.649158837+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-0335f33b56ca4abdb2e7d424850ec876",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-0335f33b56ca4abdb2e7d424850ec876",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-14T18:12:11.973704672+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ea5475f7a5a048e3a200e6eaaea9723e",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ea5475f7a5a048e3a200e6eaaea9723e",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-14T18:12:17.932772633+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ad686dad88d2432c89992cf9fc5106a7",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ad686dad88d2432c89992cf9fc5106a7",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-14T18:12:21.426636093+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-f8b86dd49e1c423b8328c3c89f7561f8",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-f8b86dd49e1c423b8328c3c89f7561f8",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-09-14T18:12:25.510120553+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-6bff08820c0444f18c20f1b350bd917b",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-6bff08820c0444f18c20f1b350bd917b",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 25,
+      "timestamp": "2026-09-14T18:12:29.859621208+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-cb70a181e78f480aa17209bea48f3aee",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-cb70a181e78f480aa17209bea48f3aee",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 26,
+      "timestamp": "2026-09-14T18:12:33.846357085+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-8c89a1ba44164a1baee422a361ae57ef",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-8c89a1ba44164a1baee422a361ae57ef",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 27,
+      "timestamp": "2026-09-14T18:12:41.404109047+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-5bcf4e883ea34baaa6ea35b03843f533",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-5bcf4e883ea34baaa6ea35b03843f533",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 28,
+      "timestamp": "2026-09-14T18:12:46.905064299+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nvidia/nemotron-3-ultra",
+      "message": "Based on my exhaustive search through all available trajectory files, session logs, and enterprise connectors in the sandbox, here's the answer:\n\n## What Security Said About the Launch Blocker\n\n**The Security team has not communicated anything about a launch blocker in any recorded session, log, or trace available in this sandbox.**\n\n### Evidence\n\nThe question **\"What did Security say about the launch blocker?\"** appears **29 times** in the atof events — but **every single occurrence is a user asking the question**, never an answer from Security.\n\nSession searches were run across:\n- `20260911_235929_4c609d` (\"Identify launch blockers and schedule review\", 23 messages)\n- `api-730ecc28ec1f6408` (\"What is blocking launch readiness, and when is…\", 63 messages)\n- `20260912_000211_1d5a9b` (\"Find Security feedback on launch blocker\", 35 messages)\n- `20260912_000711_43935c` (\"Find chat context for network incident\", 205+ messages)\n\nAll show the same pattern: the question gets asked repeatedly, searches are run, but **no Security team communication about a launch blocker is ever found** in the logs, sessions, or enterprise connectors (MCP server `pa-style-enterprise` returning 403 Forbidden).\n\n### What's Actually in the System Logs\n\nThe only \"security\" references in actual system logs are technical failures:\n1. **`tirith_security` tool failing to spawn** — missing binary (`tirith`), circuit breaker opened after 3 consecutive failures, disabling security scanning for the entire process\n2. **SQLite WAL-reset corruption warnings** — not Security team related\n3. **MCP server connection failures** — 403 Forbidden on `pa-style-enterprise`\n\n### The Real Launch Blockers (from the evidence register)\n\nThe \"launch evidence register\" knowledge base entry (`kb_launch_checklist`) states:\n> *\"Launch requires product approval, security evidence, and an approved change record.\"*\n\nThe missing **Security artifact** is the `tirith_security` analysis tool — the security review tool itself is not installed, so no security evidence can be generated. This is the primary **technical** Security blocker, but it's a tooling gap, not a Security team decision or communication."
+    }
+  ]
+}

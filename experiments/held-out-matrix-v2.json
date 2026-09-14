@@ -1,0 +1,26 @@
+{
+  "purpose": "World-v2 paraphrases frozen before candidate measurement.",
+  "fixture": "fixtures/world-v2.json",
+  "scenarios": [
+    {
+      "id": "held-out-launch-summary",
+      "prompt": "Summarize the current launch blocker and give me the scheduled readiness-review time.",
+      "signals": ["chat.search", "chat.read_thread", "calendar.list_events"]
+    },
+    {
+      "id": "held-out-security-timing",
+      "prompt": "After the missing packet is attached, how quickly can Security approve the launch?",
+      "signals": ["chat.search", "chat.read_thread"]
+    },
+    {
+      "id": "held-out-crm-status",
+      "prompt": "Is the CRM connector ready to use right now?",
+      "signals": ["connectors.get_status"]
+    },
+    {
+      "id": "held-out-security-owner",
+      "prompt": "Use the current Q3 launch evidence register to identify the owner of the missing Security artifact.",
+      "signals": ["files.search", "files.read_json"]
+    }
+  ]
+}

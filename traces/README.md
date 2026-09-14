@@ -1,29 +1,26 @@
 # Checked-in trace bundle
 
-`baseline/` contains six real Hermes traces collected in a NemoClaw-managed
-OpenShell sandbox against `fixtures/world-v1.json`.
+`world-v2/baseline/` contains one Hermes baseline trace for each of the six
+development tasks. They were collected in a NemoClaw-managed OpenShell sandbox
+against `fixtures/world-v2.json`.
 
-Relay 0.7.2 emitted complete ATOF turns but did not flush native ATIF because
-Hermes 0.20.6 emitted no session-end event. The repository converted those
-completed turns to ATIF-v1.7. Every trajectory records that structural loss.
-For the public-data boundary, inputs and outputs from non-fixture tools were
-replaced with explicit redaction markers; tool names and ordering remain so
-the irrelevant-exploration pattern is still analyzable.
+Relay emitted complete ATOF turn scopes. The checked-in ATIF-v1.7 files were
+normalized from those scopes because the tested integration did not emit the
+session-end event required for Relay's native ATIF snapshot. Each trajectory
+records that loss, and non-fixture tool payloads were replaced with explicit
+redaction markers.
 
-`manifest.json` hash-locks the fixture, six traces, and run provenance.
-`eval-author-batch.json` is the tested local Eval Author input. Its six members
-were promoted from prepared traces to technically proven Harbor candidates; the
-exact declassified products are in `evals/eval-author-products-v1`.
-
-The manifest remains `pending`. Automated scans found no credential literals,
-host-user paths, or non-fictional identities, and Eval Author's agent contextual
-privacy review completed for all six traces. A human must still review the exact
-publication preview before this directory is released externally; after that,
-set the manifest review to approved/complete and rerun:
+`world-v2/manifest.json` hash-locks the fixture, traces, and provenance.
+`world-v2/eval-author-batch.json` is the matching Eval Author input.
 
 ```bash
-python3 scripts/validate_trace_manifest.py traces/manifest.json
+python3 scripts/validate_trace_manifest.py traces/world-v2/manifest.json
 ```
 
-No Personal Assistant query, identity, transcript, or production tool payload
-is included here.
+Automated and contextual reviews found only fictional fixture content and
+explicit redactions. The manifest remains pending until a human completes the
+publication review.
+
+For a future Relay version that emits native ATIF at session close, use
+`scripts/convert_atif_for_insights.py` directly instead of normalizing ATOF.
+For this bundle's filenames, pass `--case-id-from-stem`.

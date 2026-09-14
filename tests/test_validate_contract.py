@@ -1,14 +1,13 @@
 import json
 import unittest
-from pathlib import Path
 
 from scripts.validate_contract import ROOT, validate, validate_world
 
 
 class ValidateContractTest(unittest.TestCase):
     def test_checked_in_contract_is_valid(self) -> None:
-        world = json.loads((ROOT / "fixtures" / "world-v1.json").read_text())
-        cases = json.loads((ROOT / "evals" / "seed-suite.json").read_text())
+        world = json.loads((ROOT / "fixtures" / "world-v2.json").read_text())
+        cases = json.loads((ROOT / "evals" / "seed-suite-v2.json").read_text())
         self.assertEqual(validate(world, cases), [])
 
     def test_unknown_eval_tool_is_rejected(self) -> None:

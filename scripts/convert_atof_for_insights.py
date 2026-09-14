@@ -8,11 +8,11 @@ import json
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pa_style_mock_mcp.insights import atof_events_to_insights_traces  # noqa: E402
+from pa_style_mock_mcp.insights import atof_events_to_insights_traces
+from pa_style_mock_mcp.jsonl import read_relay_jsonl
 
 
 def main() -> int:
@@ -22,7 +22,7 @@ def main() -> int:
     parser.add_argument("--matrix", type=Path)
     args = parser.parse_args()
 
-    events = [json.loads(line) for line in args.atof.read_text().splitlines() if line.strip()]
+    events, recovered_lines = read_relay_jsonl(args.atof)
     prompt_case_ids = None
     case_required_signals = None
     if args.matrix:
@@ -40,6 +40,8 @@ def main() -> int:
         raise SystemExit("no completed hermes.turn scopes found")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text("".join(json.dumps(trace, separators=(",", ":")) + "\n" for trace in traces))
+    if recovered_lines:
+        print(f"Recovered complete records after interrupted writes on lines {recovered_lines}")
     print(f"Converted {len(traces)} completed Hermes turns to {args.output}")
     return 0
 

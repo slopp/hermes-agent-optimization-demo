@@ -1,0 +1,712 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0a120-c0cc-72f2-9f5c-2969f8024c6c",
+  "trajectory_id": "01a0a120-c0cc-72f2-9f5c-2969f8024c6c",
+  "agent": {
+    "name": "Hermes-PA-style-mock",
+    "version": "nemoclaw-baseline-v1",
+    "model_name": "nvidia/nvidia/nemotron-3-ultra"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 187761,
+    "total_completion_tokens": 399,
+    "total_steps": 31
+  },
+  "extra": {
+    "turn_outcome": "success",
+    "normalization": {
+      "source_format": "ATOF",
+      "source_turn_id": "01a0a120-c0cc-72f2-9f5c-2969f8024c6c",
+      "uncertainties": [
+        "Hermes 0.20.6 emitted no session-end event, so Relay 0.7.2 did not flush native ATIF."
+      ],
+      "losses": [
+        "ATOF scope nesting is flattened into sequential ATIF agent steps.",
+        "Non-fixture tool inputs and outputs were removed at the public-data boundary."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-14T18:14:33.420364835+00:00",
+      "source": "user",
+      "message": "In the launch evidence register, what is the current Security evidence status and who owns it?\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3.5-lightning-30b-a3b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-14T18:14:35.119965919+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-d2b318e232b841a4bff2270c1c765124",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-d2b318e232b841a4bff2270c1c765124",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-14T18:14:36.434930794+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-42dc0a878f394faca4dc7e4c50fb1a8e",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-42dc0a878f394faca4dc7e4c50fb1a8e",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-14T18:14:38.553270337+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-4b3723eadf6d4d91896dfc716fd547b4",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-4b3723eadf6d4d91896dfc716fd547b4",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-14T18:14:40.495303921+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-0f46197e962141c6aa41db4e40d24eac",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "Security evidence status"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-0f46197e962141c6aa41db4e40d24eac",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-14T18:14:43.038842797+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-af35846beace4b008a8f57ade2f58753",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "launch evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-af35846beace4b008a8f57ade2f58753",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T17:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_atlas_000\", \"title\": \"Atlas launch checklist revision 0\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-01T09:00:00Z\"}, {\"id\": \"kb_beacon_001\", \"title\": \"Beacon launch checklist revision 1\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-02T10:00:00Z\"}, {\"id\": \"kb_cedar_002\", \"title\": \"Cedar launch checklist revision 2\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-03T11:00:00Z\"}, {\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_ember_004\", \"title\": \"Ember launch checklist revision 4\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-05T13:00:00Z\"}, {\"id\": \"kb_fjord_005\", \"title\": \"Fjord launch checklist revision 0\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-06T14:00:00Z\"}, {\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}, {\"id\": \"kb_grove_006\", \"title\": \"Grove launch checklist revision 1\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-07T15:00:00Z\"}, {\"id\": \"kb_harbor_007\", \"title\": \"Harbor launch checklist revision 2\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-08T16:00:00Z\"}, {\"id\": \"kb_ion_008\", \"title\": \"Ion launch checklist revision 3\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-09T17:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 45, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-14T18:14:44.995704090+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-7160f4aa9bdf4cdeabb0fb4a224d856a",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "Security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-7160f4aa9bdf4cdeabb0fb4a224d856a",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 1,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 1, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-14T18:14:47.839861091+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-fc6d38e785f24075a0bbe9c5db4506dc",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-fc6d38e785f24075a0bbe9c5db4506dc",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-14T18:14:49.839336342+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-3b86f090cf834e7290c522ef10ea61ae",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "owner security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-3b86f090cf834e7290c522ef10ea61ae",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-14T18:14:54.158485553+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-c07ebdcc64c24b41a715b0ed371ac89f",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-c07ebdcc64c24b41a715b0ed371ac89f",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-14T18:14:56.218113845+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-df2ee2b3b1a540398ecf63b3d2c061c1",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-df2ee2b3b1a540398ecf63b3d2c061c1",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T17:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_atlas_000\", \"title\": \"Atlas launch checklist revision 0\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-01T09:00:00Z\"}, {\"id\": \"kb_beacon_001\", \"title\": \"Beacon launch checklist revision 1\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-02T10:00:00Z\"}, {\"id\": \"kb_cedar_002\", \"title\": \"Cedar launch checklist revision 2\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-03T11:00:00Z\"}, {\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_ember_004\", \"title\": \"Ember launch checklist revision 4\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-05T13:00:00Z\"}, {\"id\": \"kb_fjord_005\", \"title\": \"Fjord launch checklist revision 0\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-06T14:00:00Z\"}, {\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}, {\"id\": \"kb_grove_006\", \"title\": \"Grove launch checklist revision 1\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-07T15:00:00Z\"}, {\"id\": \"kb_harbor_007\", \"title\": \"Harbor launch checklist revision 2\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-08T16:00:00Z\"}, {\"id\": \"kb_ion_008\", \"title\": \"Ion launch checklist revision 3\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-09T17:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 45, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-14T18:14:58.226260596+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-1fc9f8a42f2144978d4eaaf1025f0be2",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "page": 2,
+            "query": "evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-1fc9f8a42f2144978d4eaaf1025f0be2",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_juniper_009\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-10T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_010\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-11T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_011\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-12T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_mesa_012\\\",\\n      \\\"title\\\": \\\"Mesa launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-13T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_nimbus_013\\\",\\n      \\\"title\\\": \\\"Nimbus launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-14T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_orchid_014\\\",\\n      \\\"title\\\": \\\"Orchid launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-15T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_pioneer_015\\\",\\n      \\\"title\\\": \\\"Pioneer launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-16T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_atlas_016\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-17T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_017\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-18T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_018\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-19T09:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 2,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_juniper_009\", \"title\": \"Juniper launch checklist revision 4\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-10T09:00:00Z\"}, {\"id\": \"kb_keystone_010\", \"title\": \"Keystone launch checklist revision 0\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-11T10:00:00Z\"}, {\"id\": \"kb_lumen_011\", \"title\": \"Lumen launch checklist revision 1\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-12T11:00:00Z\"}, {\"id\": \"kb_mesa_012\", \"title\": \"Mesa launch checklist revision 2\", \"body\": \"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-13T12:00:00Z\"}, {\"id\": \"kb_nimbus_013\", \"title\": \"Nimbus launch checklist revision 3\", \"body\": \"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-14T13:00:00Z\"}, {\"id\": \"kb_orchid_014\", \"title\": \"Orchid launch checklist revision 4\", \"body\": \"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-15T14:00:00Z\"}, {\"id\": \"kb_pioneer_015\", \"title\": \"Pioneer launch checklist revision 0\", \"body\": \"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-16T15:00:00Z\"}, {\"id\": \"kb_atlas_016\", \"title\": \"Atlas launch checklist revision 1\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-17T16:00:00Z\"}, {\"id\": \"kb_beacon_017\", \"title\": \"Beacon launch checklist revision 2\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-18T17:00:00Z\"}, {\"id\": \"kb_cedar_018\", \"title\": \"Cedar launch checklist revision 3\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-19T09:00:00Z\"}], \"pagination\": {\"page\": 2, \"page_size\": 10, \"total_items\": 45, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-14T18:14:59.910691458+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ac96b5c8fe0e46408e6c366bfb9953ea",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "security evidence owner"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ac96b5c8fe0e46408e6c366bfb9953ea",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-14T18:15:02.298673751+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-40a8e2d53d4b4f069e73fb595e9f7d2c",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-40a8e2d53d4b4f069e73fb595e9f7d2c",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-14T18:15:04.863928335+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-182021ea1eec401399b7e96e17447df9",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-182021ea1eec401399b7e96e17447df9",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-14T18:15:06.998529920+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-5d8e6db820474b059d5024504a7d45a6",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-5d8e6db820474b059d5024504a7d45a6",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-14T18:15:12.148204214+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-51bdd95aeb6e4509b572e2b74d0fb3cb",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register security evidence owner"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-51bdd95aeb6e4509b572e2b74d0fb3cb",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-14T18:15:14.556099215+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-4e2a9c52610d4203be3f5075b84dbdf2",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "security evidence register owner"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-4e2a9c52610d4203be3f5075b84dbdf2",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-14T18:15:19.963822801+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-51aaaf1c683f417382ede99264b7bd7c",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-51aaaf1c683f417382ede99264b7bd7c",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-14T18:15:21.614160010+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-4175fe18b1fd476bb0e849be21307492",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-4175fe18b1fd476bb0e849be21307492",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-14T18:15:24.830224511+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-41a93f65827546cabd90736afe0ed8a2",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-41a93f65827546cabd90736afe0ed8a2",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-14T18:15:27.102235804+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-6655c7f22ffe43568e38f6a73942fb23",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-6655c7f22ffe43568e38f6a73942fb23",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-14T18:15:29.842157430+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-897037420d6248dbabce60b56daacaf8",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-897037420d6248dbabce60b56daacaf8",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-09-14T18:15:32.311594542+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-fe9ce64fdee440bc8886451de4ee5fc5",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "calendar launch readiness"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-fe9ce64fdee440bc8886451de4ee5fc5",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 25,
+      "timestamp": "2026-09-14T18:15:35.411020752+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-b0dfefc535ba43cd92a7c708a688339f",
+          "function_name": "tool_call",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-b0dfefc535ba43cd92a7c708a688339f",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 26,
+      "timestamp": "2026-09-14T18:15:37.937614670+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-7a035db1a5ed4d208383074f3eaf1b19",
+          "function_name": "mcp__pa_style_enterprise__calendar_list_events",
+          "arguments": {
+            "query": "launch readiness"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-7a035db1a5ed4d208383074f3eaf1b19",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"cal_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-01T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"avery.brooks.000@example.test\\\",\\n        \\\"gray.brooks.006@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-02T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"blake.brooks.001@example.test\\\",\\n        \\\"harper.brooks.007@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-03T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"ava.patel@example.test\\\",\\n        \\\"indigo.brooks.008@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-04T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"casey.brooks.002@example.test\\\",\\n        \\\"jordan.lee.security@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-05T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"devon.brooks.003@example.test\\\",\\n        \\\"kai.brooks.010@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-06T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"emery.brooks.004@example.test\\\",\\n        \\\"logan.brooks.011@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_launch_review\\\",\\n      \\\"title\\\": \\\"Launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-09-02T16:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"ava.patel@example.test\\\",\\n        \\\"mina.ortiz@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-07T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"finley.brooks.005@example.test\\\",\\n        \\\"morgan.brooks.012@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-08T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"gray.brooks.006@example.test\\\",\\n        \\\"noor.brooks.013@example.test\\\"\\n      ]\\n    },\\n    {\\n      \\\"id\\\": \\\"cal_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch readiness review\\\",\\n      \\\"starts_at\\\": \\\"2026-08-09T15:00:00Z\\\",\\n      \\\"attendees\\\": [\\n        \\\"harper.brooks.007@example.test\\\",\\n        \\\"parker.brooks.014@example.test\\\"\\n      ]\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 50,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"cal_atlas_000\", \"title\": \"Atlas launch readiness review\", \"starts_at\": \"2026-08-01T15:00:00Z\", \"attendees\": [\"avery.brooks.000@example.test\", \"gray.brooks.006@example.test\"]}, {\"id\": \"cal_beacon_001\", \"title\": \"Beacon launch readiness review\", \"starts_at\": \"2026-08-02T15:00:00Z\", \"attendees\": [\"blake.brooks.001@example.test\", \"harper.brooks.007@example.test\"]}, {\"id\": \"cal_cedar_002\", \"title\": \"Cedar launch readiness review\", \"starts_at\": \"2026-08-03T15:00:00Z\", \"attendees\": [\"ava.patel@example.test\", \"indigo.brooks.008@example.test\"]}, {\"id\": \"cal_delta_003\", \"title\": \"Delta launch readiness review\", \"starts_at\": \"2026-08-04T15:00:00Z\", \"attendees\": [\"casey.brooks.002@example.test\", \"jordan.lee.security@example.test\"]}, {\"id\": \"cal_ember_004\", \"title\": \"Ember launch readiness review\", \"starts_at\": \"2026-08-05T15:00:00Z\", \"attendees\": [\"devon.brooks.003@example.test\", \"kai.brooks.010@example.test\"]}, {\"id\": \"cal_fjord_005\", \"title\": \"Fjord launch readiness review\", \"starts_at\": \"2026-08-06T15:00:00Z\", \"attendees\": [\"emery.brooks.004@example.test\", \"logan.brooks.011@example.test\"]}, {\"id\": \"cal_launch_review\", \"title\": \"Launch readiness review\", \"starts_at\": \"2026-09-02T16:00:00Z\", \"attendees\": [\"ava.patel@example.test\", \"mina.ortiz@example.test\"]}, {\"id\": \"cal_grove_006\", \"title\": \"Grove launch readiness review\", \"starts_at\": \"2026-08-07T15:00:00Z\", \"attendees\": [\"finley.brooks.005@example.test\", \"morgan.brooks.012@example.test\"]}, {\"id\": \"cal_harbor_007\", \"title\": \"Harbor launch readiness review\", \"starts_at\": \"2026-08-08T15:00:00Z\", \"attendees\": [\"gray.brooks.006@example.test\", \"noor.brooks.013@example.test\"]}, {\"id\": \"cal_ion_008\", \"title\": \"Ion launch readiness review\", \"starts_at\": \"2026-08-09T15:00:00Z\", \"attendees\": [\"harper.brooks.007@example.test\", \"parker.brooks.014@example.test\"]}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 50, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 27,
+      "timestamp": "2026-09-14T18:15:42.829913506+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-7addbf5b60eb40ab8212b072863e0977",
+          "function_name": "mcp__pa_style_enterprise__people_search",
+          "arguments": {
+            "query": "security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-7addbf5b60eb40ab8212b072863e0977",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"person_1001\\\",\\n      \\\"name\\\": \\\"Blake Brooks\\\",\\n      \\\"email\\\": \\\"blake.brooks.001@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1009\\\",\\n      \\\"name\\\": \\\"Jordan Lee\\\",\\n      \\\"email\\\": \\\"jordan.lee.security@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1017\\\",\\n      \\\"name\\\": \\\"Blake Diaz\\\",\\n      \\\"email\\\": \\\"blake.diaz.017@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1025\\\",\\n      \\\"name\\\": \\\"Jordan Diaz\\\",\\n      \\\"email\\\": \\\"jordan.diaz.025@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1033\\\",\\n      \\\"name\\\": \\\"Blake Evans\\\",\\n      \\\"email\\\": \\\"blake.evans.033@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_mina\\\",\\n      \\\"name\\\": \\\"Mina Ortiz\\\",\\n      \\\"email\\\": \\\"mina.ortiz@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1049\\\",\\n      \\\"name\\\": \\\"Blake Foster\\\",\\n      \\\"email\\\": \\\"blake.foster.049@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"person_1065\\\",\\n      \\\"name\\\": \\\"Blake Gupta\\\",\\n      \\\"email\\\": \\\"blake.gupta.065@example.test\\\",\\n      \\\"team\\\": \\\"Security\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 8,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"person_1001\", \"name\": \"Blake Brooks\", \"email\": \"blake.brooks.001@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1009\", \"name\": \"Jordan Lee\", \"email\": \"jordan.lee.security@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1017\", \"name\": \"Blake Diaz\", \"email\": \"blake.diaz.017@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1025\", \"name\": \"Jordan Diaz\", \"email\": \"jordan.diaz.025@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1033\", \"name\": \"Blake Evans\", \"email\": \"blake.evans.033@example.test\", \"team\": \"Security\"}, {\"id\": \"person_mina\", \"name\": \"Mina Ortiz\", \"email\": \"mina.ortiz@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1049\", \"name\": \"Blake Foster\", \"email\": \"blake.foster.049@example.test\", \"team\": \"Security\"}, {\"id\": \"person_1065\", \"name\": \"Blake Gupta\", \"email\": \"blake.gupta.065@example.test\", \"team\": \"Security\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 8, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 28,
+      "timestamp": "2026-09-14T18:15:46.047155924+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ec804ce0cc5543ceb53fbe722996eab3",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "evidence owner security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ec804ce0cc5543ceb53fbe722996eab3",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 29,
+      "timestamp": "2026-09-14T18:15:48.379209508+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-66024a5dff3e42768d0dbffeb1b0978f",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "Delta launch checklist"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-66024a5dff3e42768d0dbffeb1b0978f",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_019\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-20T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_035\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-05T17:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 3,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_delta_019\", \"title\": \"Delta launch checklist revision 4\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-20T10:00:00Z\"}, {\"id\": \"kb_delta_035\", \"title\": \"Delta launch checklist revision 0\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-05T17:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 3, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 30,
+      "timestamp": "2026-09-14T18:15:50.190180343+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-2ae94d92b3a84a76a763c5f1d643a581",
+          "function_name": "mcp__pa_style_enterprise__knowledge_search",
+          "arguments": {
+            "query": "evidence register owner security Jordan"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-2ae94d92b3a84a76a763c5f1d643a581",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 31,
+      "timestamp": "2026-09-14T18:15:56.561851471+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nvidia/nemotron-3-ultra",
+      "message": "Based on my investigation of the PA-style-enterprise knowledge base, calendar, and people directory, here's what I found:\n\n## Current Security Evidence Status\n\n**The launch evidence register could not be located** in the knowledge base, calendar, or filesystem. The register was described as \"the artifact that would identify the owner of the missing Security artifact\" but it appears to be missing from the system.\n\n## Who Owns the Security Evidence\n\nFrom the available data, **Jordan Lee (jordan.lee.security@example.test)** from the **Security team** is the most likely owner, based on:\n\n1. **Calendar evidence**: Jordan Lee is listed as an attendee for the **Delta launch readiness review** (scheduled for 2026-08-04T15:00:00Z)\n2. **Team affiliation**: Jordan Lee is explicitly on the **Security team** (confirmed via people search)\n3. **Launch readiness review**: The main \"Launch readiness review\" is scheduled for **2026-09-02T16:00:00Z** with attendees Ava Patel and Mina Ortiz (Mina Ortiz is also on the Security team)\n\n## Launch Blocker Context\n\nPer the **Launch Checklist** (kb_launch_checklist), launch requires three things:\n1. **Product approval**\n2. **Security evidence** ← *this is the primary missing artifact*\n3. **An approved change record**\n\nThe Security evidence artifact is specifically missing, and without the launch evidence register, the system cannot definitively identify its owner from a documented register. However, Jordan Lee from the Security team is the Security representative attending the Delta launch readiness review, making them the most probable owner."
+    }
+  ]
+}

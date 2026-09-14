@@ -110,7 +110,7 @@ async def main() -> int:
         process.terminate()
         try:
             await asyncio.wait_for(process.wait(), timeout=5)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
     print("Streamable HTTP protocol check passed: unauthorized=401, authenticated_initialize=true, tools_list=true, tool_call=true")

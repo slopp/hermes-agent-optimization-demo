@@ -1,0 +1,79 @@
+{
+  "candidate_evidence_steps": [
+    1
+  ],
+  "environment": {
+    "isolation_status": "isolated",
+    "review_status": "unreviewed",
+    "status": "unproven",
+    "technical_status": "passed",
+    "verifier_environment_mode": "separate"
+  },
+  "ground_truth": {
+    "artifact_count": 1,
+    "availability": "available",
+    "use": "verification"
+  },
+  "privacy": {
+    "contextual_review_complete": true,
+    "images_omitted": 0,
+    "redaction_count": 133,
+    "reviewer_kind": "agent"
+  },
+  "reason_codes": [],
+  "reproducibility": {
+    "agent_network_mode": "no-network",
+    "contamination_passed": true,
+    "dependency_closure": "unverified",
+    "file_count": 10,
+    "portability_state": "image_pinned_recipe",
+    "source_revision": null,
+    "task_tree_sha256": "sha256:802414414eb345ed42e8dcf5379529e28ca2e88adc822f4d02118020d91980f1",
+    "total_bytes": 232673
+  },
+  "schema": "nemo.eval_author.trace_environment_product.v3",
+  "status": "candidate",
+  "task_id": "bounded-retry",
+  "technical_validation": {
+    "container_freshness": "unverified",
+    "distinct_jobs": true,
+    "harbor_version": "0.22.0",
+    "minimum_runs": {
+      "negative": 1,
+      "nop": 2,
+      "oracle": 2
+    },
+    "passed": true,
+    "runs": {
+      "negative": [
+        {
+          "exception_present": false,
+          "reward": 0.0
+        }
+      ],
+      "nop": [
+        {
+          "exception_present": false,
+          "reward": 0.0
+        },
+        {
+          "exception_present": false,
+          "reward": 0.0
+        }
+      ],
+      "oracle": [
+        {
+          "exception_present": false,
+          "reward": 1.0
+        },
+        {
+          "exception_present": false,
+          "reward": 1.0
+        }
+      ]
+    },
+    "task_checksum": "85ced3f7843639ad33262e404bd08e9877a01c12e71b89f46c5547b0fe1dd89f",
+    "task_tree_sha256": "sha256:802414414eb345ed42e8dcf5379529e28ca2e88adc822f4d02118020d91980f1",
+    "verifier_environment_mode": "separate"
+  }
+}

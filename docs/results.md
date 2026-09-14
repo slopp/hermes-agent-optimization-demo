@@ -1,73 +1,62 @@
 # Measured optimization result
 
-This repository has completed one real end-to-end optimization cycle. Hermes
-ran inside a NemoClaw-managed OpenShell sandbox against the fixture-backed mock
-MCP. Relay emitted ATOF; the repository converted completed turns to ATIF with
-explicit normalization-loss metadata. Eval Author prepared and privacy-scanned
-the six selected baseline traces, then produced six portable Harbor candidates.
-Each candidate passed two Oracle, two NOP, and one negative-control run with a
-separate no-network verifier. Standalone Insights analyzed the final 60-trace
-development-plus-held-out corpus.
+Hermes 0.20.6 ran in a NemoClaw-managed OpenShell sandbox against the
+deterministic 504-record world-v2 MCP. Relay captured the runs, Eval Author
+proved six portable tasks, and standalone Insights analyzed the combined
+60-trace development and held-out corpus.
 
-## Held-out result (primary claim)
+## Primary held-out result
 
-| Arm | Pass rate | Trajectory | Answer | Mean tool calls | Command timeouts |
-|---|---:|---:|---:|---:|---:|
-| Broad baseline | 25.0% (3/12) | 25.0% | 33.3% | 20.4 | 1 |
-| Candidate v3 | 91.7% (11/12) | 91.7% | 100% | 6.0 | 0 |
+| Arm | Pass | Trajectory | Answer | Mean calls | Timeouts |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Broad baseline | 41.7% (5/12) | 50.0% | 58.3% | 11.75 | 0 |
+| Candidate v4 | 91.7% (11/12) | 91.7% | 91.7% | 4.58 | 0 |
 
-The candidate reduced mean tool calls by 70.6% and improved held-out pass rate
-by 66.7 percentage points. The single candidate miss answered with the correct
-owner but did not use the required file-search/read trajectory, so it correctly
-failed the trajectory contract.
+That is a 50-point pass-rate gain and about 61% fewer tool calls. Development
+improved from 16.7% (3/18) at 22.39 calls to 100% (18/18) at 3.5 calls.
 
-## Development result
-
-Candidate v3 passed 17/18 development runs (94.4%) at 7.7 calls on average.
-The clean baseline slice passed 3/10 (30.0%) at 24.3 calls. Eight of 18 baseline
-turns ended after provider throttling and were excluded from that clean quality
-slice; recovered transient provider errors remain recorded. Because the slice
-sizes differ, use the fully valid held-out comparison above as the headline.
+Candidate v3 was an intentionally retained intermediate: 66.7% development and
+83.3% held-out. World-v2 revealed that its general evidence policy still
+enumerated sources and guessed structured-read arguments. Those failures led
+to v4's exact source transitions and schema-first JSON read.
 
 ## What changed
 
-The fix was a harness change, not a model or fixture change:
+Only the harness changed:
 
-- an enterprise-first plan/retrieve/verify phase policy;
-- schema-first calls and canonical connector IDs;
-- search-then-read and bounded JSON inspection;
-- one identical retry for a transient error;
-- prepare-without-send approval behavior;
-- per-platform downsampling of irrelevant local/web/code/session tools; and
-- a bounded 16-turn runtime with a 12-tool policy budget.
+- route each claim to its natural enterprise source and stop when covered;
+- treat search hits as metadata, then read the selected thread;
+- inspect optional arguments from the schema;
+- locate a structured file, then read only `/evidence`;
+- retry the identical transient chat call once, then use one support fallback;
+- prepare requested messages without sending;
+- disable irrelevant local, web, code, and session toolsets; and
+- cap the policy at eight calls and the runtime at 12 turns.
 
-These patterns were selected after the broad traces showed local/session
-exploration, missed evidence sources, unbounded retry behavior, and large
-structured-result inspection.
+The single v4 held-out miss exceeded the intended path on a security-timing
+question and never completed the required read.
 
-## Insights findings and limitations
+## Insights and Eval Author evidence
 
-On the final 60 traces, deterministic Insights found 25 recurring `missing
-required enterprise evidence` verdicts, eight trajectory clusters, and two
-large/long outliers. It separated local/session-heavy trajectories from the
-enterprise-tool paths.
+The 60 traces contained 662 tool calls across 10 logical cases. Deterministic
+Insights produced 21 missing-enterprise-evidence verdicts, eight trajectory
+clusters, and two anomalies. The optional Nemotron Analyst summarized three
+themes: proxy/web-search failures, repeated broad knowledge searches, and a
+tool-catalog mismatch. The last item is partly instrumentation noise because
+dynamically discovered MCP tools are not always present in Hermes' active-tool
+catalog snapshot; review cited traces before treating a finding as a defect.
 
-Two preview limitations matter when interpreting the output:
+Eval Author produced six tasks. Each passed two Oracle controls and rejected
+two NOP plus one incomplete-answer control in isolated Harbor jobs with a
+separate no-network verifier. The exports remain `candidate_unproven` until a
+human publication review is recorded.
 
-1. Hermes discovers MCP tools dynamically, but that discovered catalog is not
-   present in every LLM active-tool catalog snapshot. The tool audit therefore
-   labels many valid direct MCP calls as `unknown_tool`.
-2. Deterministic verdict groups are written to the digest but are not currently
-   projected into the problem list consumed by the LLM Analyst. Review the
-   verdict-group digest alongside Analyst-authored Insights.
+## Model disclosure
 
-## Model-route disclosure
+The requested alias was `nvidia/nemotron-3.5-lightning-30b-a3b`; Relay's
+response metadata identified the actual returned model as
+`nvidia/nvidia/nemotron-3-ultra`. Both arms used the same route. Always record
+both requested and returned IDs.
 
-The test gateway accepted a Lightning alias but the successful response payloads
-identified `nvidia/nvidia/nemotron-3-ultra`; Relay response metadata is treated
-as authoritative. Both arms used the same actual route. The public tutorial
-uses NVIDIA Build onboarding and tells users to record both requested and
-returned model IDs instead of assuming aliases are honored.
-
-The machine-readable result is in
-[`results/measured-ab.json`](../results/measured-ab.json).
+The complete machine-readable record is
+[`results/measured-ab-v2.json`](../results/measured-ab-v2.json).

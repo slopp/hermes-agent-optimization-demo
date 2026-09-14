@@ -142,7 +142,7 @@ def atof_events_to_atif_trajectories(
                 "session_id": turn_id,
                 "trajectory_id": turn_id,
                 "agent": {
-                    "name": "Hermes-PA-style-mock",
+                    "name": "Hermes-enterprise-world",
                     "version": "nemoclaw-baseline-v1",
                     "model_name": model_name,
                 },
@@ -216,7 +216,7 @@ def extract_run(case_id: str, trajectory: dict[str, Any], catalog: str = "extend
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
             if not isinstance(arguments, dict):
-                raise ValueError(f"arguments for {raw_name!r} are not an object")
+                raise TypeError(f"arguments for {raw_name!r} are not an object")
             calls.append({"name": name, "arguments": arguments})
         message = step.get("message")
         if isinstance(message, str) and message.strip():

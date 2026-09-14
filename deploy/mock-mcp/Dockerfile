@@ -7,9 +7,9 @@ WORKDIR /app
 RUN useradd --create-home --uid 10001 mockmcp
 
 COPY src/ /app/src/
-# The server's default fixture path is /app/fixtures/world-v1.json. Keep the
-# reviewed runtime fixture in the image, never traces or credentials.
-COPY fixtures/world-v1.json /app/fixtures/world-v1.json
+# Keep only versioned, reviewed runtime fixtures in the image—never traces or
+# credentials. Select one at runtime with PA_STYLE_WORLD_FIXTURE or --fixture.
+COPY fixtures/world-*.json /app/fixtures/
 RUN pip install --no-cache-dir 'mcp==1.28.1' \
     && chown -R mockmcp:mockmcp /app
 

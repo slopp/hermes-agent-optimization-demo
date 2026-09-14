@@ -12,22 +12,27 @@ import argparse
 import hmac
 import os
 import weakref
+from pathlib import Path
 from typing import Any
 
 from .tools import ToolRegistry
+from .world import EnterpriseWorld
 
 
 class SessionRegistries:
     """Create one fixture world per live MCP session without retaining it forever."""
 
-    def __init__(self, catalog: str = "extended") -> None:
+    def __init__(self, catalog: str = "extended", fixture: str | Path | None = None) -> None:
         self.catalog = catalog
+        self.fixture = fixture
         self._registries: weakref.WeakKeyDictionary[Any, ToolRegistry] = weakref.WeakKeyDictionary()
 
     def for_session(self, session: Any) -> ToolRegistry:
         registry = self._registries.get(session)
         if registry is None:
-            registry = ToolRegistry(catalog=self.catalog)
+            registry = ToolRegistry(
+                world=EnterpriseWorld.default(self.fixture), catalog=self.catalog
+            )
             self._registries[session] = registry
         return registry
 
@@ -40,6 +45,7 @@ def build_server(
     bearer_token: str | None = None,
     issuer_url: str = "https://mock-mcp.example.test",
     resource_server_url: str = "https://mock-mcp.example.test/mcp",
+    fixture: str | Path | None = None,
 ) -> Any:
     """Build, but do not start, a FastMCP Streamable HTTP server.
 
@@ -59,7 +65,7 @@ def build_server(
     # package still requires no MCP dependency.
     globals()["Context"] = Context
 
-    registries = SessionRegistries(catalog)
+    registries = SessionRegistries(catalog, fixture)
     fastmcp_options: dict[str, Any] = {}
     if bearer_token:
         class StaticDemoTokenVerifier:
@@ -67,7 +73,7 @@ def build_server(
 
             async def verify_token(self, token: str) -> Any:
                 if hmac.compare_digest(token.encode(), bearer_token.encode()):
-                    return AccessToken(token=token, client_id="pa-style-mock-client", scopes=["mcp:tools"])
+                    return AccessToken(token=token, client_id="enterprise-world-client", scopes=["mcp:tools"])
                 return None
 
         fastmcp_options = {
@@ -75,7 +81,7 @@ def build_server(
             "token_verifier": StaticDemoTokenVerifier(),
         }
     server = FastMCP(
-        "PA-style fictional enterprise mock",
+        "Fictional enterprise world",
         host=host,
         port=port,
         streamable_http_path="/mcp",
@@ -156,6 +162,11 @@ def main() -> int:
     parser.add_argument("--require-bearer-token", action="store_true", help="Require token from PA_STYLE_MOCK_MCP_TOKEN")
     parser.add_argument("--issuer-url", default="https://mock-mcp.example.test")
     parser.add_argument("--resource-server-url", default="https://mock-mcp.example.test/mcp")
+    parser.add_argument(
+        "--fixture",
+        default=os.environ.get("PA_STYLE_WORLD_FIXTURE"),
+        help="Path to a frozen world fixture; defaults to PA_STYLE_WORLD_FIXTURE or world-v1.json.",
+    )
     args = parser.parse_args()
     bearer_token = os.environ.get("PA_STYLE_MOCK_MCP_TOKEN") if args.require_bearer_token else None
     if args.require_bearer_token and not bearer_token:
@@ -167,6 +178,7 @@ def main() -> int:
         bearer_token=bearer_token,
         issuer_url=args.issuer_url,
         resource_server_url=args.resource_server_url,
+        fixture=args.fixture,
     ).run(transport="streamable-http")
     return 0
 

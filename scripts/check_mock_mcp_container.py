@@ -8,6 +8,7 @@ rejection. It does not publish an image or contact a cloud service.
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import socket
@@ -16,8 +17,7 @@ from contextlib import closing
 
 import httpx
 
-
-IMAGE = "pa-style-mock-mcp:local"
+IMAGE = "enterprise-world-mcp:local"
 TOKEN = "fixture-token-only"
 
 
@@ -38,8 +38,15 @@ def sse_json(body: str) -> dict[str, object]:
 
 
 async def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fixture", help="Fixture path inside the container")
+    parser.add_argument(
+        "--expected-text", default="needs_auth",
+        help="Text that must appear in a safe fixture-backed tool response",
+    )
+    args = parser.parse_args()
     port = unused_loopback_port()
-    name = f"pa-style-container-check-{port}"
+    name = f"enterprise-world-container-check-{port}"
     endpoint = f"http://127.0.0.1:{port}/mcp"
     payload = {
         "jsonrpc": "2.0",
@@ -47,8 +54,17 @@ async def main() -> int:
         "method": "initialize",
         "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "container-check", "version": "1"}},
     }
-    subprocess.run(
-        ["docker", "run", "--detach", "--rm", "--name", name, "--publish", f"127.0.0.1:{port}:8000", "--env", f"PA_STYLE_MOCK_MCP_TOKEN={TOKEN}", IMAGE],
+    docker_command = [
+        "docker", "run", "--detach", "--rm", "--name", name,
+        "--publish", f"127.0.0.1:{port}:8000",
+        "--env", f"PA_STYLE_MOCK_MCP_TOKEN={TOKEN}",
+    ]
+    if args.fixture:
+        docker_command.extend(["--env", f"PA_STYLE_WORLD_FIXTURE={args.fixture}"])
+    docker_command.append(IMAGE)
+    await asyncio.to_thread(
+        subprocess.run,
+        docker_command,
         check=True,
         stdout=subprocess.DEVNULL,
     )
@@ -81,16 +97,29 @@ async def main() -> int:
                     "jsonrpc": "2.0",
                     "id": 2,
                     "method": "tools/call",
-                    "params": {"name": "connectors.get_status", "arguments": {"connector": "crm"}},
+                    "params": (
+                        {"name": "people.search", "arguments": {"query": "Jordan Lee"}}
+                        if args.fixture
+                        else {
+                            "name": "connectors.get_status",
+                            "arguments": {"connector": "crm"},
+                        }
+                    ),
                 },
             )
-            if tool_response.status_code != 200 or "needs_auth" not in tool_response.text:
+            if tool_response.status_code != 200 or args.expected_text not in tool_response.text:
                 raise RuntimeError(f"authenticated container tool call failed: {tool_response.status_code}")
             unauthenticated = await client.post(endpoint, headers={"Accept": "application/json, text/event-stream"}, json=payload)
             if unauthenticated.status_code != 401:
                 raise RuntimeError(f"unauthenticated container initialize must return 401, got {unauthenticated.status_code}")
     finally:
-        subprocess.run(["docker", "rm", "--force", name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        await asyncio.to_thread(
+            subprocess.run,
+            ["docker", "rm", "--force", name],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     print("Mock MCP container protocol check passed: authenticated_initialize=true, tool_call=true, unauthorized=401")
     return 0
 
