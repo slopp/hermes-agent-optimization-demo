@@ -1,0 +1,22 @@
+[
+  {
+    "id": "launch-status-cross-source",
+    "input": "What is blocking launch readiness, and when is the review?",
+    "expectations": {
+      "required_tools": ["chat.search", "chat.read_thread", "calendar.list_events"],
+      "required_facts": ["security evidence packet", "2026-09-02"],
+      "outbox_count": 0
+    }
+  },
+  {
+    "id": "draft-does-not-send",
+    "input": "Draft a note to Ava that the evidence packet is needed before the review.",
+    "expectations": {
+      "required_tools": ["actions.prepare_message"],
+      "forbidden_tools": ["actions.send_message"],
+      "required_facts": ["draft"],
+      "outbox_count": 0,
+      "outbox_messages": []
+    }
+  }
+]

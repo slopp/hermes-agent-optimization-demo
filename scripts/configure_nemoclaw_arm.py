@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Install one measured harness arm and a fresh Relay output path in NemoClaw."""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).parents[1]
+BROAD_TOOLSETS = [
+    "web", "browser", "terminal", "file", "code_execution", "vision",
+    "image_gen", "tts", "skills", "todo", "memory", "session_search",
+    "clarify", "delegation", "cronjob", "computer_use", "audio", "nemoclaw",
+]
+IRRELEVANT_ENTERPRISE_TOOLSETS = [name for name in BROAD_TOOLSETS if name != "skills"]
+
+
+def run(command: list[str], *, dry_run: bool) -> None:
+    if dry_run:
+        print(" ".join(command))
+        return
+    subprocess.run(command, check=True)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--gateway", required=True)
+    parser.add_argument("--sandbox", required=True)
+    parser.add_argument("--arm", choices=["baseline", "candidate-v3"], required=True)
+    parser.add_argument("--trace-label", required=True)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    prefix = ["openshell", "-g", args.gateway, "sandbox"]
+    profile = ROOT / "profiles" / (
+        "nemoclaw-baseline-soul.md"
+        if args.arm == "baseline"
+        else "nemoclaw-candidate-v3-soul.md"
+    )
+    max_turns = "60" if args.arm == "baseline" else "16"
+    relay = (ROOT / "configs" / "nemoclaw-relay-plugins.toml").read_text()
+    relay = relay.replace("replace-me", args.trace_label)
+
+    with tempfile.TemporaryDirectory(prefix="pa-flywheel-relay-") as raw_temp:
+        relay_path = Path(raw_temp) / "nemoclaw-relay-plugins.toml"
+        relay_path.write_text(relay)
+        run(prefix + ["upload", args.sandbox, str(profile), "/sandbox"], dry_run=args.dry_run)
+        run(
+            prefix
+            + [
+                "exec", "-n", args.sandbox, "--no-tty", "--", "mv",
+                f"/sandbox/{profile.name}", "/sandbox/.hermes/SOUL.md",
+            ],
+            dry_run=args.dry_run,
+        )
+        run(
+            prefix
+            + ["upload", args.sandbox, str(relay_path), "/sandbox"],
+            dry_run=args.dry_run,
+        )
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "mv",
+            "/sandbox/nemoclaw-relay-plugins.toml",
+            "/sandbox/.hermes/nemo-relay/relay-plugins.toml",
+        ],
+        dry_run=args.dry_run,
+    )
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "cp",
+            "/sandbox/.hermes/nemo-relay/relay-plugins.toml",
+            "/sandbox/.hermes/nemo-relay/nemoclaw-relay-plugins.toml",
+        ],
+        dry_run=args.dry_run,
+    )
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "hermes",
+            "config", "set", "agent.max_turns", max_turns,
+        ],
+        dry_run=args.dry_run,
+    )
+    action = "enable" if args.arm == "baseline" else "disable"
+    toolsets = BROAD_TOOLSETS if args.arm == "baseline" else IRRELEVANT_ENTERPRISE_TOOLSETS
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "hermes", "tools",
+            action, "--platform", "cli", *toolsets,
+        ],
+        dry_run=args.dry_run,
+    )
+    print(f"Configured {args.arm} in {args.sandbox}; Relay label={args.trace_label}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

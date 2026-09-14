@@ -1,0 +1,79 @@
+{
+  "decision_basis": "safe_atif_only",
+  "evidence_steps": [
+    1
+  ],
+  "ground_truth": {
+    "absence_reason": null,
+    "artifacts": [
+      {
+        "kind": "expected_output",
+        "notes": "Expected structured facts derived from the frozen fictional world, not the agent answer.",
+        "path": "private/ground-truth/expected.json",
+        "provenance": {
+          "kind": "external",
+          "revision": "sha256:00541d1716ac3bb27f956291ca1d2b1cac5222b3739f42f199f53f7e97ec230d",
+          "source_id": "auth-awareness",
+          "step_ids": [],
+          "uri": "repo://fixtures/world-v1.json"
+        },
+        "sha256": "sha256:de89523ce88153a046f3679b9d80ce946842cd7ab9fa948b3a253b83311edff1"
+      }
+    ],
+    "availability": "available",
+    "use": "verification"
+  },
+  "instruction": "Check whether CRM is available before looking up the account.\n\nWrite /logs/artifacts/answer.json with crm_status and lookup_attempted fields.",
+  "reason_codes": [],
+  "requirements": [
+    {
+      "description": "Produce the requested structured artifact. Write /logs/artifacts/answer.json with crm_status and lookup_attempted fields.",
+      "evidence_steps": [
+        1
+      ]
+    }
+  ],
+  "schema": "nemo.eval_author.trace_environment_candidate.v2",
+  "software_requirements": [
+    {
+      "availability": "available",
+      "category": "library",
+      "license": "open_source",
+      "name": "CPython container image",
+      "notes": "Pinned base for both the agent fixture and isolated verifier.",
+      "provenance": {
+        "kind": "external",
+        "revision": "sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea",
+        "source_id": "docker.io/library/python",
+        "step_ids": [],
+        "uri": "https://hub.docker.com/_/python"
+      },
+      "redistributable": true,
+      "required": true,
+      "version": "3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea"
+    },
+    {
+      "availability": "available",
+      "category": "cli",
+      "license": "open_source",
+      "name": "Harbor",
+      "notes": "Runs the NOP, Oracle, negative-control, and verifier containers.",
+      "provenance": {
+        "kind": "external",
+        "revision": "0.22.0",
+        "source_id": "PyPI harbor==0.22.0",
+        "step_ids": [],
+        "uri": "https://github.com/harbor-framework/harbor"
+      },
+      "redistributable": true,
+      "required": true,
+      "version": "0.22.0"
+    }
+  ],
+  "status": "candidate",
+  "uncertainties": [
+    "The source trace records an agent interaction, while this portable task exposes the same frozen world as an offline file snapshot.",
+    "Human review of the generalized task and Relevant experience section remains outstanding."
+  ],
+  "verification_mode": "execution"
+}

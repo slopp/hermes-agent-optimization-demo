@@ -1,0 +1,10 @@
+.venv/
+.harbor-venv/
+.eval-author/
+.nemo-relay/
+.runs/
+.env
+.ruff_cache/
+.DS_Store
+__pycache__/
+*.py[cod]

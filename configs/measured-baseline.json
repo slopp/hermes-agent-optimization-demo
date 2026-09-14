@@ -1,0 +1,25 @@
+{
+  "schema_version": "measured-harness-config-v1",
+  "runtime": {
+    "nemoclaw": "0.0.123",
+    "openshell": "0.0.106",
+    "hermes": "0.20.6",
+    "nemo_relay": "0.7.2"
+  },
+  "model": {
+    "requested": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "returned": "nvidia/nvidia/nemotron-3-ultra",
+    "max_tokens": 8192
+  },
+  "harness": {
+    "profile": "baseline",
+    "max_turns": 60,
+    "tool_surface": "default broad CLI toolsets plus extended mock MCP catalog"
+  },
+  "collection": {
+    "runtime": "NemoClaw-managed OpenShell sandbox",
+    "relay_source_format": "ATOF",
+    "public_trace_format": "ATIF-v1.7",
+    "public_redaction": "non-fixture tool inputs and outputs removed"
+  }
+}

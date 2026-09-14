@@ -1,0 +1,40 @@
+{
+  "suite_version": "1.1",
+  "generation": {
+    "method": "nemo-eval-author-library-runner",
+    "insight_ref": "insights://REPLACE_WITH_PLATFORM_INSIGHT_ID",
+    "review_status": "pending",
+    "reviewer": null,
+    "frozen_at": null
+  },
+  "cases": [
+    {
+      "id": "REPLACE_WITH_CASE_ID",
+      "case_kind": "trace_derived",
+      "input": "REPLACE_WITH_FICTIONAL_TASK_INPUT",
+      "expectations": {
+        "required_tools": [],
+        "required_facts": [],
+        "outbox_count": 0
+      },
+      "provenance": {
+        "trace_refs": ["intake://REPLACE_WITH_TRACE_ID"],
+        "eval_author_case_ref": "REPLACE_WITH_GENERATED_CASE_REFERENCE"
+      }
+    },
+    {
+      "id": "REPLACE_WITH_HELD_OUT_VARIANT_ID",
+      "case_kind": "held_out",
+      "input": "REPLACE_WITH_FIXTURE-GROUNDED_VARIANT",
+      "expectations": {
+        "required_tools": [],
+        "required_facts": [],
+        "outbox_count": 0
+      },
+      "provenance": {
+        "held_out_from_case_ids": ["REPLACE_WITH_CASE_ID"],
+        "eval_author_case_ref": "REPLACE_WITH_GENERATED_CASE_REFERENCE"
+      }
+    }
+  ]
+}

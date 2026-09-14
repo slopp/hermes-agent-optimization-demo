@@ -1,0 +1,274 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0934d-b869-7962-b8df-a7444f72b7b5",
+  "trajectory_id": "01a0934d-b869-7962-b8df-a7444f72b7b5",
+  "agent": {
+    "name": "Hermes-PA-style-mock",
+    "version": "nemoclaw-baseline-v1",
+    "model_name": "nvidia/nvidia/nemotron-3-ultra"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 63124,
+    "total_completion_tokens": 133,
+    "total_steps": 12
+  },
+  "extra": {
+    "turn_outcome": "success",
+    "normalization": {
+      "source_format": "ATOF",
+      "source_turn_id": "01a0934d-b869-7962-b8df-a7444f72b7b5",
+      "uncertainties": [
+        "Hermes 0.20.6 emitted no session-end event, so Relay 0.7.2 did not flush native ATIF."
+      ],
+      "losses": [
+        "ATOF scope nesting is flattened into sequential ATIF agent steps.",
+        "Non-fixture tool inputs and outputs were removed at the public-data boundary."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-12T01:48:59.369141918+00:00",
+      "source": "user",
+      "message": "What did Security say about the launch blocker?\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3.5-lightning-30b-a3b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-12T01:49:01.836912711+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-d07b878dbfda4ff384df25ecb29543d5",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-d07b878dbfda4ff384df25ecb29543d5",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-12T01:49:03.660529254+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-1ff55aa6f0294fe89c2667a9f2c92f82",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-1ff55aa6f0294fe89c2667a9f2c92f82",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-12T01:49:06.174608505+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-a196dd72249b4b22803705c0b02fbb38",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-a196dd72249b4b22803705c0b02fbb38",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-12T01:49:07.407603922+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-7953f073cea849b8b9cebe6a98dc6970",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-7953f073cea849b8b9cebe6a98dc6970",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-12T01:49:09.079699131+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-f75896463b7d47528f7ec219c3370180",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-f75896463b7d47528f7ec219c3370180",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-12T01:49:10.428883507+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-ddcf39b3613943fd9c52ff7e6d768c5f",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-ddcf39b3613943fd9c52ff7e6d768c5f",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-12T01:49:12.437293674+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-1c25f38c58e04a61bfe516ce6b760b82",
+          "function_name": "tool_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-1c25f38c58e04a61bfe516ce6b760b82",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-12T01:49:13.932778008+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-e336d2fa388e4d35a7321cbf7b208cea",
+          "function_name": "mcp__pa_style_enterprise__chat_search",
+          "arguments": {
+            "query": "launch blocker security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-e336d2fa388e4d35a7321cbf7b208cea",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"chat_launch_blocker\\\",\\n      \\\"channel\\\": \\\"proj-launch\\\",\\n      \\\"updated_at\\\": \\\"2026-08-31T15:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 1,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"chat_launch_blocker\", \"channel\": \"proj-launch\", \"updated_at\": \"2026-08-31T15:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 1, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-12T01:49:15.309316801+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-044ea3a905644dfea4dc72d1d9c3bdfd",
+          "function_name": "tool_call",
+          "arguments": {
+            "redacted": "non-fixture tool input removed for public bundle"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-044ea3a905644dfea4dc72d1d9c3bdfd",
+            "content": "[redacted: non-fixture tool output removed for public bundle]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-12T01:49:16.684762635+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-068b43e5455547f2906f9799aaf7808e",
+          "function_name": "mcp__pa_style_enterprise__chat_read_thread",
+          "arguments": {
+            "thread_id": "chat_launch_blocker"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "chatcmpl-tool-068b43e5455547f2906f9799aaf7808e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"thread\\\": {\\n    \\\"id\\\": \\\"chat_launch_blocker\\\",\\n    \\\"channel\\\": \\\"proj-launch\\\",\\n    \\\"updated_at\\\": \\\"2026-08-31T15:00:00Z\\\",\\n    \\\"messages\\\": [\\n      {\\n        \\\"id\\\": \\\"chat_launch_1\\\",\\n        \\\"author\\\": \\\"ava.patel@example.test\\\",\\n        \\\"body\\\": \\\"The launch blocker is the missing security evidence packet.\\\"\\n      },\\n      {\\n        \\\"id\\\": \\\"chat_launch_2\\\",\\n        \\\"author\\\": \\\"mina.ortiz@example.test\\\",\\n        \\\"body\\\": \\\"Once it is attached, Security can sign off in one business day.\\\"\\n      }\\n    ]\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"thread\": {\"id\": \"chat_launch_blocker\", \"channel\": \"proj-launch\", \"updated_at\": \"2026-08-31T15:00:00Z\", \"messages\": [{\"id\": \"chat_launch_1\", \"author\": \"ava.patel@example.test\", \"body\": \"The launch blocker is the missing security evidence packet.\"}, {\"id\": \"chat_launch_2\", \"author\": \"mina.ortiz@example.test\", \"body\": \"Once it is attached, Security can sign off in one business day.\"}]}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-12T01:49:19.607056886+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nvidia/nemotron-3-ultra",
+      "message": "Based on the conversation in the `proj-launch` channel (thread `chat_launch_blocker`), here's what Security said about the launch blocker:\n\n1. **Ava Patel** stated: *\"The launch blocker is the missing security evidence packet.\"*\n\n2. **Mina Ortiz** added: *\"Once it is attached, Security can sign off in one business day.\"*\n\nSo the blocker is specifically the **missing security evidence packet** — once that packet is provided, Security can complete their sign-off within one business day."
+    }
+  ]
+}

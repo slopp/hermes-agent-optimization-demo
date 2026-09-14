@@ -1,0 +1,6 @@
+# Merge with the MCP snippet in the Hermes profile config.yaml.
+# This selects the native Build/NIM collection route, which reads the separate
+# NVIDIA_API_KEY from the environment. It is not the Inference Hub test route.
+model:
+  provider: nvidia
+  default: nvidia/nemotron-3.5-lightning-30b-a3b

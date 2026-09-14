@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Convert Relay ATIF files to standalone NeMo Insights canonical JSONL."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from pa_style_mock_mcp.insights import atif_to_insights_trace  # noqa: E402
+
+
+def _files(inputs: list[Path]) -> list[Path]:
+    found: list[Path] = []
+    for item in inputs:
+        if item.is_dir():
+            found.extend(
+                path for path in sorted(item.rglob("*.json")) if path.parent.name == "atif"
+            )
+        elif item.is_file():
+            found.append(item)
+        else:
+            raise FileNotFoundError(item)
+    return found
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputs", type=Path, nargs="+")
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--case-id-from-parent",
+        action="store_true",
+        help="Use the ATIF file's containing directory as logical_case_id.",
+    )
+    args = parser.parse_args()
+
+    files = _files(args.inputs)
+    if not files:
+        raise SystemExit("no ATIF JSON files found")
+    traces = []
+    seen: set[str] = set()
+    for path in files:
+        trajectory = json.loads(path.read_text())
+        case_id = path.parent.parent.parent.name if args.case_id_from_parent else None
+        trace = atif_to_insights_trace(trajectory, logical_case_id=case_id)
+        if trace["id"] in seen:
+            raise ValueError(f"duplicate trace id: {trace['id']}")
+        seen.add(trace["id"])
+        traces.append(trace)
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text("".join(json.dumps(trace, separators=(",", ":")) + "\n" for trace in traces))
+    print(f"Converted {len(traces)} ATIF trajectories to {args.output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

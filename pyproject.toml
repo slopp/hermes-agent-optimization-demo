@@ -1,0 +1,9 @@
+[project]
+name = "hermes-agent-optimization-demo"
+version = "0.1.0"
+description = "Deterministic PA-shaped mock MCP environment for harness optimization."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

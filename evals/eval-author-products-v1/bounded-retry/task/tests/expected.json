@@ -1,0 +1,5 @@
+{
+  "chat_context_found": false,
+  "fallback_context": "The test incident was resolved; no launch impact was recorded.",
+  "retry_count": 1
+}

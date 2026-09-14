@@ -1,0 +1,78 @@
+{
+  "schema_version": "pa-flywheel-measured-result-v1",
+  "measured_at_utc": "2026-09-12",
+  "actual_response_model": "nvidia/nvidia/nemotron-3-ultra",
+  "requested_model_alias": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "model_alias_note": "The test gateway returned Ultra despite the requested alias; Relay response metadata is authoritative. Both arms used the same route.",
+  "insights": {
+    "traces": 60,
+    "tool_calls": 710,
+    "logical_cases": 10,
+    "evaluable_rules": 14,
+    "total_rules": 19,
+    "missing_enterprise_evidence_verdicts": 25,
+    "trajectory_clusters": 8,
+    "anomalies": 2
+  },
+  "eval_author": {
+    "members": 6,
+    "candidate_status": "candidate_unproven",
+    "technical_status": "passed",
+    "verifier_environment_mode": "separate",
+    "agent_network_mode": "no-network",
+    "runs_per_member": {
+      "nop": 2,
+      "oracle": 2,
+      "negative": 1
+    },
+    "rewards_per_member": {
+      "nop": [0.0, 0.0],
+      "oracle": [1.0, 1.0],
+      "negative": [0.0]
+    },
+    "human_review_complete": false
+  },
+  "development": {
+    "baseline": {
+      "requested_traces": 18,
+      "valid_traces": 10,
+      "provider_terminal_traces_excluded": 8,
+      "pass_rate": 0.3,
+      "mean_tool_calls": 24.3
+    },
+    "candidate_v3": {
+      "requested_traces": 18,
+      "valid_traces": 18,
+      "provider_terminal_traces_excluded": 0,
+      "pass_rate": 0.9444444444444444,
+      "mean_tool_calls": 7.722222222222222
+    }
+  },
+  "held_out": {
+    "baseline": {
+      "traces": 12,
+      "pass_rate": 0.25,
+      "trajectory_pass_rate": 0.25,
+      "answer_pass_rate": 0.3333333333333333,
+      "mean_tool_calls": 20.416666666666668,
+      "command_timeouts": 1
+    },
+    "candidate_v3": {
+      "traces": 12,
+      "pass_rate": 0.9166666666666666,
+      "trajectory_pass_rate": 0.9166666666666666,
+      "answer_pass_rate": 1.0,
+      "mean_tool_calls": 6.0,
+      "command_timeouts": 0
+    }
+  },
+  "candidate_changes": [
+    "enterprise-first evidence phase policy",
+    "schema-first calls and canonical connector identifiers",
+    "search-then-read and bounded structured JSON inspection",
+    "one identical retry for transient failures",
+    "prepare-without-send approval boundary",
+    "per-platform removal of irrelevant local, web, code, session, and runtime toolsets",
+    "16-turn runtime cap and 12-tool policy budget"
+  ]
+}

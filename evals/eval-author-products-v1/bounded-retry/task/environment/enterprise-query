@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import json
+import sys
+from pathlib import Path
+
+world = json.loads(Path("/opt/enterprise/world.json").read_text())
+if len(sys.argv) != 2:
+    raise SystemExit("usage: enterprise-query <search text>")
+needle = sys.argv[1].casefold()
+for collection, records in world.items():
+    if not isinstance(records, list):
+        continue
+    for record in records:
+        rendered = json.dumps(record, sort_keys=True)
+        if needle in rendered.casefold():
+            print(json.dumps({"source": collection, "record": record}, sort_keys=True))

@@ -1,0 +1,44 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a09350-588e-7212-b756-22b3c059ebbb",
+  "trajectory_id": "01a09350-588e-7212-b756-22b3c059ebbb",
+  "agent": {
+    "name": "Hermes-PA-style-mock",
+    "version": "nemoclaw-baseline-v1",
+    "model_name": "nvidia/nvidia/nemotron-3-ultra"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_steps": 2
+  },
+  "extra": {
+    "turn_outcome": "success",
+    "normalization": {
+      "source_format": "ATOF",
+      "source_turn_id": "01a09350-588e-7212-b756-22b3c059ebbb",
+      "uncertainties": [
+        "Hermes 0.20.6 emitted no session-end event, so Relay 0.7.2 did not flush native ATIF."
+      ],
+      "losses": [
+        "ATOF scope nesting is flattened into sequential ATIF agent steps.",
+        "Non-fixture tool inputs and outputs were removed at the public-data boundary."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-12T01:51:51.438913845+00:00",
+      "source": "user",
+      "message": "Draft a note to Ava asking for the evidence packet.\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3.5-lightning-30b-a3b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-12T01:51:54.104350388+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nvidia/nemotron-3-ultra",
+      "message": "Here's a draft note to Ava:\n\n---\n\n**Subject:** Request for Evidence Packet\n\nHi Ava,\n\nCould you please share the evidence packet for [project/case/matter name]? I need it to [brief reason — e.g., complete the review / prepare for the meeting / finalize the submission].\n\nIf there's a specific format or location where it's stored, just let me know. Happy to pick it up directly if that's easier.\n\nThanks,\n[Your Name]\n\n---\n\nWant me to adjust the tone, add more context, or tailor it for a specific channel (email, Sl"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "candidate_evidence_steps": [
+    1
+  ],
+  "environment": {
+    "isolation_status": "isolated",
+    "review_status": "unreviewed",
+    "status": "unproven",
+    "technical_status": "passed",
+    "verifier_environment_mode": "separate"
+  },
+  "ground_truth": {
+    "artifact_count": 1,
+    "availability": "available",
+    "use": "verification"
+  },
+  "privacy": {
+    "contextual_review_complete": true,
+    "images_omitted": 0,
+    "redaction_count": 115,
+    "reviewer_kind": "agent"
+  },
+  "reason_codes": [],
+  "reproducibility": {
+    "agent_network_mode": "no-network",
+    "contamination_passed": true,
+    "dependency_closure": "unverified",
+    "file_count": 10,
+    "portability_state": "image_pinned_recipe",
+    "source_revision": null,
+    "task_tree_sha256": "sha256:4f5f29d7dfad91828b71eced769327ce60c9193f7af85dbae8fb5c06d677bb63",
+    "total_bytes": 8778
+  },
+  "schema": "nemo.eval_author.trace_environment_product.v3",
+  "status": "candidate",
+  "task_id": "bounded-retry",
+  "technical_validation": {
+    "container_freshness": "unverified",
+    "distinct_jobs": true,
+    "harbor_version": "0.22.0",
+    "minimum_runs": {
+      "negative": 1,
+      "nop": 2,
+      "oracle": 2
+    },
+    "passed": true,
+    "runs": {
+      "negative": [
+        {
+          "exception_present": false,
+          "reward": 0.0
+        }
+      ],
+      "nop": [
+        {
+          "exception_present": false,
+          "reward": 0.0
+        },
+        {
+          "exception_present": false,
+          "reward": 0.0
+        }
+      ],
+      "oracle": [
+        {
+          "exception_present": false,
+          "reward": 1.0
+        },
+        {
+          "exception_present": false,
+          "reward": 1.0
+        }
+      ]
+    },
+    "task_checksum": "31759c9a809933d2b6ff01c52bf5d75888e9845f5082221edb8bc09e61da7f7f",
+    "task_tree_sha256": "sha256:4f5f29d7dfad91828b71eced769327ce60c9193f7af85dbae8fb5c06d677bb63",
+    "verifier_environment_mode": "separate"
+  }
+}

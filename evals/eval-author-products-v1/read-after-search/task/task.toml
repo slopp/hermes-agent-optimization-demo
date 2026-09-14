@@ -1,0 +1,28 @@
+schema_version = "1.4"
+artifacts = []
+
+[task]
+name = "nvidia-demo/read-after-search"
+version = "1.0.0"
+description = "Offline PA-style enterprise evidence task derived from a Hermes trace."
+authors = [{ name = "NVIDIA Demo" }]
+keywords = ["personal-assistant", "enterprise-retrieval", "trace-derived"]
+
+[verifier]
+timeout_sec = 60.0
+environment_mode = "separate"
+network_mode = "no-network"
+
+[verifier.environment]
+network_mode = "no-network"
+build_timeout_sec = 300.0
+
+[agent]
+timeout_sec = 120.0
+
+[environment]
+network_mode = "no-network"
+build_timeout_sec = 300.0
+os = "linux"
+
+[solution]
