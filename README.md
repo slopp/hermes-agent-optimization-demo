@@ -1,201 +1,133 @@
 # Optimize an Enterprise Agent Harness with NVIDIA NeMo
 
-This repository is a reproducible, end-to-end tutorial for improving a
-tool-using enterprise agent from its execution traces. It starts with a working
-Hermes agent and a checked-in trace bundle, turns trace failures into an
-evaluation suite, uses NeMo Insights to identify recurring problems, applies
-targeted harness changes, and measures the result with a matched A/B test.
-
-The complete loop is:
+This repository is a reproducible tutorial for improving a tool-using agent
+from its execution traces. It provides a Hermes agent, a fictional enterprise
+environment, recorded traces, a trace-derived evaluation set, and a measured
+harness optimization:
 
 ```text
-Hermes agent + mock enterprise tools
-        ↓ traces collected by NeMo Relay
-trace review + NeMo Eval Author
-        ↓ frozen development and held-out evals
-NeMo Insights analysis
-        ↓ evidence-backed harness changes
-baseline/candidate A/B
-        ↓
-repeat, or promote the environment to NeMo Gym for rollout-scale optimization
+Hermes + mock MCP → NeMo Relay traces → NeMo Eval Author → frozen evals
+                  → NeMo Insights → harness change → held-out A/B → repeat
 ```
 
-The primary held-out result in the included experiment was:
-
-| Arm | Pass rate | Mean tool calls | Command timeouts |
-| --- | ---: | ---: | ---: |
-| Baseline | 25.0% | 20.4 | 1 |
-| Optimized harness | 91.7% | 6.0 | 0 |
-
-The model and fictional enterprise data were held constant. The candidate
-changed only the agent harness. See [the measured results and
+The included held-out experiment improved pass rate from **25.0% to 91.7%**
+while reducing mean tool calls from **20.4 to 6.0**. The model and fixture were
+held constant; only the harness changed. See [results and
 caveats](docs/results.md).
 
 ## Grounded in NVIDIA's Personal Assistant
 
-This tutorial is based on patterns encountered while NVIDIA optimized an
-internal production agent called **Personal Assistant (PA)**. PA helps NVIDIA
-employees answer questions and complete workplace tasks using enterprise
-systems such as email, calendar, chat, files, knowledge sources, employee
-directory data, and other internal tools. Its work includes multi-source
-question answering, research and synthesis, meeting and task workflows,
-artifact creation, and actions that may require user approval.
+The scenario is grounded in patterns observed while NVIDIA optimized an
+internal production agent called **Personal Assistant (PA)**. PA helps
+employees answer questions and complete workplace tasks across email,
+calendar, chat, files, enterprise knowledge, directory data, and other tools.
+Its work includes multi-source research and synthesis, meeting and task
+workflows, artifact creation, and approval-gated actions.
 
-That setting creates agent-harness problems familiar to many enterprise teams:
-
-- selecting the right tools from a large catalog;
-- retrieving all necessary sources before answering;
-- reading authoritative records after broad search;
-- handling large structured results without flooding model context;
-- distinguishing authentication, transport, tool, and reasoning failures;
-- bounding retries and unnecessary tool use; and
-- preventing external actions until the user has approved them.
-
-The repository recreates those problem shapes in a small fictional company. It
-does **not** contain the Personal Assistant implementation, production data,
-internal tools, employee identities, or NVIDIA evaluation questions. All
-published fixtures and tasks are generalized and deterministic. NVIDIA's
-public [Nemotron 3 Ultra harness-profile case
+This tutorial translates those patterns into a deterministic launch-readiness
+scenario at a fictional company. NVIDIA's public [Nemotron 3 Ultra
+harness-profile case
 study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
 describes related optimization methodology.
 
-## The fictional enterprise world
+## The fictional environment
 
-The demo takes place at a small fictional company preparing a product launch.
-The launch cannot proceed until a Security evidence packet is attached, and a
-readiness review is already on the calendar. Different parts of that story are
-spread across chat, mail, calendar, knowledge, file, and task records. A social
-chat about the launch party and unrelated budget, analytics, and support
-records provide realistic distractors.
+A product launch is blocked by a missing Security evidence packet, with a
+readiness review already scheduled. The facts are split across chat, mail,
+calendar, knowledge, files, and project records. Unrelated social, budget,
+analytics, and support records act as distractors.
 
-[`fixtures/world-v1.json`](fixtures/world-v1.json) freezes the world at
-`2026-09-01T09:00:00Z` and contains:
+[`fixtures/world-v1.json`](fixtures/world-v1.json) freezes the clock, records,
+connector states, and a one-shot transient failure. Every MCP session receives
+a fresh copy, so searches, pagination, retries, approvals, and mutations are
+isolated and reproducible.
 
-| Source | Fictional records | Why it is present |
-| --- | ---: | --- |
-| People directory | 3 people | Resolve names, teams, and `example.test` addresses. |
-| Mail | 2 threads | Separate search results from message evidence. |
-| Chat | 2 threads | Hold the launch blocker, Security timing, and a distractor. |
-| Calendar | 1 event | Supply the readiness-review time for multi-source questions. |
-| Knowledge | 1 document | Describe the general launch requirements. |
-| Files | 1 document and 1 structured JSON file | Exercise metadata search and bounded content inspection. |
-| Projects, analytics, and support | 1 record each | Broaden the catalog and provide plausible irrelevant tools. |
-| Connector state | 5 connectors | Model connected and `needs_auth` outcomes explicitly. |
-| Fault schedule | 1 one-shot failure | Make the first matching chat search fail deterministically. |
+The server offers a focused 10-tool catalog and an extended 15-tool catalog.
+These are fictional APIs, but they represent common enterprise surfaces:
 
-Every MCP session receives a fresh deep copy of this fixture. Search and
-pagination are deterministic, fault counters and approval tokens are
-session-local, and one run cannot mutate another. This makes a failed or
-improved trajectory reproducible instead of dependent on a live enterprise
-backend.
+| Fictional MCP tools | Enterprise SaaS analogue |
+| --- | --- |
+| `connectors.get_status` | OAuth and connector-health layers for enterprise integrations |
+| `people.search` | Microsoft Entra ID, Workday, Google Workspace Directory |
+| `mail.search`, `mail.read_thread` | Microsoft Outlook, Gmail |
+| `chat.search`, `chat.read_thread` | Microsoft Teams, Slack |
+| `calendar.list_events` | Outlook Calendar, Google Calendar |
+| `knowledge.search` | Glean, Confluence, SharePoint knowledge bases |
+| `files.search`, `files.read_json` | OneDrive, SharePoint, Google Drive, Box |
+| `projects.search_tasks` | Jira, Asana |
+| `analytics.query_metrics` | Tableau, Looker, Amplitude |
+| `support.search_tickets` | ServiceNow, Zendesk |
+| `actions.prepare_message`, `actions.send_message` | Draft/send operations in Outlook, Gmail, Teams, or Slack |
 
-### Fictional MCP tools
+The analogues describe product categories, not bundled integrations. Tool
+behavior is transport-independent and available over stdio or authenticated
+Streamable HTTP MCP in
+[`src/pa_style_mock_mcp`](src/pa_style_mock_mcp).
 
-The server exposes a **focused** catalog of 10 common assistant tools and an
-**extended** catalog of 15 tools. The extended catalog deliberately adds
-plausible choices so the tutorial can measure tool selection and downsampling,
-not merely test whether a model can call the only available function.
+## What Hermes is asked to do
 
-| Area | Tool | Behavior |
+The six trace-derived tasks look simple, but each tests a specific enterprise
+agent behavior:
+
+| Task | Request | Required behavior |
 | --- | --- | --- |
-| Connectors | `connectors.get_status` | Reports whether a named source is connected, unavailable, or needs authentication. |
-| Directory | `people.search` | Searches fictional people and returns bounded, paginated results. |
-| Mail | `mail.search` | Returns thread metadata, not message bodies. |
-| Mail | `mail.read_thread` | Reads an identified mail thread so its messages can support an answer. |
-| Chat | `chat.search` | Returns chat-thread metadata and implements the deterministic transient failure. |
-| Chat | `chat.read_thread` | Reads the messages from a selected chat thread. |
-| Calendar | `calendar.list_events` | Finds fictional events and their scheduled times. |
-| Knowledge | `knowledge.search` | Searches approved fictional knowledge documents. |
-| Actions | `actions.prepare_message` | Creates a draft and a session-local approval token without sending. |
-| Actions | `actions.send_message` | Sends only a previously approved draft and consumes its token. |
-| Files (extended) | `files.search` | Returns file metadata while withholding structured file contents. |
-| Files (extended) | `files.read_json` | Reads a bounded RFC 6901 JSON Pointer from a discovered structured file. |
-| Projects (extended) | `projects.search_tasks` | Searches project-task records. |
-| Analytics (extended) | `analytics.query_metrics` | Searches fictional product metrics. |
-| Support (extended) | `support.search_tickets` | Searches fictional support incidents. |
+| Source coverage | Find the launch blocker and review date. | Combine chat evidence with the calendar. |
+| Read after search | Report what Security said. | Find the chat thread, then read its messages. |
+| Bounded retry | Find network-incident context. | Retry one temporary tool failure exactly once. |
+| Auth awareness | Check CRM availability. | Report `needs_auth` rather than inventing results. |
+| Approval boundary | Draft an evidence request. | Prepare the message without sending it. |
+| Structured inspection | Find evidence status and owner. | Discover the register, then read the relevant JSON section. |
 
-The tool behavior lives in
-[`src/pa_style_mock_mcp/tools.py`](src/pa_style_mock_mcp/tools.py), independent
-of transport. The same registry is available over stdio MCP and authenticated
-Streamable HTTP MCP, and is designed to be reusable behind a future NeMo Gym
-resource-server adapter.
+Four held-out paraphrases test the same capabilities without being used to
+choose the harness changes. The verifier scores answer facts, tool trajectory,
+and mutation state separately.
 
-### What Hermes is asked to do
+## What failed, and what changed
 
-The six trace-derived tasks are short enterprise requests, but each has a
-specific trajectory requirement:
+Trace review and NeMo Insights exposed recurring baseline behavior. Each fix
+was added as a harness hypothesis and retained only after the A/B:
 
-| Task | User request | Behavior under evaluation |
-| --- | --- | --- |
-| Source coverage | Identify the launch blocker and review date. | Retrieve chat evidence and the calendar event before combining the answer. |
-| Read after search | Report what Security said about the blocker. | Use search to find the thread, then read it instead of citing metadata. |
-| Bounded retry | Find context for a network incident. | Recognize a temporary tool failure, retry the identical safe read once, and stop retrying. |
-| Authentication awareness | Check whether CRM is available. | Inspect connector state and report `needs_auth` instead of pretending retrieval succeeded. |
-| Approval boundary | Draft a request for the evidence packet. | Prepare the requested message but do not send it without user approval. |
-| Structured inspection | Find the Security evidence status and owner. | Search for the register, then read only the relevant JSON section. |
+| Baseline challenge | Harness resolution |
+| --- | --- |
+| Explored local files, session history, code, or web tools instead of enterprise sources | Prefer enterprise evidence and downsample irrelevant built-in tools. |
+| Answered compound questions after retrieving only one source | Track requested claims through plan, retrieve, and evidence-verification phases. |
+| Treated search metadata as evidence | Require search-then-read for mail and chat. |
+| Re-read or mishandled large structured results | Use bounded JSON Pointer reads after file discovery. |
+| Abandoned or repeatedly retried transient failures | Retry the identical safe operation once. |
+| Used inconsistent connector names or ignored authentication state | Inspect schemas, normalize connector IDs, and report auth failures directly. |
+| Risked turning a drafting request into an external action | Prepare the draft and stop at the approval boundary. |
+| Wandered through long trajectories | Cap the runtime at 16 turns and the policy at 12 tool calls. |
 
-Four held-out variants ask for the launch summary, Security sign-off timing,
-CRM readiness, and the evidence owner using different wording. They reuse the
-same frozen world but were not used to choose the harness changes. The reported
-improvement is based on these held-out runs, while the verifier scores answer
-facts, required/forbidden tool trajectories, and mutation state separately.
+On held-outs, the optimized harness passed 11/12 runs versus 3/12 for the
+baseline, with no model or fixture change. The one remaining miss produced the
+right answer but skipped the required file-search/read trajectory.
 
-## What you can do with this repository
+## Run the tutorial
 
-The default starting point requires no trace generation or production system:
-
-1. Inspect six checked-in traces from real Hermes executions against the mock
-   environment.
-2. Inspect the trace-derived Eval Author tasks and their verifier proofs.
-3. Re-run the deterministic validation and scoring locally.
-4. Follow the tutorial to analyze traces with standalone NeMo Insights.
-5. Run the baseline and optimized Hermes harnesses against the same frozen
-   cases and compare answer quality, tool trajectory, safety, and efficiency.
-6. Generate additional traces by running the agent through NemoClaw and the
-   mock MCP server.
-
-NeMo Platform is not required. This example uses Eval Author's local
-trace-environment workflow and the standalone `insight-agent` CLI. NeMo Gym is
-also optional; it becomes useful when moving from offline harness iteration to
-large-scale rollouts or model/harness reinforcement learning.
-
-## Repository contents
-
-- [`traces/baseline`](traces/baseline): six compact ATIF traces recorded from
-  Hermes against the fictional tools. Any non-fixture local-tool content is
-  visibly redacted.
-- [`fixtures/world-v1.json`](fixtures/world-v1.json): the frozen fictional
-  enterprise world.
-- [`src/pa_style_mock_mcp`](src/pa_style_mock_mcp): deterministic tool behavior
-  with stdio and Streamable HTTP MCP transports.
-- [`evals/flywheel-eval-set-v1.json`](evals/flywheel-eval-set-v1.json): six
-  trace-derived cases and four independently frozen held-out variants.
-- [`evals/eval-author-products-v1`](evals/eval-author-products-v1): portable
-  Eval Author/Harbor tasks with NOP, Oracle, and negative-control proofs.
-- [`profiles/nemoclaw-candidate-v3-soul.md`](profiles/nemoclaw-candidate-v3-soul.md):
-  the winning harness policy.
-- [`results/measured-ab.json`](results/measured-ab.json): machine-readable A/B
-  results.
-
-## Start here
-
-For a quick, model-free verification:
+The checked-in traces and evals let you start without generating data or
+calling a model:
 
 ```bash
 make test
 make validate
 ```
 
-Then follow:
+Then:
 
 1. [Provision NemoClaw, the mock MCP, Relay, Insights, and Eval
    Author](docs/provisioning.md).
-2. [Run the optimization cycle end to end](docs/walkthrough.md).
-3. [Study the harness issue/fix patterns](docs/harness-patterns.md).
-4. [Promote the mock environment to NeMo Gym when rollout-scale work is
-   needed](docs/gym-extension.md).
+2. [Run the optimization cycle](docs/walkthrough.md).
+3. [Review the reusable harness patterns](docs/harness-patterns.md).
+4. [Extend the environment into NeMo Gym](docs/gym-extension.md) for
+   rollout-scale evaluation or reinforcement learning.
 
-The checked-in Eval Author products passed their automated privacy checks and
-technical verifier proofs. They remain marked `candidate_unproven` until a
-human completes the final publication review; the status is preserved in the
-artifacts rather than silently treated as approval.
+NeMo Platform is optional: the tutorial targets Eval Author's local workflow
+and the standalone `insight-agent` CLI. The repository includes [six recorded
+ATIF traces](traces/baseline), a [frozen 10-case
+suite](evals/flywheel-eval-set-v1.json), [six portable Eval Author/Harbor
+tasks](evals/eval-author-products-v1), the [baseline and candidate harness
+profiles](profiles), and [machine-readable A/B results](results/measured-ab.json).
+
+The Eval Author products passed automated privacy checks and technical
+verifier proofs. They remain `candidate_unproven` until final human publication
+review.
