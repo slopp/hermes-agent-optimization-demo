@@ -153,12 +153,22 @@ sed "s/replace-me/$TRACE_LABEL/g" configs/nemoclaw-relay-plugins.toml \
   > /tmp/relay-plugins.toml
 openshell sandbox upload "$DEMO_SANDBOX" /tmp/relay-plugins.toml /sandbox
 openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
+  mkdir -p /sandbox/.hermes/nemo-relay
+openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
   mv /sandbox/relay-plugins.toml \
   /sandbox/.hermes/nemo-relay/relay-plugins.toml
 openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
   cp /sandbox/.hermes/nemo-relay/relay-plugins.toml \
   /sandbox/.hermes/nemo-relay/nemoclaw-relay-plugins.toml
+openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- sh -c \
+  "grep -q '^HERMES_NEMO_RELAY_PLUGINS_TOML=' /sandbox/.hermes/.env 2>/dev/null \
+  || echo HERMES_NEMO_RELAY_PLUGINS_TOML=/sandbox/.hermes/nemo-relay/relay-plugins.toml \
+  >>/sandbox/.hermes/.env"
 ```
+
+Hermes owns Relay directly and reads its exporter config only from the file named
+by `HERMES_NEMO_RELAY_PLUGINS_TOML`. Nothing creates `/sandbox/.hermes/nemo-relay`
+for you, and without the variable the arm runs but writes no ATOF or ATIF.
 
 The equivalent convenience command is:
 
@@ -329,6 +339,8 @@ openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
 sed "s/replace-me/$TRACE_LABEL/g" configs/nemoclaw-relay-plugins.toml \
   > /tmp/relay-plugins.toml
 openshell sandbox upload "$DEMO_SANDBOX" /tmp/relay-plugins.toml /sandbox
+openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
+  mkdir -p /sandbox/.hermes/nemo-relay
 openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
   mv /sandbox/relay-plugins.toml \
   /sandbox/.hermes/nemo-relay/relay-plugins.toml
