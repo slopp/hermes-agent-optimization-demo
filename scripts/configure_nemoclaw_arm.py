@@ -65,6 +65,16 @@ def main() -> int:
             + ["upload", args.sandbox, str(relay_path), "/sandbox"],
             dry_run=args.dry_run,
         )
+    # Hermes never creates this directory: Relay's config location is chosen by
+    # HERMES_NEMO_RELAY_PLUGINS_TOML, so the demo owns the path it points at.
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "mkdir", "-p",
+            "/sandbox/.hermes/nemo-relay",
+        ],
+        dry_run=args.dry_run,
+    )
     run(
         prefix
         + [
@@ -80,6 +90,18 @@ def main() -> int:
             "exec", "-n", args.sandbox, "--no-tty", "--", "cp",
             "/sandbox/.hermes/nemo-relay/relay-plugins.toml",
             "/sandbox/.hermes/nemo-relay/nemoclaw-relay-plugins.toml",
+        ],
+        dry_run=args.dry_run,
+    )
+    # Relay exporters stay off until Hermes reads this variable from its .env,
+    # so the arm writes no ATOF/ATIF without it.
+    run(
+        prefix
+        + [
+            "exec", "-n", args.sandbox, "--no-tty", "--", "sh", "-c",
+            "grep -q '^HERMES_NEMO_RELAY_PLUGINS_TOML=' /sandbox/.hermes/.env 2>/dev/null"
+            " || printf 'HERMES_NEMO_RELAY_PLUGINS_TOML=%s\\n'"
+            " /sandbox/.hermes/nemo-relay/relay-plugins.toml >>/sandbox/.hermes/.env",
         ],
         dry_run=args.dry_run,
     )
