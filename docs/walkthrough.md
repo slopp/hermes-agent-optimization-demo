@@ -10,7 +10,10 @@ recreate them.
 ## 1. Clone and validate
 
 Requirements are Git, Python 3.11+, `uv`, Docker, `openssl`, `jq`, and
-`cloudflared` (or another HTTPS ingress).
+`cloudflared` (or another HTTPS ingress). Step 6 has one additional constraint:
+Harbor 0.22.0 needs a Docker daemon whose Linux kernel supports nftables
+`CONFIG_NFT_FIB_INET`. Native Linux normally does. Docker Desktop's LinuxKit
+kernel does not; on macOS, use Colima for the Harbor proofs.
 
 ```bash
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
@@ -28,6 +31,16 @@ If `uv` or `cloudflared` is absent on macOS:
 ```bash
 brew install uv cloudflared jq
 ```
+
+On macOS, also prepare the compatible Docker context that Step 6 will use:
+
+```bash
+brew install colima
+colima start --cpu 4 --memory 8
+docker --context colima info >/dev/null
+```
+
+Docker Desktop can remain the default context for the other sections.
 
 ## 2. Provision Hermes with NemoClaw
 
@@ -243,17 +256,36 @@ Install Harbor in a separate environment, then prove every candidate:
 uv venv .harbor-venv --python 3.12
 uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
 
-for CASE in source-coverage read-after-search bounded-retry auth-awareness \
-  approval-boundary bounded-structured-inspection; do
-  python3 scripts/prove_eval_author_tasks.py \
-    --task-root "$EA_ROOT" --case "$CASE" --helper "$EA" \
-    --harbor-python "$PWD/.harbor-venv/bin/python" \
-    --harbor "$PWD/.harbor-venv/bin/harbor"
-done
+if [ "$(uname -s)" = Darwin ]; then
+  export HARBOR_DOCKER_CONTEXT=colima
+else
+  export HARBOR_DOCKER_CONTEXT=default
+fi
+
+python3 scripts/prove_eval_author_tasks.py \
+  --task-root "$EA_ROOT" \
+  --case source-coverage \
+  --case read-after-search \
+  --case bounded-retry \
+  --case auth-awareness \
+  --case approval-boundary \
+  --case bounded-structured-inspection \
+  --helper "$EA" \
+  --harbor-python "$PWD/.harbor-venv/bin/python" \
+  --harbor "$PWD/.harbor-venv/bin/harbor" \
+  --docker-context "$HARBOR_DOCKER_CONTEXT"
 ```
 
 Each proof runs two NOPs, two Oracles, and one incomplete-answer control with a
-separate no-network verifier. Use Eval Author's
+separate no-network verifier. The runner creates the shared `private/jobs`
+directory and performs Harbor's kernel-capability probe before writing any run
+receipts. If it rejects Docker Desktop, switching only the selected context to
+Colima is the expected macOS workaround. Do not change `network_mode` to
+`public`: the isolation is part of the Eval Author proof contract. Harbor's
+static no-network
+[Docker Desktop limitation](https://github.com/harbor-framework/harbor/issues/2593)
+remains open upstream, so upgrading past this tutorial's tested pin is not
+currently a fix. Use Eval Author's
 `prepare-publication`, `review-publication`, and `export` commands only
 after inspecting their exact previews. The checked-in exports show the expected
 result under `evals/eval-author-products-v2`.

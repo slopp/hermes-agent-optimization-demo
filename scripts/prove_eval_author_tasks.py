@@ -17,6 +17,11 @@ ARMS = (
     ("negative", "proof-v1-negative-1"),
 )
 
+HARBOR_NETWORK_PROBE = (
+    "from harbor.environments.docker.docker import DockerEnvironment; "
+    "raise SystemExit(0 if DockerEnvironment._egress_control_kernel_support() else 1)"
+)
+
 
 def _run(command: list[str], *, env: dict[str, str], log: Path | None = None) -> None:
     if log is None:
@@ -25,6 +30,41 @@ def _run(command: list[str], *, env: dict[str, str], log: Path | None = None) ->
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w", encoding="utf-8") as stream:
         subprocess.run(command, check=True, env=env, stdout=stream, stderr=subprocess.STDOUT)
+
+
+def _check_no_network_support(harbor_python: Path, docker_context: str) -> None:
+    """Fail before creating proof receipts when Harbor cannot isolate the jobs."""
+    env = {**os.environ, "DOCKER_CONTEXT": docker_context}
+    try:
+        subprocess.run(
+            ["docker", "--context", docker_context, "info"],
+            check=True,
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, "stderr", "") or str(error)
+        raise RuntimeError(
+            f"Docker context {docker_context!r} is unavailable: {detail.strip()}"
+        ) from error
+
+    probe = subprocess.run(
+        [str(harbor_python), "-c", HARBOR_NETWORK_PROBE],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode:
+        raise RuntimeError(
+            f"Docker context {docker_context!r} cannot enforce Harbor 0.22.0 "
+            "network_mode='no-network'. Docker Desktop's LinuxKit kernel is a known "
+            "incompatible host. On macOS, start Colima and pass --docker-context colima; "
+            "otherwise use a native Linux Docker host with CONFIG_NFT_FIB_INET. Do not "
+            "weaken the Eval Author task to public networking."
+        )
 
 
 def _proof_arm(
@@ -94,6 +134,10 @@ def prove(
     docker_context: str,
     workers: int,
 ) -> None:
+    # record-run-inputs intentionally requires each future job directory not to
+    # exist. Harbor creates those leaf directories, but its shared parent must
+    # exist before concurrent proof arms start.
+    (task_dir / "private" / "jobs").mkdir(parents=True, exist_ok=True)
     _run(
         [str(harbor_python), str(helper), "check-runtime", "--task-dir", str(task_dir)],
         env={**os.environ, "DOCKER_CONTEXT": docker_context},
@@ -170,6 +214,10 @@ def main() -> int:
     args = parser.parse_args()
     if args.workers < 1 or args.workers > 5:
         parser.error("--workers must be between 1 and 5")
+    try:
+        _check_no_network_support(args.harbor_python.absolute(), args.docker_context)
+    except RuntimeError as error:
+        parser.error(str(error))
     for case_id in args.case:
         prove(
             (args.task_root / case_id).resolve(),
