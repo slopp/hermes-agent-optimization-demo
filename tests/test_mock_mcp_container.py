@@ -9,5 +9,10 @@ class MockMcpContainerTest(unittest.TestCase):
         dockerfile = (ROOT / "deploy" / "mock-mcp" / "Dockerfile").read_text()
         self.assertIn("USER mockmcp", dockerfile)
         self.assertIn('"--require-bearer-token"', dockerfile)
+        entrypoint = next(
+            line for line in dockerfile.splitlines() if line.startswith("ENTRYPOINT")
+        )
+        self.assertIn('"--host", "0.0.0.0"', entrypoint)
+        self.assertIn('"--require-bearer-token"', entrypoint)
         self.assertNotIn("PA_STYLE_MOCK_MCP_TOKEN=", dockerfile)
         self.assertNotIn("COPY traces", dockerfile)

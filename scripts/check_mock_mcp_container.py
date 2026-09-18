@@ -59,9 +59,12 @@ async def main() -> int:
         "--publish", f"127.0.0.1:{port}:8000",
         "--env", f"PA_STYLE_MOCK_MCP_TOKEN={TOKEN}",
     ]
-    if args.fixture:
-        docker_command.extend(["--env", f"PA_STYLE_WORLD_FIXTURE={args.fixture}"])
     docker_command.append(IMAGE)
+    # Pass the fixture the same way the walkthrough does. This also verifies
+    # that user-supplied image arguments cannot replace the container's fixed
+    # bind address and bearer-auth settings.
+    if args.fixture:
+        docker_command.extend(["--fixture", args.fixture])
     await asyncio.to_thread(
         subprocess.run,
         docker_command,
