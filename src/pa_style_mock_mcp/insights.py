@@ -194,6 +194,7 @@ def atof_events_to_insights_traces(
             if event.get("category") == "llm" and "end" in pairs.get(event.get("uuid"), {})
         ]
         prompt = ""
+        user_prompts: list[str] = []
         catalog: dict[str, Any] = {}
         model: str | None = None
         final_answer = ""
@@ -204,7 +205,9 @@ def atof_events_to_insights_traces(
             request = start_data.get("content", {}) if isinstance(start_data, dict) else {}
             for message in request.get("messages", []) if isinstance(request, dict) else []:
                 if message.get("role") == "user" and isinstance(message.get("content"), str):
-                    prompt = message["content"]
+                    candidate = message["content"]
+                    if candidate and candidate not in user_prompts:
+                        user_prompts.append(candidate)
             for item in request.get("tools", []) if isinstance(request, dict) else []:
                 function = item.get("function", {})
                 if isinstance(function.get("name"), str) and isinstance(function.get("parameters"), dict):
@@ -233,17 +236,27 @@ def atof_events_to_insights_traces(
                 if isinstance(content, str) and content.strip():
                     final_answer = content
 
+        # Retries after a cut-off response can add a synthetic continuation
+        # prompt to the same Hermes turn. Preserve the original user request,
+        # preferring the first prompt that matches the supplied eval matrix.
+        prompt = user_prompts[0] if user_prompts else ""
         case_id = None
         if prompt_case_ids:
-            case_id = prompt_case_ids.get(prompt)
-            if case_id is None:
-                # Hermes appends a runtime-context block to the recorded user
-                # message. Match only an exact prompt prefix followed by that
-                # delimiter so case attribution remains deterministic.
-                for matrix_prompt, matrix_case_id in prompt_case_ids.items():
-                    if prompt.startswith(f"{matrix_prompt}\n\nNemoClaw runtime context:"):
-                        case_id = matrix_case_id
-                        break
+            for candidate in user_prompts:
+                case_id = prompt_case_ids.get(candidate)
+                if case_id is None:
+                    # Hermes appends a runtime-context block to the recorded
+                    # user message. Match only an exact prompt prefix followed
+                    # by that delimiter so attribution remains deterministic.
+                    for matrix_prompt, matrix_case_id in prompt_case_ids.items():
+                        if candidate.startswith(
+                            f"{matrix_prompt}\n\nNemoClaw runtime context:"
+                        ):
+                            case_id = matrix_case_id
+                            break
+                if case_id is not None:
+                    prompt = candidate
+                    break
         spans: list[dict[str, Any]] = []
         for event in descendants:
             if event.get("category") != "tool" or event.get("scope_category") != "start":

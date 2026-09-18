@@ -164,6 +164,23 @@ class InsightsAdapterTests(unittest.TestCase):
 
         self.assertEqual(trace["attributes"]["logical_case_id"], "find")
 
+    def test_keeps_original_matrix_prompt_when_retry_adds_continuation(self) -> None:
+        events = [
+            {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn"},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "first", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it\n\nNemoClaw runtime context:\n- sandbox"}]}}},
+            {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "first", "parent_uuid": "turn", "data": {}},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "retry", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "[System: Continue where you left off.]"}]}}},
+            {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "retry", "parent_uuid": "turn", "data": {"choices": [{"message": {"content": "done"}}]}},
+            {"kind": "scope", "scope_category": "end", "category": "function", "name": "hermes.turn", "uuid": "turn", "data": {"outcome": "success"}},
+        ]
+
+        trace = atof_events_to_insights_traces(
+            events, prompt_case_ids={"Find it": "find"}
+        )[0]
+
+        self.assertEqual(trace["attributes"]["logical_case_id"], "find")
+        self.assertTrue(trace["attributes"]["prompt"].startswith("Find it\n\n"))
+
 
 if __name__ == "__main__":
     unittest.main()
