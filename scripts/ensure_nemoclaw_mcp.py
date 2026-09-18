@@ -52,7 +52,13 @@ def _stop_previous_tunnel(pid_file: Path) -> None:
         pid = int(pid_file.read_text().strip())
     except ValueError:
         return
-    if _process_alive(pid):
+    process = subprocess.run(
+        ["ps", "-p", str(pid), "-o", "command="],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if _process_alive(pid) and "cloudflared" in process.stdout:
         os.kill(pid, signal.SIGTERM)
         for _ in range(20):
             if not _process_alive(pid):
