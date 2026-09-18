@@ -1,6 +1,6 @@
 {
   "schema_version": "enterprise-flywheel-measured-result-v2",
-  "measured_at_utc": "2026-09-14",
+  "measured_at_utc": "2026-09-18",
   "fixture": {
     "world_version": "v2",
     "records": 504,
@@ -8,21 +8,25 @@
   },
   "runtime": {
     "agent": "Hermes 0.20.6 in a NemoClaw/OpenShell sandbox",
+    "nemoclaw": "0.0.124",
     "actual_response_model": "nvidia/nvidia/nemotron-3-ultra",
-    "requested_model_alias": "nvidia/nemotron-3.5-lightning-30b-a3b",
-    "note": "Relay response metadata identifies the returned model; every arm used the same provider route."
+    "requested_model_alias": "nvidia/nvidia/nemotron-3-ultra",
+    "host": "Ubuntu CPU instance with native Docker",
+    "note": "Relay response metadata identifies the returned model; every arm used the same NVIDIA OpenAI-compatible route. The public walkthrough provisions NVIDIA Build."
   },
   "insights": {
     "traces": 60,
-    "tool_calls": 662,
+    "tool_calls": 521,
     "logical_cases": 10,
     "evaluable_rules": 14,
     "total_rules": 19,
-    "missing_enterprise_evidence_verdicts": 21,
+    "missing_enterprise_evidence_verdicts": 19,
     "trajectory_clusters": 8,
     "anomalies": 2,
-    "analyst_model": "nvidia/nemotron-3-ultra-550b-a55b",
-    "analyst_insights": 3
+    "analyst_model": "nvidia/nvidia/nemotron-3-ultra",
+    "analyst_input_traces": 18,
+    "analyst_insights": 3,
+    "excluded_and_replenished_infrastructure_attempts": 3
   },
   "eval_author": {
     "members": 6,
@@ -37,46 +41,36 @@
   "development": {
     "baseline": {
       "traces": 18,
-      "pass_rate": 0.16666666666666666,
-      "trajectory_pass_rate": 0.2222222222222222,
-      "answer_pass_rate": 0.3888888888888889,
-      "mean_tool_calls": 22.38888888888889,
+      "pass_rate": 0.2222222222222222,
+      "trajectory_pass_rate": 0.2777777777777778,
+      "answer_pass_rate": 0.5,
+      "mean_tool_calls": 14.444444444444445,
       "command_timeouts": 1
-    },
-    "candidate_v3_intermediate": {
-      "traces": 18,
-      "pass_rate": 0.6666666666666666,
-      "mean_tool_calls": 16.555555555555557
     },
     "candidate_v4": {
       "traces": 18,
-      "pass_rate": 1.0,
-      "trajectory_pass_rate": 1.0,
+      "pass_rate": 0.9444444444444444,
+      "trajectory_pass_rate": 0.9444444444444444,
       "answer_pass_rate": 1.0,
-      "mean_tool_calls": 3.5,
+      "mean_tool_calls": 3.111111111111111,
       "command_timeouts": 0
     }
   },
   "held_out": {
     "baseline": {
       "traces": 12,
-      "pass_rate": 0.4166666666666667,
+      "pass_rate": 0.5,
       "trajectory_pass_rate": 0.5,
-      "answer_pass_rate": 0.5833333333333334,
-      "mean_tool_calls": 11.75,
+      "answer_pass_rate": 0.5,
+      "mean_tool_calls": 12.75,
       "command_timeouts": 0
-    },
-    "candidate_v3_intermediate": {
-      "traces": 12,
-      "pass_rate": 0.8333333333333334,
-      "mean_tool_calls": 10.5
     },
     "candidate_v4": {
       "traces": 12,
-      "pass_rate": 0.9166666666666666,
-      "trajectory_pass_rate": 0.9166666666666666,
-      "answer_pass_rate": 0.9166666666666666,
-      "mean_tool_calls": 4.583333333333333,
+      "pass_rate": 1.0,
+      "trajectory_pass_rate": 1.0,
+      "answer_pass_rate": 1.0,
+      "mean_tool_calls": 4.333333333333333,
       "command_timeouts": 0
     }
   },

@@ -55,8 +55,8 @@ retry, JSON Pointer reads, approval boundaries, irrelevant-tool downsampling,
 and explicit call/turn budgets.
 
 With the same world and returned model, held-out pass rate improved from
-**41.7% (5/12) to 91.7% (11/12)** while mean tool calls fell from **11.75 to
-4.58**. Development improved from **16.7% to 100%**. See
+**50.0% (6/12) to 100% (12/12)** while mean tool calls fell from **12.75 to
+4.33**. Development improved from **22.2% to 94.4%**. See
 [results and caveats](docs/results.md).
 
 ## Start here

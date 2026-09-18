@@ -400,10 +400,18 @@ quota immediately before the A/B test.
 
 ## 8. Apply the candidate arm
 
-The baseline findings suggested enterprise-first routing and irrelevant-tool
-downsampling. Candidate v3 improved markedly but world-v2 still exposed source
-enumeration, modified retries, and guessed JSON arguments. Candidate v4 made
-those transitions explicit.
+In the clean baseline, 12/18 traces ended without the required enterprise
+evidence. Recurring clusters showed session-only search, mixed web/local/MCP
+exploration, and repeated chat calls; tool-issue cards showed structured
+argument failures. The optional Analyst confirmed incorrect required arguments
+and repeated failing web searches while correctly flagging the dynamic-catalog
+finding as a discovery/instrumentation issue.
+
+Those observations become testable harness hypotheses: prefer enterprise
+evidence, remove irrelevant fallback tools, inspect schemas before structured
+calls, and bound retries. Candidate v3 is retained as an intermediate policy;
+world-v2 still exposed source enumeration, modified retries, and guessed JSON
+arguments. Candidate v4 makes the transitions explicit.
 
 Its direct Hermes changes are:
 
@@ -473,12 +481,15 @@ python3 scripts/convert_atof_for_insights.py \
 The runner treats Hermes terminal messages such as exhausted 429 retries as
 failures even when the CLI exits zero. It catches non-timeout host/runtime
 failures, preserves each failed attempt, waits, and retries the same logical
-trial. The fixed exit-124 timeout is different: it is not retried or filtered
-away. `--include-incomplete` retains its partial Relay trajectory and scores it
-as a harness failure, avoiding survivor bias toward lucky completions. If all
-provider retries fail, wait for the shared endpoint quota to recover and rerun
-only the affected scenario with `--scenario CASE`; keep `--valid-only` when
-scoring. Then score:
+trial. With `--ensure-mock-mcp`, it also checks discovery after every turn and
+retries a failed quick-tunnel transport; the converter independently excludes
+any transport loss recorded inside the Relay trajectory. The fixed exit-124
+timeout is different when infrastructure stayed healthy: it is not retried or
+filtered away. `--include-incomplete` retains its partial Relay trajectory and
+scores it as a harness failure, avoiding survivor bias toward lucky
+completions. If all provider or MCP retries fail, wait for the endpoint to
+recover and rerun only the affected scenario with `--scenario CASE`; keep
+`--valid-only` when scoring. Then score:
 
 ```bash
 python3 scripts/score_insights_traces.py --valid-only \
@@ -565,8 +576,8 @@ the combined Insights corpus may therefore contain more than 60 valid records
 if a host-timed-out attempt later finished inside Hermes.
 
 Require answer, trajectory, approval state, timeout, and efficiency guardrails
-to improve or remain acceptable. The measured run reached 41.7% → 91.7%
-held-out pass rate and 11.75 → 4.58 mean calls.
+to improve or remain acceptable. The clean-machine run reached 50.0% →
+100% held-out pass rate and 12.75 → 4.33 mean calls.
 
 After rollout collection, optionally ask the Insights Analyst to synthesize
 the deterministic evidence. This run can consume substantial input-token quota,

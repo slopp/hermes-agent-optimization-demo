@@ -9,16 +9,16 @@ proved six portable tasks, and standalone Insights analyzed the combined
 
 | Arm | Pass | Trajectory | Answer | Mean calls | Timeouts |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Broad baseline | 41.7% (5/12) | 50.0% | 58.3% | 11.75 | 0 |
-| Candidate v4 | 91.7% (11/12) | 91.7% | 91.7% | 4.58 | 0 |
+| Broad baseline | 50.0% (6/12) | 50.0% | 50.0% | 12.75 | 0 |
+| Candidate v4 | 100% (12/12) | 100% | 100% | 4.33 | 0 |
 
-That is a 50-point pass-rate gain and about 61% fewer tool calls. Development
-improved from 16.7% (3/18) at 22.39 calls to 100% (18/18) at 3.5 calls.
+That is a 50-point pass-rate gain and about 66% fewer tool calls. Development
+improved from 22.2% (4/18) at 14.44 calls to 94.4% (17/18) at 3.11 calls.
 
-Candidate v3 was an intentionally retained intermediate: 66.7% development and
-83.3% held-out. World-v2 revealed that its general evidence policy still
-enumerated sources and guessed structured-read arguments. Those failures led
-to v4's exact source transitions and schema-first JSON read.
+Candidate v3 remains as an illustrative intermediate profile. World-v2 exposed
+that its general evidence policy could still enumerate sources and guess
+structured-read arguments, which led to v4's exact source transitions and
+schema-first JSON read. The clean result above compares only baseline and v4.
 
 ## What changed
 
@@ -33,18 +33,28 @@ Only the harness changed:
 - disable irrelevant local, web, code, and session toolsets; and
 - cap the policy at eight calls and the runtime at 12 turns.
 
-The single v4 held-out miss exceeded the intended path on a security-timing
-question and never completed the required read.
+The single v4 development miss asked for unnecessary clarification instead of
+preparing the requested draft. All 12 held-out trials completed the required
+trajectory and answer contract.
 
 ## Insights and Eval Author evidence
 
-The 60 traces contained 662 tool calls across 10 logical cases. Deterministic
-Insights produced 21 missing-enterprise-evidence verdicts, eight trajectory
-clusters, and two anomalies. The optional Nemotron Analyst summarized three
-themes: proxy/web-search failures, repeated broad knowledge searches, and a
-tool-catalog mismatch. The last item is partly instrumentation noise because
-dynamically discovered MCP tools are not always present in Hermes' active-tool
-catalog snapshot; review cited traces before treating a finding as a defect.
+The 60 traces contained 521 tool calls across 10 logical cases. Deterministic
+Insights produced 19 missing-enterprise-evidence verdicts, eight trajectory
+clusters, and two anomalies. On the 18 baseline development traces, the
+optional Nemotron Analyst identified invalid tool arguments, repeated failing
+web searches, and a tool-catalog mismatch. Those findings support schema-first
+calls and irrelevant-tool downsampling. The catalog item is partly
+instrumentation noise because dynamically discovered MCP tools are not always
+present in Hermes' static catalog snapshot; review cited traces before treating
+a finding as a defect.
+
+Three development attempts lost the ephemeral quick-tunnel transport. They
+were marked infrastructure-invalid, excluded, and replaced with the same
+logical trials. The final 60-trace corpus contains exactly three valid trials
+per case; no held-out trace was excluded. Normal exit codes alone are
+insufficient here because Hermes can return a well-formed answer explaining
+that its tools are unavailable.
 
 Eval Author produced six tasks. Each passed two Oracle controls and rejected
 two NOP plus one incomplete-answer control in isolated Harbor jobs with a
@@ -53,10 +63,10 @@ human publication review is recorded.
 
 ## Model disclosure
 
-The requested alias was `nvidia/nemotron-3.5-lightning-30b-a3b`; Relay's
-response metadata identified the actual returned model as
-`nvidia/nvidia/nemotron-3-ultra`. Both arms used the same route. Always record
-both requested and returned IDs.
+The clean run requested `nvidia/nvidia/nemotron-3-ultra`, and Relay response
+metadata reported that same model. Both arms used the same NVIDIA
+OpenAI-compatible route. The public walkthrough provisions NVIDIA Build;
+record both requested and returned model IDs when reproducing the experiment.
 
 The complete machine-readable record is
 [`results/measured-ab-v2.json`](../results/measured-ab-v2.json).
