@@ -59,6 +59,18 @@ def main() -> int:
         default=0,
         help="Pause between runs to avoid bursting a shared inference endpoint.",
     )
+    parser.add_argument(
+        "--terminal-retries",
+        type=int,
+        default=0,
+        help="Retry a logical trial when Hermes returns a recognized terminal provider error.",
+    )
+    parser.add_argument(
+        "--retry-backoff-seconds",
+        type=float,
+        default=120,
+        help="Cooldown before retrying a terminal provider error.",
+    )
     parser.add_argument("--model", help="Optional Hermes model override for every invocation.")
     parser.add_argument("--provider", help="Optional Hermes provider override for every invocation.")
     parser.add_argument(
@@ -89,70 +101,79 @@ def main() -> int:
         for scenario in scenarios:
             case_id = scenario["id"]
             print(f"[{args.arm}] {case_id} trial {trial}/{args.trials}", flush=True)
-            if args.reset_demo_sessions:
-                clear_demo_sessions(args.gateway, args.sandbox)
-            run_workspace = f"/sandbox/eval-workspaces/{args.arm}-{case_id}-{trial}-{uuid.uuid4().hex[:8]}"
-            subprocess.run(
-                [
-                    "openshell", "-g", args.gateway, "sandbox", "exec", "-n", args.sandbox,
-                    "--no-tty", "--", "mkdir", "-p", run_workspace,
-                ],
-                check=True,
-                text=True,
-                capture_output=True,
-            )
-            command = [
-                "openshell",
-                "-g",
-                args.gateway,
-                "sandbox",
-                "exec",
-                "-n",
-                args.sandbox,
-                "--timeout",
-                str(args.timeout),
-                "--no-tty",
-                "--",
-                "hermes",
-                "-z",
-                scenario["prompt"],
-                "--in",
-                run_workspace,
-            ]
-            if args.toolsets:
-                command.extend(["--toolsets", args.toolsets])
-            if args.model:
-                command.extend(["--model", args.model])
-            if args.provider:
-                command.extend(["--provider", args.provider])
-            completed = subprocess.run(
-                command,
-                text=True,
-                capture_output=True,
-                timeout=args.timeout + 30,
-                check=False,
-            )
-            response = completed.stdout.strip()
-            terminal_error = terminal_failure(response)
-            record = {
-                "schema_version": "nemoclaw-matrix-run-v1",
-                "arm": args.arm,
-                "case_id": case_id,
-                "trial": trial,
-                "prompt": scenario["prompt"],
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-                "returncode": completed.returncode,
-                "response": response,
-                "stderr": completed.stderr.strip(),
-                "terminal_error": terminal_error,
-                "workspace": run_workspace,
-            }
-            path = args.output / f"{case_id}-trial-{trial:02d}.json"
-            path.write_text(json.dumps(record, indent=2) + "\n")
-            if completed.returncode or terminal_error:
+            logical_trial_failed = False
+            for attempt in range(1, args.terminal_retries + 2):
+                if args.reset_demo_sessions:
+                    clear_demo_sessions(args.gateway, args.sandbox)
+                run_workspace = (
+                    f"/sandbox/eval-workspaces/{args.arm}-{case_id}-{trial}-"
+                    f"{uuid.uuid4().hex[:8]}"
+                )
+                subprocess.run(
+                    [
+                        "openshell", "-g", args.gateway, "sandbox", "exec", "-n",
+                        args.sandbox, "--no-tty", "--", "mkdir", "-p", run_workspace,
+                    ],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                )
+                command = [
+                    "openshell", "-g", args.gateway, "sandbox", "exec", "-n",
+                    args.sandbox, "--timeout", str(args.timeout), "--no-tty", "--",
+                    "hermes", "-z", scenario["prompt"], "--in", run_workspace,
+                ]
+                if args.toolsets:
+                    command.extend(["--toolsets", args.toolsets])
+                if args.model:
+                    command.extend(["--model", args.model])
+                if args.provider:
+                    command.extend(["--provider", args.provider])
+                completed = subprocess.run(
+                    command,
+                    text=True,
+                    capture_output=True,
+                    timeout=args.timeout + 30,
+                    check=False,
+                )
+                response = completed.stdout.strip()
+                terminal_error = terminal_failure(response)
+                record = {
+                    "schema_version": "nemoclaw-matrix-run-v1",
+                    "arm": args.arm,
+                    "case_id": case_id,
+                    "trial": trial,
+                    "attempt": attempt,
+                    "prompt": scenario["prompt"],
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "returncode": completed.returncode,
+                    "response": response,
+                    "stderr": completed.stderr.strip(),
+                    "terminal_error": terminal_error,
+                    "workspace": run_workspace,
+                }
+                path = args.output / f"{case_id}-trial-{trial:02d}.json"
+                path.write_text(json.dumps(record, indent=2) + "\n")
+                if terminal_error:
+                    attempt_path = args.output / (
+                        f"{case_id}-trial-{trial:02d}-attempt-{attempt:02d}.json"
+                    )
+                    attempt_path.write_text(json.dumps(record, indent=2) + "\n")
+                if terminal_error and attempt <= args.terminal_retries:
+                    print(
+                        f"  {terminal_error}; retrying attempt {attempt + 1}/"
+                        f"{args.terminal_retries + 1} after {args.retry_backoff_seconds:g}s",
+                        flush=True,
+                    )
+                    time.sleep(args.retry_backoff_seconds)
+                    continue
+                logical_trial_failed = bool(completed.returncode or terminal_error)
+                if logical_trial_failed:
+                    detail = completed.stderr.strip() or terminal_error or "unknown failure"
+                    print(f"  failed with exit {completed.returncode}: {detail}", flush=True)
+                break
+            if logical_trial_failed:
                 failures += 1
-                detail = completed.stderr.strip() or terminal_error or "unknown failure"
-                print(f"  failed with exit {completed.returncode}: {detail}", flush=True)
             if args.delay_seconds > 0:
                 time.sleep(args.delay_seconds)
     print(f"Completed {len(scenarios) * args.trials} runs; failures={failures}")

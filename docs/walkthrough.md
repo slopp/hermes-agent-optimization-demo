@@ -234,7 +234,9 @@ python3 scripts/run_nemoclaw_matrix.py \
   --sandbox "$DEMO_SANDBOX" \
   --gateway "$DEMO_GATEWAY" \
   --matrix experiments/fidelity-matrix-v2.json \
-  --arm baseline --trials 3 --delay-seconds 30 --reset-demo-sessions \
+  --arm baseline --trials 3 --delay-seconds 30 \
+  --terminal-retries 3 --retry-backoff-seconds 180 \
+  --reset-demo-sessions \
   --output .runs/world-v2/baseline-dev/responses
 ```
 
@@ -467,7 +469,9 @@ nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --sandbox "$DEMO_SANDBOX" --gateway "$DEMO_GATEWAY" \
   --matrix experiments/fidelity-matrix-v2.json \
-  --arm candidate --trials 3 --delay-seconds 30 --reset-demo-sessions \
+  --arm candidate --trials 3 --delay-seconds 30 \
+  --terminal-retries 3 --retry-backoff-seconds 180 \
+  --reset-demo-sessions \
   --output .runs/world-v2/candidate-v4-dev/responses
 
 mkdir -p .runs/world-v2/candidate-v4-dev/relay
@@ -481,8 +485,9 @@ python3 scripts/convert_atof_for_insights.py \
 ```
 
 The runner treats Hermes terminal messages such as exhausted 429 retries as
-failures even when the CLI exits zero. If it reports one, wait for the shared
-endpoint quota to recover and rerun only the affected scenario with
+failures even when the CLI exits zero. It preserves each failed attempt, waits,
+and retries the same logical trial. If all configured retries fail, wait for
+the shared endpoint quota to recover and rerun only the affected scenario with
 `--scenario CASE`; keep `--valid-only` when scoring. Then score:
 
 ```bash
@@ -510,7 +515,9 @@ nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
-  --arm baseline --trials 3 --delay-seconds 30 --reset-demo-sessions \
+  --arm baseline --trials 3 --delay-seconds 30 \
+  --terminal-retries 3 --retry-backoff-seconds 180 \
+  --reset-demo-sessions \
   --output .runs/world-v2/baseline-held-out/responses
 
 python3 scripts/configure_nemoclaw_arm.py \
@@ -522,7 +529,9 @@ nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
-  --arm candidate --trials 3 --delay-seconds 30 --reset-demo-sessions \
+  --arm candidate --trials 3 --delay-seconds 30 \
+  --terminal-retries 3 --retry-backoff-seconds 180 \
+  --reset-demo-sessions \
   --output .runs/world-v2/candidate-v4-held-out/responses
 
 mkdir -p .runs/world-v2/baseline-held-out/relay \
