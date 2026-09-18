@@ -13,7 +13,10 @@ Hermes in NemoClaw + mock MCP → Relay traces → Eval Author → frozen eval
 
 You can begin with the checked-in traces and eval products, so generating data
 is optional. The complete workflow uses standalone NeMo Insights and Eval
-Author locally; a NeMo Platform deployment is not required.
+Author locally; a NeMo Platform deployment is not required. The standalone
+Insight Agent source is currently an access-controlled NVIDIA preview, while
+the checked-in traces, eval products, mock environment, and remaining workflow
+can be inspected without it.
 
 ## Production grounding
 

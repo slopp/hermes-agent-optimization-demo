@@ -9,8 +9,9 @@ recreate them.
 
 ## 1. Clone and validate
 
-Requirements are Git, Make, Python 3.11+, `uv`, Docker, `curl`, `openssl`, `jq`, and
-`cloudflared` (or another HTTPS ingress). Step 6 has one additional constraint:
+Requirements are Git, GitHub CLI, Make, Python 3.11+, `uv`, Docker, `curl`,
+`openssl`, `jq`, and `cloudflared` (or another HTTPS ingress). Step 6 has one
+additional constraint:
 Harbor 0.22.0 needs a Docker daemon whose Linux kernel supports nftables
 `CONFIG_NFT_FIB_INET`. Native Linux normally does. Docker Desktop's LinuxKit
 kernel does not; on macOS, use Colima for the Harbor proofs.
@@ -19,7 +20,7 @@ kernel does not; on macOS, use Colima for the Harbor proofs.
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
 
-command -v git make python3 uv docker curl openssl jq cloudflared
+command -v git gh make python3 uv docker curl openssl jq cloudflared
 docker info >/dev/null
 make test
 make validate
@@ -38,13 +39,13 @@ curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | \
 echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | \
   sudo tee /etc/apt/sources.list.d/cloudflared.list
 sudo apt-get update
-sudo apt-get install -y make cloudflared
+sudo apt-get install -y gh make cloudflared
 ```
 
 On macOS:
 
 ```bash
-brew install uv cloudflared jq
+brew install gh uv cloudflared jq
 ```
 
 On macOS, also prepare the compatible Docker context that Step 6 will use:
@@ -377,7 +378,7 @@ preview. Obtain repository access and authenticate GitHub before continuing;
 this is the only non-public source dependency in the walkthrough.
 
 ```bash
-gh auth status
+gh auth status || gh auth login --web --git-protocol https
 git clone https://github.com/NVIDIA/nemo-platform-insights-preview.git \
   ../nemo-platform-insights-preview
 cd ../nemo-platform-insights-preview
