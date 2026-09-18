@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.run_nemoclaw_matrix import terminal_failure
+from scripts.run_nemoclaw_matrix import retryable_failure, terminal_failure
 
 
 class NemoClawMatrixRunnerTests(unittest.TestCase):
@@ -11,6 +11,10 @@ class NemoClawMatrixRunnerTests(unittest.TestCase):
 
     def test_accepts_normal_answer(self) -> None:
         self.assertIsNone(terminal_failure("The security packet is missing."))
+
+    def test_retries_nonzero_runtime_exit(self) -> None:
+        self.assertTrue(retryable_failure(124, None))
+        self.assertFalse(retryable_failure(0, None))
 
 
 if __name__ == "__main__":

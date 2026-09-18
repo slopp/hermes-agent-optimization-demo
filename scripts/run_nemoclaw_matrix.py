@@ -24,6 +24,11 @@ def terminal_failure(response: str) -> str | None:
     return next((marker for marker in TERMINAL_FAILURE_MARKERS if marker in lowered), None)
 
 
+def retryable_failure(returncode: int, terminal_error: str | None) -> bool:
+    """Treat host/runtime failures and recognized provider errors as retryable."""
+    return bool(returncode or terminal_error)
+
+
 def clear_demo_sessions(gateway: str, sandbox: str) -> None:
     """Clear session history in an explicitly disposable demo sandbox."""
     script = """import sqlite3, subprocess
@@ -60,10 +65,12 @@ def main() -> int:
         help="Pause between runs to avoid bursting a shared inference endpoint.",
     )
     parser.add_argument(
+        "--retries",
         "--terminal-retries",
+        dest="retries",
         type=int,
         default=0,
-        help="Retry a logical trial when Hermes returns a recognized terminal provider error.",
+        help="Retry a logical trial after a host, runtime, or terminal provider failure.",
     )
     parser.add_argument(
         "--retry-backoff-seconds",
@@ -102,7 +109,7 @@ def main() -> int:
             case_id = scenario["id"]
             print(f"[{args.arm}] {case_id} trial {trial}/{args.trials}", flush=True)
             logical_trial_failed = False
-            for attempt in range(1, args.terminal_retries + 2):
+            for attempt in range(1, args.retries + 2):
                 if args.reset_demo_sessions:
                     clear_demo_sessions(args.gateway, args.sandbox)
                 run_workspace = (
@@ -129,15 +136,26 @@ def main() -> int:
                     command.extend(["--model", args.model])
                 if args.provider:
                     command.extend(["--provider", args.provider])
-                completed = subprocess.run(
-                    command,
-                    text=True,
-                    capture_output=True,
-                    timeout=args.timeout + 30,
-                    check=False,
-                )
+                try:
+                    completed = subprocess.run(
+                        command,
+                        text=True,
+                        capture_output=True,
+                        timeout=args.timeout + 30,
+                        check=False,
+                    )
+                except subprocess.TimeoutExpired as error:
+                    stdout = error.stdout.decode() if isinstance(error.stdout, bytes) else error.stdout
+                    stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else error.stderr
+                    completed = subprocess.CompletedProcess(
+                        command,
+                        124,
+                        stdout=stdout or "",
+                        stderr=stderr or "host-side timeout",
+                    )
                 response = completed.stdout.strip()
                 terminal_error = terminal_failure(response)
+                failed_attempt = retryable_failure(completed.returncode, terminal_error)
                 record = {
                     "schema_version": "nemoclaw-matrix-run-v1",
                     "arm": args.arm,
@@ -154,20 +172,21 @@ def main() -> int:
                 }
                 path = args.output / f"{case_id}-trial-{trial:02d}.json"
                 path.write_text(json.dumps(record, indent=2) + "\n")
-                if terminal_error:
+                if failed_attempt:
                     attempt_path = args.output / (
                         f"{case_id}-trial-{trial:02d}-attempt-{attempt:02d}.json"
                     )
                     attempt_path.write_text(json.dumps(record, indent=2) + "\n")
-                if terminal_error and attempt <= args.terminal_retries:
+                if failed_attempt and attempt <= args.retries:
+                    detail = completed.stderr.strip() or terminal_error or f"exit {completed.returncode}"
                     print(
-                        f"  {terminal_error}; retrying attempt {attempt + 1}/"
-                        f"{args.terminal_retries + 1} after {args.retry_backoff_seconds:g}s",
+                        f"  {detail}; retrying attempt {attempt + 1}/"
+                        f"{args.retries + 1} after {args.retry_backoff_seconds:g}s",
                         flush=True,
                     )
                     time.sleep(args.retry_backoff_seconds)
                     continue
-                logical_trial_failed = bool(completed.returncode or terminal_error)
+                logical_trial_failed = failed_attempt
                 if logical_trial_failed:
                     detail = completed.stderr.strip() or terminal_error or "unknown failure"
                     print(f"  failed with exit {completed.returncode}: {detail}", flush=True)
