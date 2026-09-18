@@ -1,0 +1,1320 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0b22b-11e7-7f90-a534-a5903fa05c3f",
+  "trajectory_id": "01a0b22b-11e7-7f90-a534-a5903fa05c3f",
+  "agent": {
+    "name": "Hermes-enterprise-world",
+    "version": "nemoclaw-baseline",
+    "model_name": "nvidia/nemotron-3-ultra-550b-a55b"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_steps": 24
+  },
+  "extra": {
+    "logical_case_id": "bounded-structured-inspection",
+    "observed_verdict": null,
+    "metrics": {
+      "required_signal_coverage": 1.0,
+      "enterprise_tool_share": 0.8181818181818182,
+      "local_or_session_call_share": 0.13636363636363635
+    },
+    "trajectory_contract": {
+      "required_signals": [
+        "files.search",
+        "files.read_json"
+      ],
+      "missing_signals": []
+    },
+    "tool_catalog": {
+      "browser_exec": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute using the pre-imported browser helpers. Use print(...) for any data you need back.",
+            "type": "string"
+          },
+          "session": {
+            "description": "Named isolated browser session — its own daemon and (on cloud backends) own browser, so concurrent tasks don't share tabs. Reuse the same name on every related call; omit for the shared default session.",
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 300,
+            "description": "Max seconds to wait for the code to finish (default 300, max 1800).",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "clarify": {
+        "properties": {
+          "questions": {
+            "description": "The question(s). Each: question text (options excluded), optional choices (recommended first; omit for free-text), optional multi_select. Responses come back in question order with the question text echoed.",
+            "items": {
+              "properties": {
+                "choices": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "multi_select": {
+                  "type": "boolean"
+                },
+                "question": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "question"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "type": "object"
+      },
+      "delegate_task": {
+        "properties": {
+          "action": {
+            "description": "Default 'spawn' (omit for normal delegation). Live orchestration of running subagents: 'list' shows this conversation's live children (ids, goals, status, transcript paths); 'steer' queues course-correction text into one child (requires subagent_id + message) without stopping it; 'stop' ends one child early (requires subagent_id) — its partial result still returns as a completion message. Control actions return immediately; goal/tasks are ignored when action is not 'spawn'.",
+            "enum": [
+              "spawn",
+              "list",
+              "steer",
+              "stop"
+            ],
+            "type": "string"
+          },
+          "background": {
+            "description": "DEPRECATED / IGNORED. Top-level single and batch delegations run in the background automatically — you do not need to (and cannot) opt in or out. A single result or consolidated batch result re-enters the conversation when the work finishes; just continue working in the meantime. Setting this has no effect; the parameter remains only for backward compatibility.",
+            "type": "boolean"
+          },
+          "context": {
+            "description": "Background information the subagent needs: file paths, error messages, project structure, constraints. The more specific you are, the better the subagent performs.",
+            "type": "string"
+          },
+          "goal": {
+            "description": "What the subagent should accomplish. Be specific and self-contained -- the subagent knows nothing about your conversation history.",
+            "type": "string"
+          },
+          "message": {
+            "description": "For action='steer': the course correction. Be directive and specific — the child sees it appended to its next tool result mid-run (e.g. \"Stop exploring X; focus on Y and return early results\").",
+            "type": "string"
+          },
+          "output_schema": {
+            "description": "Optional JSON Schema for the single-goal form — the subagent's final answer must validate against it (same semantics as tasks[].output_schema).",
+            "properties": {},
+            "type": "object"
+          },
+          "role": {
+            "description": "Role of the child agent. 'leaf' (default) = focused worker, cannot delegate further. 'orchestrator' = can use delegate_task to spawn its own workers. Nesting is OFF for this user (max_spawn_depth=1); 'orchestrator' is silently forced to 'leaf'. Raise delegation.max_spawn_depth in config.yaml to enable.",
+            "enum": [
+              "leaf",
+              "orchestrator"
+            ],
+            "type": "string"
+          },
+          "subagent_id": {
+            "description": "Target for action='steer'/'stop'. Ids are returned in the spawn dispatch response (subagent_ids) and by action='list'.",
+            "type": "string"
+          },
+          "tasks": {
+            "description": "Batch mode: tasks to run in parallel (up to 10 for this user, set via delegation.max_concurrent_children). Each gets its own subagent with isolated context and terminal session. When provided, top-level goal/context/role are ignored.",
+            "items": {
+              "properties": {
+                "context": {
+                  "description": "Task-specific context",
+                  "type": "string"
+                },
+                "goal": {
+                  "description": "Task goal",
+                  "type": "string"
+                },
+                "output_schema": {
+                  "description": "Optional JSON Schema the subagent's final answer must validate against. The child is told the contract up front; the parent validates the final answer and allows one bounded correction retry. The result entry gains schema_valid (and schema_errors on final failure). Keep schemas forgiving: require only fields you will actually read.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "role": {
+                  "description": "Per-task role override. See top-level 'role' for semantics.",
+                  "enum": [
+                    "leaf",
+                    "orchestrator"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "goal"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execute_code": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute. Import tools with `from hermes_tools import web_search, terminal, ...` and print your final result to stdout.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "memory": {
+        "properties": {
+          "action": {
+            "description": "The action to perform (single-op shape). Omit when using 'operations'.",
+            "enum": [
+              "add",
+              "replace",
+              "remove"
+            ],
+            "type": "string"
+          },
+          "content": {
+            "description": "The entry content. Required for 'add' and 'replace' (single-op shape). Alias: 'new_text' is also accepted (mirrors old_text).",
+            "type": "string"
+          },
+          "new_text": {
+            "description": "Alias for 'content' (single-op shape). Provided so the replace/remove old_text/new_text pairing works; if both are set, 'content' wins.",
+            "type": "string"
+          },
+          "old_text": {
+            "description": "REQUIRED for 'replace' and 'remove' (single-op shape): a short unique substring identifying the existing entry to modify. Omit only for 'add'.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Batch shape: a list of operations applied atomically in one call against the final char budget. Preferred when making multiple changes or consolidating to make room. Each item is {action, content?, old_text?}.",
+            "items": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "add",
+                    "replace",
+                    "remove"
+                  ],
+                  "type": "string"
+                },
+                "content": {
+                  "description": "Entry content for add/replace. Alias: 'new_text'.",
+                  "type": "string"
+                },
+                "new_text": {
+                  "description": "Alias for 'content' in a batch op.",
+                  "type": "string"
+                },
+                "old_text": {
+                  "description": "Substring identifying the entry for replace/remove.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "target": {
+            "description": "Which memory store: 'memory' for personal notes, 'user' for user profile.",
+            "enum": [
+              "memory",
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "patch": {
+        "properties": {
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories.",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "replace",
+            "description": "Edit mode. 'replace' (default): requires path + old_string + new_string. 'patch': requires patch content only.",
+            "enum": [
+              "replace",
+              "patch"
+            ],
+            "type": "string"
+          },
+          "new_string": {
+            "description": "REQUIRED when mode='replace'. Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "REQUIRED when mode='replace'. Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.",
+            "type": "string"
+          },
+          "patch": {
+            "description": "REQUIRED when mode='patch'. V4A format patch content. Format:\n*** Begin Patch\n*** Update File: path/to/file\n@@ context hint @@\n context line\n-removed line\n+added line\n*** End Patch",
+            "type": "string"
+          },
+          "path": {
+            "description": "REQUIRED when mode='replace'. File path to edit.",
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "process": {
+        "properties": {
+          "action": {
+            "description": "Action to perform on background processes",
+            "enum": [
+              "list",
+              "poll",
+              "log",
+              "wait",
+              "kill",
+              "write",
+              "submit",
+              "close"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "description": "Text to send to process stdin (for 'write' and 'submit' actions)",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max lines to return for 'log' action",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Line offset for 'log' action (default: last 200 lines)",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Process session ID (from terminal background output). Required for all actions except 'list'. A unique ID prefix works too (e.g. 'proc_4dae' or just '4dae' for proc_4dae56ca81f6).",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Max seconds to block for 'wait' action. Returns partial output on timeout.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "read_file": {
+        "properties": {
+          "limit": {
+            "default": 2000,
+            "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+            "maximum": 2000,
+            "type": "integer"
+          },
+          "offset": {
+            "default": 1,
+            "description": "Line number to start reading from (1-indexed, default: 1)",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "path": {
+            "description": "Path to the file to read (absolute, relative, or ~/path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "search_files": {},
+      "session_search": {},
+      "skill_manage": {
+        "properties": {
+          "action": {
+            "description": "The action to perform.",
+            "enum": [
+              "create",
+              "patch",
+              "delete",
+              "write_file",
+              "remove_file"
+            ],
+            "type": "string"
+          },
+          "category": {
+            "description": "Optional category/domain for organizing the skill (e.g., 'devops', 'data-science', 'mlops'). Creates a subdirectory grouping. Only used with 'create'.",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full SKILL.md content (YAML frontmatter + markdown body). Required for 'create'; on 'patch' it performs a full rewrite (major overhauls only — read the skill first with skill_view(), and don't combine with old_string).",
+            "type": "string"
+          },
+          "file_content": {
+            "description": "Content for the file. Required for 'write_file'.",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Path to a supporting file within the skill directory. For 'write_file'/'remove_file': required, must be under references/, templates/, scripts/, or assets/. For 'patch': optional, defaults to SKILL.md if omitted.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Skill name (lowercase, hyphens/underscores, max 64 chars). Must match an existing skill for patch/edit/delete/write_file/remove_file.",
+            "type": "string"
+          },
+          "new_string": {
+            "description": "Replacement text (required for 'patch'); must differ from old_string. Can be empty string to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "Text to find in the file (required for 'patch'). Must be unique unless replace_all=true. Include enough surrounding context to ensure uniqueness.",
+            "type": "string"
+          },
+          "replace_all": {
+            "description": "For 'patch': replace all occurrences instead of requiring a unique match (default: false).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "name"
+        ],
+        "type": "object"
+      },
+      "skill_view": {
+        "properties": {
+          "file_path": {
+            "description": "OPTIONAL: Path to a linked file within the skill (e.g., 'references/api.md', 'templates/config.yaml', 'scripts/validate.py'). Omit to get the main SKILL.md content.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The skill name (use skills_list to see available skills). For plugin-provided skills, use the qualified form 'plugin:skill' (e.g. 'superpowers:writing-plans').",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "skills_list": {
+        "properties": {
+          "category": {
+            "description": "Optional category filter to narrow results",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "terminal": {
+        "properties": {
+          "background": {
+            "default": false,
+            "description": "Run in the background, returning a session_id. Pair with notify=true for anything with a defined end (tests, builds, deploys) — without it the process runs silently. Only servers/watchers/daemons that never exit should stay silent. Short commands: prefer foreground with a generous timeout.",
+            "type": "boolean"
+          },
+          "command": {
+            "description": "The shell command to execute",
+            "type": "string"
+          },
+          "notify": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "With background=true: notify=true fires exactly one notification when the process exits (the right choice for nearly every bounded task — builds, tests, deploys). notify=['pattern', ...] instead notifies when a line matches a pattern — ONLY for one-shot readiness signals on processes that never exit (e.g. ['Application startup complete']); rate-limited and auto-disabled if it over-fires. Omit for silent daemons."
+          },
+          "pty": {
+            "default": false,
+            "description": "With background=true: run in a pseudo-terminal for interactive CLI tools (Codex, Claude Code, Python REPL). Local backend only. Default: false.",
+            "type": "boolean"
+          },
+          "timeout": {
+            "description": "Max seconds to wait (default: 180, foreground max: 600). Returns INSTANTLY when command finishes — set high for long tasks, you won't wait unnecessarily. Foreground timeout above 600s is rejected; use background=true for longer commands.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workdir": {
+            "description": "Working directory for this command (absolute path). Defaults to the session working directory.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "text_to_speech": {
+        "properties": {
+          "instructions": {
+            "description": "Optional voice-design guidance: tone, emotion, pacing, accent, whispering, impressions (e.g. 'Speak in a cheerful, excited whisper'). Forwarded to the OpenAI backend (gpt-4o-mini-tts and OpenAI-compatible voice-design servers). Silently ignored by backends that don't support it.",
+            "type": "string"
+          },
+          "output_path": {
+            "description": "Optional custom file path to save the audio. Defaults to ~/.hermes/audio_cache/<timestamp>.mp3",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Optional TTS provider override. Accepts built-in names (edge, openai, elevenlabs, minimax, xai, mistral, gemini, neutts, kittentts, piper), user-declared command provider names from tts.providers.<name>, or plugin-registered names. When omitted, the configured tts.provider from config.yaml is used.",
+            "type": "string"
+          },
+          "speed": {
+            "description": "Playback speed multiplier. 1.0 = normal, 0.5 = very slow (language learning), 2.0 = fast. Range: 0.25-4.0. Overrides the speed configured in config.yaml.",
+            "type": "number"
+          },
+          "text": {
+            "description": "The text to convert to speech. Provider-specific per-request character caps apply automatically (OpenAI 4096, xAI 15000, MiniMax 10000, ElevenLabs 5k-40k depending on model); longer input is split into ordered chunks without silent truncation.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "todo": {
+        "properties": {
+          "merge": {
+            "default": false,
+            "description": "true: update existing items by id, add new ones. false (default): replace the entire list.",
+            "type": "boolean"
+          },
+          "todos": {
+            "description": "Task items to write. Omit to read current list.",
+            "items": {
+              "properties": {
+                "content": {
+                  "description": "Task description",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique item identifier",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "Current status",
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "vision_analyze": {
+        "properties": {
+          "image_url": {
+            "description": "Image URL (http/https), local file path, or data: URL to load.",
+            "type": "string"
+          },
+          "question": {
+            "description": "Your specific question or request about the image. Optional context the model uses on the next turn after seeing the image.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Optional [x1, y1, x2, y2] crop region in pixel coordinates of the ORIGINAL image, applied before any downscaling so the region keeps full resolution. Intended flow: load the full image first, then call again with a region to zoom into a detail (small text, UI element, fine print). Coordinates are clamped to the image bounds.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "image_url",
+          "question"
+        ],
+        "type": "object"
+      },
+      "web_extract": {
+        "properties": {
+          "char_limit": {
+            "description": "Optional per-page character budget sent back (default 15000). Pages larger than this are head+tail truncated with the full text stored to disk. Raise it when you need more of a long page inline.",
+            "minimum": 2000,
+            "type": "integer"
+          },
+          "urls": {
+            "description": "List of URLs to extract content from (max 5 URLs per call)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          }
+        },
+        "required": [
+          "urls"
+        ],
+        "type": "object"
+      },
+      "web_search": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return. Defaults to 5.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "The search query to look up on the web. You may include backend-supported operators such as site:example.com, filetype:pdf, intitle:word, -term, or \"exact phrase\".",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "write_file": {
+        "properties": {
+          "content": {
+            "description": "Complete content to write to the file",
+            "type": "string"
+          },
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
+            "type": "boolean"
+          },
+          "path": {
+            "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      },
+      "tool_search": {
+        "properties": {
+          "limit": {
+            "description": "Maximum number of matches per query. Defaults to 5 and is clamped to the configured maximum (25 by default).",
+            "type": "integer"
+          },
+          "queries": {
+            "description": "Search queries, each a few keywords describing one capability (e.g. ['create github issue', 'send slack message']). Searched in parallel; results come back grouped per query. A single string is accepted and treated as one query.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "queries"
+        ],
+        "type": "object"
+      },
+      "tool_describe": {
+        "properties": {
+          "names": {
+            "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "type": "object"
+      },
+      "tool_call": {},
+      "mcp__enterprise_world__knowledge_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__projects_search_tasks": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__mail_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__list_resources": {},
+      "mcp__enterprise_world__chat_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__files_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__files_read_json": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "json_pointer": {
+            "type": "string"
+          },
+          "max_items": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "collection": "clean-run-a",
+    "collection_ordinal": 2,
+    "normalization": {
+      "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+      "source_trace_id": "01a0b22b-11e7-7f90-a534-a5903fa05c3f",
+      "losses": [
+        "Span nesting was flattened into sequential ATIF steps.",
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-18T01:39:55.657705678+00:00",
+      "source": "user",
+      "message": "In the launch evidence register, what is the current Security evidence status and who owns it?\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3-ultra-550b-a55b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-18T01:39:55.657705678+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-c37e83d9-45c8-4a6c-b3de-00d81a062723",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-c37e83d9-45c8-4a6c-b3de-00d81a062723",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-18T01:39:55.657987498+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-be6197ed-4e4f-4e1e-b89e-02da568b111d",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-be6197ed-4e4f-4e1e-b89e-02da568b111d",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-18T01:40:18.479646989+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-1adda0e9-2a03-42c8-a3fb-50b14a634c18",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-1adda0e9-2a03-42c8-a3fb-50b14a634c18",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-18T01:40:24.178177574+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-b939b823-d235-452d-90b9-efc0319bc683",
+          "function_name": "mcp__enterprise_world__projects_search_tasks",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-b939b823-d235-452d-90b9-efc0319bc683",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-18T01:40:26.591848356+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ba5667c7-c98d-4dc2-9579-1dc90e490314",
+          "function_name": "mcp__enterprise_world__mail_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ba5667c7-c98d-4dc2-9579-1dc90e490314",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-18T01:40:31.489518748+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-801e5eec-5c06-4275-a930-f83846128322",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-801e5eec-5c06-4275-a930-f83846128322",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-18T01:41:26.927443388+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-219dce45-eff2-473c-90b6-3d49b42bb45e",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-219dce45-eff2-473c-90b6-3d49b42bb45e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-18T01:42:09.714836111+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-23664fe7-61aa-4a30-91d4-c8f8fa571693",
+          "function_name": "mcp__enterprise_world__list_resources",
+          "arguments": {}
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-23664fe7-61aa-4a30-91d4-c8f8fa571693",
+            "content": "{\"resources\": []}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-18T01:42:11.268982844+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ff5676d9-1953-4162-beae-02cb2780ff32",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "Security evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ff5676d9-1953-4162-beae-02cb2780ff32",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 1,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 1, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-18T01:42:13.207649609+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-d86ee8c4-20b3-434a-b4aa-9f347572828d",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-d86ee8c4-20b3-434a-b4aa-9f347572828d",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-18T01:42:14.594316392+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-520b31b3-ebc1-4559-b174-290858e17fe1",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-520b31b3-ebc1-4559-b174-290858e17fe1",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T17:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_atlas_000\", \"title\": \"Atlas launch checklist revision 0\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-01T09:00:00Z\"}, {\"id\": \"kb_beacon_001\", \"title\": \"Beacon launch checklist revision 1\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-02T10:00:00Z\"}, {\"id\": \"kb_cedar_002\", \"title\": \"Cedar launch checklist revision 2\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-03T11:00:00Z\"}, {\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_ember_004\", \"title\": \"Ember launch checklist revision 4\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-05T13:00:00Z\"}, {\"id\": \"kb_fjord_005\", \"title\": \"Fjord launch checklist revision 0\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-06T14:00:00Z\"}, {\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}, {\"id\": \"kb_grove_006\", \"title\": \"Grove launch checklist revision 1\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-07T15:00:00Z\"}, {\"id\": \"kb_harbor_007\", \"title\": \"Harbor launch checklist revision 2\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-08T16:00:00Z\"}, {\"id\": \"kb_ion_008\", \"title\": \"Ion launch checklist revision 3\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-09T17:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 45, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-18T01:42:16.917712858+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-38c36783-fa5f-4cfc-9a45-a549e1d72541",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page": 2,
+            "page_size": 10,
+            "query": "launch evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-38c36783-fa5f-4cfc-9a45-a549e1d72541",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_juniper_009\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-10T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_010\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-11T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_011\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-12T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_mesa_012\\\",\\n      \\\"title\\\": \\\"Mesa launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-13T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_nimbus_013\\\",\\n      \\\"title\\\": \\\"Nimbus launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-14T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_orchid_014\\\",\\n      \\\"title\\\": \\\"Orchid launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-15T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_pioneer_015\\\",\\n      \\\"title\\\": \\\"Pioneer launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-16T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_atlas_016\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-17T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_017\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-18T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_018\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-19T09:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 2,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 5\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_juniper_009\", \"title\": \"Juniper launch checklist revision 4\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-10T09:00:00Z\"}, {\"id\": \"kb_keystone_010\", \"title\": \"Keystone launch checklist revision 0\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-11T10:00:00Z\"}, {\"id\": \"kb_lumen_011\", \"title\": \"Lumen launch checklist revision 1\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-12T11:00:00Z\"}, {\"id\": \"kb_mesa_012\", \"title\": \"Mesa launch checklist revision 2\", \"body\": \"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-13T12:00:00Z\"}, {\"id\": \"kb_nimbus_013\", \"title\": \"Nimbus launch checklist revision 3\", \"body\": \"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-14T13:00:00Z\"}, {\"id\": \"kb_orchid_014\", \"title\": \"Orchid launch checklist revision 4\", \"body\": \"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-15T14:00:00Z\"}, {\"id\": \"kb_pioneer_015\", \"title\": \"Pioneer launch checklist revision 0\", \"body\": \"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-16T15:00:00Z\"}, {\"id\": \"kb_atlas_016\", \"title\": \"Atlas launch checklist revision 1\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-17T16:00:00Z\"}, {\"id\": \"kb_beacon_017\", \"title\": \"Beacon launch checklist revision 2\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-18T17:00:00Z\"}, {\"id\": \"kb_cedar_018\", \"title\": \"Cedar launch checklist revision 3\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-19T09:00:00Z\"}], \"pagination\": {\"page\": 2, \"page_size\": 10, \"total_items\": 45, \"total_pages\": 5}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-18T01:42:22.076280432+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-2d6de63d-2d2f-4e52-aeba-1b9989a52b3e",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-2d6de63d-2d2f-4e52-aeba-1b9989a52b3e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-18T01:42:23.736596942+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-92ac37fb-a270-477d-8b0c-936a2fd34415",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register security evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-92ac37fb-a270-477d-8b0c-936a2fd34415",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-18T01:42:25.870162149+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-14c2f87e-6086-4fac-b964-330bdee5e7a9",
+          "function_name": "mcp__enterprise_world__projects_search_tasks",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-14c2f87e-6086-4fac-b964-330bdee5e7a9",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-18T01:42:27.950842277+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-8b2e9754-9c91-486d-ba63-ec518fadbdf6",
+          "function_name": "mcp__enterprise_world__chat_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-8b2e9754-9c91-486d-ba63-ec518fadbdf6",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-18T01:42:31.393602089+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a46a9662-3408-4849-b830-f2781443dc60",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "security evidence status"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a46a9662-3408-4849-b830-f2781443dc60",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-18T01:42:36.334144516+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-c12423ce-5110-4611-a6c9-97e34a3d4c80",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "security"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-c12423ce-5110-4611-a6c9-97e34a3d4c80",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 1,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 1, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-18T01:42:39.235455633+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-595cbc93-71b5-4687-bd55-eb49d389714e",
+          "function_name": "mcp__enterprise_world__files_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-595cbc93-71b5-4687-bd55-eb49d389714e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"json_atlas_000\\\",\\n      \\\"name\\\": \\\"atlas-launch-evidence-register-000.json\\\",\\n      \\\"owner\\\": \\\"emery.brooks.004@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T12:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_beacon_001\\\",\\n      \\\"name\\\": \\\"beacon-launch-evidence-register-001.json\\\",\\n      \\\"owner\\\": \\\"finley.brooks.005@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T13:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_cedar_002\\\",\\n      \\\"name\\\": \\\"cedar-launch-evidence-register-002.json\\\",\\n      \\\"owner\\\": \\\"gray.brooks.006@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T14:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_delta_003\\\",\\n      \\\"name\\\": \\\"delta-launch-evidence-register-003.json\\\",\\n      \\\"owner\\\": \\\"harper.brooks.007@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T15:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_ember_004\\\",\\n      \\\"name\\\": \\\"ember-launch-evidence-register-004.json\\\",\\n      \\\"owner\\\": \\\"indigo.brooks.008@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T16:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_fjord_005\\\",\\n      \\\"name\\\": \\\"fjord-launch-evidence-register-005.json\\\",\\n      \\\"owner\\\": \\\"jordan.lee.security@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T17:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_launch_evidence_register\\\",\\n      \\\"name\\\": \\\"launch-evidence-register.json\\\",\\n      \\\"owner\\\": \\\"ava.patel@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-08-31T13:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_grove_006\\\",\\n      \\\"name\\\": \\\"grove-launch-evidence-register-006.json\\\",\\n      \\\"owner\\\": \\\"kai.brooks.010@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T18:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_harbor_007\\\",\\n      \\\"name\\\": \\\"harbor-launch-evidence-register-007.json\\\",\\n      \\\"owner\\\": \\\"logan.brooks.011@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T19:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"json_ion_008\\\",\\n      \\\"name\\\": \\\"ion-launch-evidence-register-008.json\\\",\\n      \\\"owner\\\": \\\"morgan.brooks.012@example.test\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T20:00:00Z\\\",\\n      \\\"content_type\\\": \\\"application/json\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 25,\\n    \\\"total_pages\\\": 3\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"json_atlas_000\", \"name\": \"atlas-launch-evidence-register-000.json\", \"owner\": \"emery.brooks.004@example.test\", \"updated_at\": \"2026-07-01T12:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_beacon_001\", \"name\": \"beacon-launch-evidence-register-001.json\", \"owner\": \"finley.brooks.005@example.test\", \"updated_at\": \"2026-07-02T13:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_cedar_002\", \"name\": \"cedar-launch-evidence-register-002.json\", \"owner\": \"gray.brooks.006@example.test\", \"updated_at\": \"2026-07-03T14:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_delta_003\", \"name\": \"delta-launch-evidence-register-003.json\", \"owner\": \"harper.brooks.007@example.test\", \"updated_at\": \"2026-07-04T15:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_ember_004\", \"name\": \"ember-launch-evidence-register-004.json\", \"owner\": \"indigo.brooks.008@example.test\", \"updated_at\": \"2026-07-05T16:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_fjord_005\", \"name\": \"fjord-launch-evidence-register-005.json\", \"owner\": \"jordan.lee.security@example.test\", \"updated_at\": \"2026-07-06T17:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_launch_evidence_register\", \"name\": \"launch-evidence-register.json\", \"owner\": \"ava.patel@example.test\", \"updated_at\": \"2026-08-31T13:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_grove_006\", \"name\": \"grove-launch-evidence-register-006.json\", \"owner\": \"kai.brooks.010@example.test\", \"updated_at\": \"2026-07-07T18:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_harbor_007\", \"name\": \"harbor-launch-evidence-register-007.json\", \"owner\": \"logan.brooks.011@example.test\", \"updated_at\": \"2026-07-08T19:00:00Z\", \"content_type\": \"application/json\"}, {\"id\": \"json_ion_008\", \"name\": \"ion-launch-evidence-register-008.json\", \"owner\": \"morgan.brooks.012@example.test\", \"updated_at\": \"2026-07-09T20:00:00Z\", \"content_type\": \"application/json\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 25, \"total_pages\": 3}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-18T01:44:08.498170957+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a8f37ce5-709c-4c60-95a6-b90809e26115",
+          "function_name": "tool_call",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a8f37ce5-709c-4c60-95a6-b90809e26115",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-18T01:44:51.256208663+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a39c09b6-525d-4704-94fb-dfa840ecf35c",
+          "function_name": "mcp__enterprise_world__files_read_json",
+          "arguments": {
+            "file_id": "json_launch_evidence_register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a39c09b6-525d-4704-94fb-dfa840ecf35c",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"file_id\\\": \\\"json_launch_evidence_register\\\",\\n  \\\"json_pointer\\\": \\\"/\\\",\\n  \\\"keys\\\": [\\n    \\\"appendix\\\",\\n    \\\"evidence\\\",\\n    \\\"history\\\",\\n    \\\"release\\\"\\n  ],\\n  \\\"note\\\": \\\"Use a JSON Pointer to inspect one named section.\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"file_id\": \"json_launch_evidence_register\", \"json_pointer\": \"/\", \"keys\": [\"appendix\", \"evidence\", \"history\", \"release\"], \"note\": \"Use a JSON Pointer to inspect one named section.\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-18T01:44:59.972471878+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a401fa9d-3e5a-4eb0-8a0b-d176f8dbd74b",
+          "function_name": "mcp__enterprise_world__files_read_json",
+          "arguments": {
+            "file_id": "json_launch_evidence_register",
+            "json_pointer": "/evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a401fa9d-3e5a-4eb0-8a0b-d176f8dbd74b",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"file_id\\\": \\\"json_launch_evidence_register\\\",\\n  \\\"json_pointer\\\": \\\"/evidence\\\",\\n  \\\"items\\\": [\\n    {\\n      \\\"key\\\": \\\"change_record\\\",\\n      \\\"value\\\": {\\n        \\\"status\\\": \\\"approved\\\",\\n        \\\"reference\\\": \\\"change-842\\\"\\n      }\\n    },\\n    {\\n      \\\"key\\\": \\\"product\\\",\\n      \\\"value\\\": {\\n        \\\"status\\\": \\\"approved\\\",\\n        \\\"reference\\\": \\\"product-signoff-17\\\"\\n      }\\n    },\\n    {\\n      \\\"key\\\": \\\"security\\\",\\n      \\\"value\\\": {\\n        \\\"status\\\": \\\"missing\\\",\\n        \\\"owner\\\": \\\"ava.patel@example.test\\\",\\n        \\\"required_artifact\\\": \\\"security-evidence-packet.pdf\\\"\\n      }\\n    }\\n  ],\\n  \\\"truncated\\\": false\\n}\", \"structuredContent\": {\"ok\": true, \"file_id\": \"json_launch_evidence_register\", \"json_pointer\": \"/evidence\", \"items\": [{\"key\": \"change_record\", \"value\": {\"status\": \"approved\", \"reference\": \"change-842\"}}, {\"key\": \"product\", \"value\": {\"status\": \"approved\", \"reference\": \"product-signoff-17\"}}, {\"key\": \"security\", \"value\": {\"status\": \"missing\", \"owner\": \"ava.patel@example.test\", \"required_artifact\": \"security-evidence-packet.pdf\"}}], \"truncated\": false}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-09-18T01:45:00.035095915+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nemotron-3-ultra-550b-a55b",
+      "message": "The answer is complete. To summarize:\n\n- **Security evidence status**: `missing`\n- **Owner**: `ava.patel@example.test`\n- **Required artifact**: `security-evidence-packet.pdf`\n\nThe other two evidence items (change_record and product) are both `"
+    }
+  ]
+}

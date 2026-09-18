@@ -28,9 +28,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gateway", required=True)
     parser.add_argument("--sandbox", required=True)
-    parser.add_argument(
-        "--arm", choices=["baseline", "candidate-v3", "candidate-v4"], required=True
-    )
+    parser.add_argument("--arm", choices=["baseline", "candidate-v4"], required=True)
     parser.add_argument("--trace-label", required=True)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -38,13 +36,10 @@ def main() -> int:
     prefix = ["openshell", "-g", args.gateway, "sandbox"]
     profile_names = {
         "baseline": "nemoclaw-baseline-soul.md",
-        "candidate-v3": "nemoclaw-candidate-v3-soul.md",
         "candidate-v4": "nemoclaw-candidate-v4-soul.md",
     }
     profile = ROOT / "profiles" / profile_names[args.arm]
-    max_turns = {"baseline": "60", "candidate-v3": "16", "candidate-v4": "12"}[
-        args.arm
-    ]
+    max_turns = {"baseline": "60", "candidate-v4": "12"}[args.arm]
     relay = (ROOT / "configs" / "nemoclaw-relay-plugins.toml").read_text()
     relay = relay.replace("replace-me", args.trace_label)
 

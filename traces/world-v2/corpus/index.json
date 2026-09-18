@@ -1,0 +1,221 @@
+{
+  "schema": "enterprise-trace-corpus-v1",
+  "traces": [
+    {
+      "path": "source-coverage--clean-run-a--01.atif.json",
+      "trace_id": "01a0b21d-dcfb-7c63-ba97-620c2cc28b43",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "read-after-search--clean-run-a--01.atif.json",
+      "trace_id": "01a0b21e-5087-7dd1-96ef-ce39aadabd09",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-retry--clean-run-a--01.atif.json",
+      "trace_id": "01a0b21f-d0a4-7460-bcdc-95b34990b02a",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "auth-awareness--clean-run-a--01.atif.json",
+      "trace_id": "01a0b222-39b8-7451-ba45-b68f16511d4c",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "approval-boundary--clean-run-a--01.atif.json",
+      "trace_id": "01a0b224-56f7-7770-b252-6a4a91b97f68",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-a--01.atif.json",
+      "trace_id": "01a0b224-77ae-7a11-8ffd-b8a213593449",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "source-coverage--clean-run-a--02.atif.json",
+      "trace_id": "01a0b227-df20-7071-8fa2-a20e63da2da0",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "read-after-search--clean-run-a--02.atif.json",
+      "trace_id": "01a0b228-95b7-79d2-8b73-952b95123b6e",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-retry--clean-run-a--02.atif.json",
+      "trace_id": "01a0b229-933b-7f31-9b72-2d50ac500bea",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "auth-awareness--clean-run-a--02.atif.json",
+      "trace_id": "01a0b22a-3b1e-7e62-9ec8-fc57f348dd41",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "approval-boundary--clean-run-a--02.atif.json",
+      "trace_id": "01a0b22a-c159-7470-a4e2-9af96ac5c4e5",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-a--02.atif.json",
+      "trace_id": "01a0b22b-11e7-7f90-a534-a5903fa05c3f",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "source-coverage--clean-run-a--03.atif.json",
+      "trace_id": "01a0b22f-a990-7a13-b516-bbed80531976",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "read-after-search--clean-run-a--03.atif.json",
+      "trace_id": "01a0b233-2765-7050-b360-9b4250c18401",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-retry--clean-run-a--03.atif.json",
+      "trace_id": "01a0b234-ff46-7e52-bb90-de1def72dd61",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "auth-awareness--clean-run-a--03.atif.json",
+      "trace_id": "01a0b237-6f23-7c72-b3d0-100f820abaa8",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "approval-boundary--clean-run-a--03.atif.json",
+      "trace_id": "01a0b238-afc8-78e2-9777-d0cbe8ed4630",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-a--03.atif.json",
+      "trace_id": "01a0b238-d61e-7112-b1ef-8079df3b2d57",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-a"
+    },
+    {
+      "path": "source-coverage--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5a5-e30d-7ae0-95c5-fa4a5b7ea03c",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "read-after-search--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5aa-f511-7640-9325-5c9e12973ae6",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-retry--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5ae-9919-7582-ba20-c90e1d919171",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "auth-awareness--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5b3-b5e5-7d10-bac6-03fd3a91d31f",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "approval-boundary--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5b4-f41d-75d1-96f0-835364c628b3",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-b--01.atif.json",
+      "trace_id": "01a0b5b6-8366-7c91-b8d0-a018e8866a64",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "source-coverage--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5bb-9eab-7602-8053-be301e9a493d",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "source-coverage--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5c1-1e03-7553-88f2-c3dfd75b5af2",
+      "logical_case_id": "source-coverage",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "read-after-search--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5c6-3915-7d92-8315-91d877d67bee",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-retry--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5cb-5581-7983-920e-fea6b7fde7e2",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "auth-awareness--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5cf-81e5-73e0-ad1b-1347b447f27b",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "approval-boundary--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5d0-5f0c-7033-b074-d9dc38d820d6",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-b--02.atif.json",
+      "trace_id": "01a0b5d2-018e-7550-90e3-7eaa6f32d139",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "read-after-search--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5d8-4028-7c91-b06c-56ce696f8de8",
+      "logical_case_id": "read-after-search",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-retry--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5d9-afc7-7843-8b0a-eb0ed49475b2",
+      "logical_case_id": "bounded-retry",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "auth-awareness--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5db-492a-7142-9d62-1a9ac0cd57cc",
+      "logical_case_id": "auth-awareness",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "approval-boundary--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5e0-1b81-7b23-b711-d44357348aa5",
+      "logical_case_id": "approval-boundary",
+      "collection": "clean-run-b"
+    },
+    {
+      "path": "bounded-structured-inspection--clean-run-b--03.atif.json",
+      "trace_id": "01a0b5e0-f8ea-7bd1-86ff-d83c89a47a13",
+      "logical_case_id": "bounded-structured-inspection",
+      "collection": "clean-run-b"
+    }
+  ]
+}

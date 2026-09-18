@@ -1,0 +1,1599 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0b5db-492a-7142-9d62-1a9ac0cd57cc",
+  "trajectory_id": "01a0b5db-492a-7142-9d62-1a9ac0cd57cc",
+  "agent": {
+    "name": "Hermes-enterprise-world",
+    "version": "nemoclaw-baseline",
+    "model_name": "nvidia/nemotron-3-ultra-550b-a55b"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_steps": 32
+  },
+  "extra": {
+    "logical_case_id": "auth-awareness",
+    "observed_verdict": null,
+    "metrics": {
+      "required_signal_coverage": 1.0,
+      "enterprise_tool_share": 0.9333333333333333,
+      "local_or_session_call_share": 0.0
+    },
+    "trajectory_contract": {
+      "required_signals": [
+        "connectors.get_status"
+      ],
+      "missing_signals": []
+    },
+    "tool_catalog": {
+      "browser_exec": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute using the pre-imported browser helpers. Use print(...) for any data you need back.",
+            "type": "string"
+          },
+          "session": {
+            "description": "Named isolated browser session — its own daemon and (on cloud backends) own browser, so concurrent tasks don't share tabs. Reuse the same name on every related call; omit for the shared default session.",
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 300,
+            "description": "Max seconds to wait for the code to finish (default 300, max 1800).",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "clarify": {
+        "properties": {
+          "questions": {
+            "description": "The question(s). Each: question text (options excluded), optional choices (recommended first; omit for free-text), optional multi_select. Responses come back in question order with the question text echoed.",
+            "items": {
+              "properties": {
+                "choices": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "multi_select": {
+                  "type": "boolean"
+                },
+                "question": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "question"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "type": "object"
+      },
+      "delegate_task": {
+        "properties": {
+          "action": {
+            "description": "Default 'spawn' (omit for normal delegation). Live orchestration of running subagents: 'list' shows this conversation's live children (ids, goals, status, transcript paths); 'steer' queues course-correction text into one child (requires subagent_id + message) without stopping it; 'stop' ends one child early (requires subagent_id) — its partial result still returns as a completion message. Control actions return immediately; goal/tasks are ignored when action is not 'spawn'.",
+            "enum": [
+              "spawn",
+              "list",
+              "steer",
+              "stop"
+            ],
+            "type": "string"
+          },
+          "background": {
+            "description": "DEPRECATED / IGNORED. Top-level single and batch delegations run in the background automatically — you do not need to (and cannot) opt in or out. A single result or consolidated batch result re-enters the conversation when the work finishes; just continue working in the meantime. Setting this has no effect; the parameter remains only for backward compatibility.",
+            "type": "boolean"
+          },
+          "context": {
+            "description": "Background information the subagent needs: file paths, error messages, project structure, constraints. The more specific you are, the better the subagent performs.",
+            "type": "string"
+          },
+          "goal": {
+            "description": "What the subagent should accomplish. Be specific and self-contained -- the subagent knows nothing about your conversation history.",
+            "type": "string"
+          },
+          "message": {
+            "description": "For action='steer': the course correction. Be directive and specific — the child sees it appended to its next tool result mid-run (e.g. \"Stop exploring X; focus on Y and return early results\").",
+            "type": "string"
+          },
+          "output_schema": {
+            "description": "Optional JSON Schema for the single-goal form — the subagent's final answer must validate against it (same semantics as tasks[].output_schema).",
+            "properties": {},
+            "type": "object"
+          },
+          "role": {
+            "description": "Role of the child agent. 'leaf' (default) = focused worker, cannot delegate further. 'orchestrator' = can use delegate_task to spawn its own workers. Nesting is OFF for this user (max_spawn_depth=1); 'orchestrator' is silently forced to 'leaf'. Raise delegation.max_spawn_depth in config.yaml to enable.",
+            "enum": [
+              "leaf",
+              "orchestrator"
+            ],
+            "type": "string"
+          },
+          "subagent_id": {
+            "description": "Target for action='steer'/'stop'. Ids are returned in the spawn dispatch response (subagent_ids) and by action='list'.",
+            "type": "string"
+          },
+          "tasks": {
+            "description": "Batch mode: tasks to run in parallel (up to 10 for this user, set via delegation.max_concurrent_children). Each gets its own subagent with isolated context and terminal session. When provided, top-level goal/context/role are ignored.",
+            "items": {
+              "properties": {
+                "context": {
+                  "description": "Task-specific context",
+                  "type": "string"
+                },
+                "goal": {
+                  "description": "Task goal",
+                  "type": "string"
+                },
+                "output_schema": {
+                  "description": "Optional JSON Schema the subagent's final answer must validate against. The child is told the contract up front; the parent validates the final answer and allows one bounded correction retry. The result entry gains schema_valid (and schema_errors on final failure). Keep schemas forgiving: require only fields you will actually read.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "role": {
+                  "description": "Per-task role override. See top-level 'role' for semantics.",
+                  "enum": [
+                    "leaf",
+                    "orchestrator"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "goal"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execute_code": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute. Import tools with `from hermes_tools import web_search, terminal, ...` and print your final result to stdout.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "memory": {
+        "properties": {
+          "action": {
+            "description": "The action to perform (single-op shape). Omit when using 'operations'.",
+            "enum": [
+              "add",
+              "replace",
+              "remove"
+            ],
+            "type": "string"
+          },
+          "content": {
+            "description": "The entry content. Required for 'add' and 'replace' (single-op shape). Alias: 'new_text' is also accepted (mirrors old_text).",
+            "type": "string"
+          },
+          "new_text": {
+            "description": "Alias for 'content' (single-op shape). Provided so the replace/remove old_text/new_text pairing works; if both are set, 'content' wins.",
+            "type": "string"
+          },
+          "old_text": {
+            "description": "REQUIRED for 'replace' and 'remove' (single-op shape): a short unique substring identifying the existing entry to modify. Omit only for 'add'.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Batch shape: a list of operations applied atomically in one call against the final char budget. Preferred when making multiple changes or consolidating to make room. Each item is {action, content?, old_text?}.",
+            "items": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "add",
+                    "replace",
+                    "remove"
+                  ],
+                  "type": "string"
+                },
+                "content": {
+                  "description": "Entry content for add/replace. Alias: 'new_text'.",
+                  "type": "string"
+                },
+                "new_text": {
+                  "description": "Alias for 'content' in a batch op.",
+                  "type": "string"
+                },
+                "old_text": {
+                  "description": "Substring identifying the entry for replace/remove.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "target": {
+            "description": "Which memory store: 'memory' for personal notes, 'user' for user profile.",
+            "enum": [
+              "memory",
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "patch": {
+        "properties": {
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories.",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "replace",
+            "description": "Edit mode. 'replace' (default): requires path + old_string + new_string. 'patch': requires patch content only.",
+            "enum": [
+              "replace",
+              "patch"
+            ],
+            "type": "string"
+          },
+          "new_string": {
+            "description": "REQUIRED when mode='replace'. Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "REQUIRED when mode='replace'. Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.",
+            "type": "string"
+          },
+          "patch": {
+            "description": "REQUIRED when mode='patch'. V4A format patch content. Format:\n*** Begin Patch\n*** Update File: path/to/file\n@@ context hint @@\n context line\n-removed line\n+added line\n*** End Patch",
+            "type": "string"
+          },
+          "path": {
+            "description": "REQUIRED when mode='replace'. File path to edit.",
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "process": {
+        "properties": {
+          "action": {
+            "description": "Action to perform on background processes",
+            "enum": [
+              "list",
+              "poll",
+              "log",
+              "wait",
+              "kill",
+              "write",
+              "submit",
+              "close"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "description": "Text to send to process stdin (for 'write' and 'submit' actions)",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max lines to return for 'log' action",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Line offset for 'log' action (default: last 200 lines)",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Process session ID (from terminal background output). Required for all actions except 'list'. A unique ID prefix works too (e.g. 'proc_4dae' or just '4dae' for proc_4dae56ca81f6).",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Max seconds to block for 'wait' action. Returns partial output on timeout.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "read_file": {
+        "properties": {
+          "limit": {
+            "default": 2000,
+            "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+            "maximum": 2000,
+            "type": "integer"
+          },
+          "offset": {
+            "default": 1,
+            "description": "Line number to start reading from (1-indexed, default: 1)",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "path": {
+            "description": "Path to the file to read (absolute, relative, or ~/path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "search_files": {
+        "properties": {
+          "context": {
+            "default": 0,
+            "description": "Number of context lines before and after each match (grep mode only)",
+            "type": "integer"
+          },
+          "file_glob": {
+            "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum number of results to return (default: 50)",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Skip first N results for pagination (default: 0)",
+            "type": "integer"
+          },
+          "output_mode": {
+            "default": "content",
+            "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+            "enum": [
+              "content",
+              "files_only",
+              "count"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "default": ".",
+            "description": "Directory or file to search in (default: current working directory)",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search",
+            "type": "string"
+          },
+          "target": {
+            "default": "content",
+            "description": "'content' searches inside file contents, 'files' searches for files by name",
+            "enum": [
+              "content",
+              "files"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "type": "object"
+      },
+      "session_search": {
+        "properties": {
+          "around_message_id": {
+            "description": "Scroll shape. Message id to center the window on — use match_message_id from a discovery result, or any id from a prior window.",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "adaptive",
+            "description": "Discovery shape only. 'adaptive' (default) fully hydrates the top-ranked result and returns only the exact anchor message for lower-ranked results. 'full' returns bookends and the complete anchored window for every result.",
+            "enum": [
+              "adaptive",
+              "full"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 3,
+            "description": "Discovery shape only. Max sessions to return (default 3, max 10). Bump to 5–10 when the topic likely spans several sessions and you want to pick the right one to scroll into.",
+            "type": "integer"
+          },
+          "profile": {
+            "description": "Optional. Read sessions from another Hermes profile's database (read-only). Use when resolving an `@session:<profile>/<id>` link: pass the profile segment here with session_id as the id segment. Omit to use the current profile.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Search query (discovery shape). Keywords, phrases, or boolean expressions to find in past sessions. Omit to browse recent sessions. Ignored when session_id + around_message_id are set (scroll shape).",
+            "type": "string"
+          },
+          "role_filter": {
+            "description": "Optional. Comma-separated roles to include. Discovery defaults to 'user,assistant' (tool output is usually noise). Pass 'user,assistant,tool' to include tool output (debugging tool behaviour) or 'tool' to search tool output only.",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Scroll shape. Session to read inside. Use the session_id returned from a prior discovery call. Must be paired with around_message_id.",
+            "type": "string"
+          },
+          "sort": {
+            "description": "Discovery shape only. Temporal bias on top of FTS5 ranking: omit for relevance-only (exploratory recall), 'newest' for \"where did we leave X\", 'oldest' for \"how did X start\".",
+            "enum": [
+              "newest",
+              "oldest"
+            ],
+            "type": "string"
+          },
+          "window": {
+            "default": 5,
+            "description": "Scroll shape only. Messages to return on each side of the anchor (anchor itself always included). Clamped to [1, 20]. Default 5.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "skill_manage": {
+        "properties": {
+          "action": {
+            "description": "The action to perform.",
+            "enum": [
+              "create",
+              "patch",
+              "delete",
+              "write_file",
+              "remove_file"
+            ],
+            "type": "string"
+          },
+          "category": {
+            "description": "Optional category/domain for organizing the skill (e.g., 'devops', 'data-science', 'mlops'). Creates a subdirectory grouping. Only used with 'create'.",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full SKILL.md content (YAML frontmatter + markdown body). Required for 'create'; on 'patch' it performs a full rewrite (major overhauls only — read the skill first with skill_view(), and don't combine with old_string).",
+            "type": "string"
+          },
+          "file_content": {
+            "description": "Content for the file. Required for 'write_file'.",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Path to a supporting file within the skill directory. For 'write_file'/'remove_file': required, must be under references/, templates/, scripts/, or assets/. For 'patch': optional, defaults to SKILL.md if omitted.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Skill name (lowercase, hyphens/underscores, max 64 chars). Must match an existing skill for patch/edit/delete/write_file/remove_file.",
+            "type": "string"
+          },
+          "new_string": {
+            "description": "Replacement text (required for 'patch'); must differ from old_string. Can be empty string to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "Text to find in the file (required for 'patch'). Must be unique unless replace_all=true. Include enough surrounding context to ensure uniqueness.",
+            "type": "string"
+          },
+          "replace_all": {
+            "description": "For 'patch': replace all occurrences instead of requiring a unique match (default: false).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "name"
+        ],
+        "type": "object"
+      },
+      "skill_view": {
+        "properties": {
+          "file_path": {
+            "description": "OPTIONAL: Path to a linked file within the skill (e.g., 'references/api.md', 'templates/config.yaml', 'scripts/validate.py'). Omit to get the main SKILL.md content.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The skill name (use skills_list to see available skills). For plugin-provided skills, use the qualified form 'plugin:skill' (e.g. 'superpowers:writing-plans').",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "skills_list": {
+        "properties": {
+          "category": {
+            "description": "Optional category filter to narrow results",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "terminal": {
+        "properties": {
+          "background": {
+            "default": false,
+            "description": "Run in the background, returning a session_id. Pair with notify=true for anything with a defined end (tests, builds, deploys) — without it the process runs silently. Only servers/watchers/daemons that never exit should stay silent. Short commands: prefer foreground with a generous timeout.",
+            "type": "boolean"
+          },
+          "command": {
+            "description": "The shell command to execute",
+            "type": "string"
+          },
+          "notify": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "With background=true: notify=true fires exactly one notification when the process exits (the right choice for nearly every bounded task — builds, tests, deploys). notify=['pattern', ...] instead notifies when a line matches a pattern — ONLY for one-shot readiness signals on processes that never exit (e.g. ['Application startup complete']); rate-limited and auto-disabled if it over-fires. Omit for silent daemons."
+          },
+          "pty": {
+            "default": false,
+            "description": "With background=true: run in a pseudo-terminal for interactive CLI tools (Codex, Claude Code, Python REPL). Local backend only. Default: false.",
+            "type": "boolean"
+          },
+          "timeout": {
+            "description": "Max seconds to wait (default: 180, foreground max: 600). Returns INSTANTLY when command finishes — set high for long tasks, you won't wait unnecessarily. Foreground timeout above 600s is rejected; use background=true for longer commands.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workdir": {
+            "description": "Working directory for this command (absolute path). Defaults to the session working directory.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "text_to_speech": {
+        "properties": {
+          "instructions": {
+            "description": "Optional voice-design guidance: tone, emotion, pacing, accent, whispering, impressions (e.g. 'Speak in a cheerful, excited whisper'). Forwarded to the OpenAI backend (gpt-4o-mini-tts and OpenAI-compatible voice-design servers). Silently ignored by backends that don't support it.",
+            "type": "string"
+          },
+          "output_path": {
+            "description": "Optional custom file path to save the audio. Defaults to ~/.hermes/audio_cache/<timestamp>.mp3",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Optional TTS provider override. Accepts built-in names (edge, openai, elevenlabs, minimax, xai, mistral, gemini, neutts, kittentts, piper), user-declared command provider names from tts.providers.<name>, or plugin-registered names. When omitted, the configured tts.provider from config.yaml is used.",
+            "type": "string"
+          },
+          "speed": {
+            "description": "Playback speed multiplier. 1.0 = normal, 0.5 = very slow (language learning), 2.0 = fast. Range: 0.25-4.0. Overrides the speed configured in config.yaml.",
+            "type": "number"
+          },
+          "text": {
+            "description": "The text to convert to speech. Provider-specific per-request character caps apply automatically (OpenAI 4096, xAI 15000, MiniMax 10000, ElevenLabs 5k-40k depending on model); longer input is split into ordered chunks without silent truncation.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "todo": {
+        "properties": {
+          "merge": {
+            "default": false,
+            "description": "true: update existing items by id, add new ones. false (default): replace the entire list.",
+            "type": "boolean"
+          },
+          "todos": {
+            "description": "Task items to write. Omit to read current list.",
+            "items": {
+              "properties": {
+                "content": {
+                  "description": "Task description",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique item identifier",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "Current status",
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "vision_analyze": {
+        "properties": {
+          "image_url": {
+            "description": "Image URL (http/https), local file path, or data: URL to load.",
+            "type": "string"
+          },
+          "question": {
+            "description": "Your specific question or request about the image. Optional context the model uses on the next turn after seeing the image.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Optional [x1, y1, x2, y2] crop region in pixel coordinates of the ORIGINAL image, applied before any downscaling so the region keeps full resolution. Intended flow: load the full image first, then call again with a region to zoom into a detail (small text, UI element, fine print). Coordinates are clamped to the image bounds.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "image_url",
+          "question"
+        ],
+        "type": "object"
+      },
+      "web_extract": {
+        "properties": {
+          "char_limit": {
+            "description": "Optional per-page character budget sent back (default 15000). Pages larger than this are head+tail truncated with the full text stored to disk. Raise it when you need more of a long page inline.",
+            "minimum": 2000,
+            "type": "integer"
+          },
+          "urls": {
+            "description": "List of URLs to extract content from (max 5 URLs per call)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          }
+        },
+        "required": [
+          "urls"
+        ],
+        "type": "object"
+      },
+      "web_search": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return. Defaults to 5.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "The search query to look up on the web. You may include backend-supported operators such as site:example.com, filetype:pdf, intitle:word, -term, or \"exact phrase\".",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "write_file": {
+        "properties": {
+          "content": {
+            "description": "Complete content to write to the file",
+            "type": "string"
+          },
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
+            "type": "boolean"
+          },
+          "path": {
+            "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      },
+      "tool_search": {},
+      "tool_describe": {},
+      "tool_call": {
+        "properties": {
+          "arguments": {
+            "description": "Arguments for the tool, matching its schema.",
+            "type": "object"
+          },
+          "name": {
+            "description": "Exact tool name to invoke.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "arguments"
+        ],
+        "type": "object"
+      },
+      "mcp__enterprise_world__connectors_get_status": {
+        "type": "object",
+        "properties": {
+          "connector": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connector"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__knowledge_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__files_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__people_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__chat_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__support_search_tickets": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "collection": "clean-run-b",
+    "collection_ordinal": 3,
+    "normalization": {
+      "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+      "source_trace_id": "01a0b5db-492a-7142-9d62-1a9ac0cd57cc",
+      "losses": [
+        "Span nesting was flattened into sequential ATIF steps.",
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-18T18:51:28.794680606+00:00",
+      "source": "user",
+      "message": "Check whether CRM is available before looking up the account.\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3-ultra-550b-a55b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-18T18:51:28.794680606+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-38cb8854-5ef0-4447-b845-ab2d65e84998",
+          "function_name": "tool_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-38cb8854-5ef0-4447-b845-ab2d65e84998",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-18T18:51:31.813294953+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-088247f7-4015-4e33-89db-c784de59940e",
+          "function_name": "tool_describe",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-088247f7-4015-4e33-89db-c784de59940e",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-18T18:51:38.964967155+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-71cc1a63-071f-4685-a0fd-8738475f385a",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "crm"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-71cc1a63-071f-4685-a0fd-8738475f385a",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"connector\\\": \\\"crm\\\",\\n  \\\"status\\\": \\\"needs_auth\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"connector\": \"crm\", \"status\": \"needs_auth\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-18T18:51:41.363869054+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-82ac72a4-ea39-4246-883d-7e9e7807c52b",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "salesforce"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-82ac72a4-ea39-4246-883d-7e9e7807c52b",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"salesforce\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"salesforce\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-18T18:51:43.203963125+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-f06c6838-8034-41ab-9f4e-6d93e8bc3e9f",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "hubspot"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-f06c6838-8034-41ab-9f4e-6d93e8bc3e9f",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"hubspot\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"hubspot\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-18T18:51:45.002608910+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-c480674f-fad3-4a05-8958-dbf26ef7f060",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "pipedrive"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-c480674f-fad3-4a05-8958-dbf26ef7f060",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"pipedrive\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"pipedrive\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-18T18:51:47.087092300+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-58ab6754-5c36-49d6-b8c2-fa613256b25b",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "zoho"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-58ab6754-5c36-49d6-b8c2-fa613256b25b",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"zoho\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"zoho\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-18T18:51:48.546365418+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-be14435c-6e47-4216-8243-845abf4054df",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "dynamics"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-be14435c-6e47-4216-8243-845abf4054df",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"dynamics\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"dynamics\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-18T18:52:37.461916278+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-8f196588-8270-4df5-a5f7-a3ddfaa6d44e",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "CRM connector available connectors"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-8f196588-8270-4df5-a5f7-a3ddfaa6d44e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-18T18:52:41.866554239+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-496a7adb-154e-4156-afa1-798c7107089b",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "available connectors integration"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-496a7adb-154e-4156-afa1-798c7107089b",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-18T18:52:46.599823614+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-537aa080-b88e-4397-8181-8f99204e7ed5",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "account lookup CRM contacts leads"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-537aa080-b88e-4397-8181-8f99204e7ed5",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-18T18:52:52.132148048+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ddf6e639-7661-496c-825b-024a3fb18e43",
+          "function_name": "mcp__enterprise_world__files_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "connector"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ddf6e639-7661-496c-825b-024a3fb18e43",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-18T18:52:56.440423343+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5c6185bd-23a4-4183-8962-b29e8a7d6e4e",
+          "function_name": "mcp__enterprise_world__people_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "CRM"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5c6185bd-23a4-4183-8962-b29e8a7d6e4e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-18T18:52:59.078874918+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-8328bbb5-83b2-46e8-98ff-b89c81fbadb0",
+          "function_name": "mcp__enterprise_world__chat_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "CRM connector"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-8328bbb5-83b2-46e8-98ff-b89c81fbadb0",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-18T18:53:07.805553812+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-949e361e-27ff-47f4-aa9e-205698d12220",
+          "function_name": "mcp__enterprise_world__support_search_tickets",
+          "arguments": {
+            "page_size": 20,
+            "query": "CRM"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-949e361e-27ff-47f4-aa9e-205698d12220",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-18T18:53:18.502481756+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-71eae71d-e99a-44b8-bb31-126019b321e8",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": ""
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-71eae71d-e99a-44b8-bb31-126019b321e8",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_juniper_009\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-10T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_010\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-11T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_011\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-12T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_mesa_012\\\",\\n      \\\"title\\\": \\\"Mesa launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-13T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_nimbus_013\\\",\\n      \\\"title\\\": \\\"Nimbus launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-14T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_orchid_014\\\",\\n      \\\"title\\\": \\\"Orchid launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-15T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_pioneer_015\\\",\\n      \\\"title\\\": \\\"Pioneer launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-16T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_atlas_016\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-17T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_017\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-18T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_018\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-19T09:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 3\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_atlas_000\", \"title\": \"Atlas launch checklist revision 0\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-01T09:00:00Z\"}, {\"id\": \"kb_beacon_001\", \"title\": \"Beacon launch checklist revision 1\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-02T10:00:00Z\"}, {\"id\": \"kb_cedar_002\", \"title\": \"Cedar launch checklist revision 2\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-03T11:00:00Z\"}, {\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_ember_004\", \"title\": \"Ember launch checklist revision 4\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-05T13:00:00Z\"}, {\"id\": \"kb_fjord_005\", \"title\": \"Fjord launch checklist revision 0\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-06T14:00:00Z\"}, {\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}, {\"id\": \"kb_grove_006\", \"title\": \"Grove launch checklist revision 1\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-07T15:00:00Z\"}, {\"id\": \"kb_harbor_007\", \"title\": \"Harbor launch checklist revision 2\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-08T16:00:00Z\"}, {\"id\": \"kb_ion_008\", \"title\": \"Ion launch checklist revision 3\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-09T17:00:00Z\"}, {\"id\": \"kb_juniper_009\", \"title\": \"Juniper launch checklist revision 4\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-10T09:00:00Z\"}, {\"id\": \"kb_keystone_010\", \"title\": \"Keystone launch checklist revision 0\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-11T10:00:00Z\"}, {\"id\": \"kb_lumen_011\", \"title\": \"Lumen launch checklist revision 1\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-12T11:00:00Z\"}, {\"id\": \"kb_mesa_012\", \"title\": \"Mesa launch checklist revision 2\", \"body\": \"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-13T12:00:00Z\"}, {\"id\": \"kb_nimbus_013\", \"title\": \"Nimbus launch checklist revision 3\", \"body\": \"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-14T13:00:00Z\"}, {\"id\": \"kb_orchid_014\", \"title\": \"Orchid launch checklist revision 4\", \"body\": \"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-15T14:00:00Z\"}, {\"id\": \"kb_pioneer_015\", \"title\": \"Pioneer launch checklist revision 0\", \"body\": \"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-16T15:00:00Z\"}, {\"id\": \"kb_atlas_016\", \"title\": \"Atlas launch checklist revision 1\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-17T16:00:00Z\"}, {\"id\": \"kb_beacon_017\", \"title\": \"Beacon launch checklist revision 2\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-18T17:00:00Z\"}, {\"id\": \"kb_cedar_018\", \"title\": \"Cedar launch checklist revision 3\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-19T09:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 45, \"total_pages\": 3}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-18T18:53:24.760908734+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5f8c676b-29c3-4300-a11a-b29ffdc51ae6",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 25,
+            "query": "CRM account customer relationship management"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5f8c676b-29c3-4300-a11a-b29ffdc51ae6",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 25,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 25, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-18T18:53:28.327923613+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-42cf326e-77bc-42c2-a3c8-37ee431afc96",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": ""
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-42cf326e-77bc-42c2-a3c8-37ee431afc96",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_atlas_000\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-01T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_001\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-02T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_002\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-03T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_003\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-04T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_004\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-05T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_005\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-06T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_006\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-07T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_007\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-08T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_008\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-09T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_juniper_009\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-10T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_010\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-11T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_011\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-12T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_mesa_012\\\",\\n      \\\"title\\\": \\\"Mesa launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-13T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_nimbus_013\\\",\\n      \\\"title\\\": \\\"Nimbus launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-14T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_orchid_014\\\",\\n      \\\"title\\\": \\\"Orchid launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-15T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_pioneer_015\\\",\\n      \\\"title\\\": \\\"Pioneer launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-16T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_atlas_016\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-17T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_017\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-18T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_018\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-19T09:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 3\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_atlas_000\", \"title\": \"Atlas launch checklist revision 0\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-01T09:00:00Z\"}, {\"id\": \"kb_beacon_001\", \"title\": \"Beacon launch checklist revision 1\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-02T10:00:00Z\"}, {\"id\": \"kb_cedar_002\", \"title\": \"Cedar launch checklist revision 2\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-03T11:00:00Z\"}, {\"id\": \"kb_delta_003\", \"title\": \"Delta launch checklist revision 3\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-04T12:00:00Z\"}, {\"id\": \"kb_ember_004\", \"title\": \"Ember launch checklist revision 4\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-05T13:00:00Z\"}, {\"id\": \"kb_fjord_005\", \"title\": \"Fjord launch checklist revision 0\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-06T14:00:00Z\"}, {\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}, {\"id\": \"kb_grove_006\", \"title\": \"Grove launch checklist revision 1\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-07T15:00:00Z\"}, {\"id\": \"kb_harbor_007\", \"title\": \"Harbor launch checklist revision 2\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-08T16:00:00Z\"}, {\"id\": \"kb_ion_008\", \"title\": \"Ion launch checklist revision 3\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-09T17:00:00Z\"}, {\"id\": \"kb_juniper_009\", \"title\": \"Juniper launch checklist revision 4\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-10T09:00:00Z\"}, {\"id\": \"kb_keystone_010\", \"title\": \"Keystone launch checklist revision 0\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-11T10:00:00Z\"}, {\"id\": \"kb_lumen_011\", \"title\": \"Lumen launch checklist revision 1\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-12T11:00:00Z\"}, {\"id\": \"kb_mesa_012\", \"title\": \"Mesa launch checklist revision 2\", \"body\": \"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-13T12:00:00Z\"}, {\"id\": \"kb_nimbus_013\", \"title\": \"Nimbus launch checklist revision 3\", \"body\": \"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-14T13:00:00Z\"}, {\"id\": \"kb_orchid_014\", \"title\": \"Orchid launch checklist revision 4\", \"body\": \"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-15T14:00:00Z\"}, {\"id\": \"kb_pioneer_015\", \"title\": \"Pioneer launch checklist revision 0\", \"body\": \"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-16T15:00:00Z\"}, {\"id\": \"kb_atlas_016\", \"title\": \"Atlas launch checklist revision 1\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-17T16:00:00Z\"}, {\"id\": \"kb_beacon_017\", \"title\": \"Beacon launch checklist revision 2\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-18T17:00:00Z\"}, {\"id\": \"kb_cedar_018\", \"title\": \"Cedar launch checklist revision 3\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-19T09:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 45, \"total_pages\": 3}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-18T18:53:43.092187233+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bec401bf-afea-4bb8-a01c-ae33c33bc09a",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page": 2,
+            "page_size": 20,
+            "query": ""
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bec401bf-afea-4bb8-a01c-ae33c33bc09a",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_delta_019\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-20T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_020\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-21T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_021\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-22T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_022\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-23T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_harbor_023\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-24T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_024\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-25T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_juniper_025\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-26T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_026\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-27T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_027\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-28T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_mesa_028\\\",\\n      \\\"title\\\": \\\"Mesa launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-29T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_nimbus_029\\\",\\n      \\\"title\\\": \\\"Nimbus launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-30T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_orchid_030\\\",\\n      \\\"title\\\": \\\"Orchid launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-07-31T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_pioneer_031\\\",\\n      \\\"title\\\": \\\"Pioneer launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-01T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_atlas_032\\\",\\n      \\\"title\\\": \\\"Atlas launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-02T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_beacon_033\\\",\\n      \\\"title\\\": \\\"Beacon launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-03T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_cedar_034\\\",\\n      \\\"title\\\": \\\"Cedar launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-04T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_delta_035\\\",\\n      \\\"title\\\": \\\"Delta launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-05T17:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ember_036\\\",\\n      \\\"title\\\": \\\"Ember launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-06T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_fjord_037\\\",\\n      \\\"title\\\": \\\"Fjord launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-07T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_grove_038\\\",\\n      \\\"title\\\": \\\"Grove launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-08T11:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 2,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 3\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_delta_019\", \"title\": \"Delta launch checklist revision 4\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-20T10:00:00Z\"}, {\"id\": \"kb_ember_020\", \"title\": \"Ember launch checklist revision 0\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-21T11:00:00Z\"}, {\"id\": \"kb_fjord_021\", \"title\": \"Fjord launch checklist revision 1\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-22T12:00:00Z\"}, {\"id\": \"kb_grove_022\", \"title\": \"Grove launch checklist revision 2\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-23T13:00:00Z\"}, {\"id\": \"kb_harbor_023\", \"title\": \"Harbor launch checklist revision 3\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-24T14:00:00Z\"}, {\"id\": \"kb_ion_024\", \"title\": \"Ion launch checklist revision 4\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-25T15:00:00Z\"}, {\"id\": \"kb_juniper_025\", \"title\": \"Juniper launch checklist revision 0\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-26T16:00:00Z\"}, {\"id\": \"kb_keystone_026\", \"title\": \"Keystone launch checklist revision 1\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-27T17:00:00Z\"}, {\"id\": \"kb_lumen_027\", \"title\": \"Lumen launch checklist revision 2\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-28T09:00:00Z\"}, {\"id\": \"kb_mesa_028\", \"title\": \"Mesa launch checklist revision 3\", \"body\": \"General guidance for Mesa. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-29T10:00:00Z\"}, {\"id\": \"kb_nimbus_029\", \"title\": \"Nimbus launch checklist revision 4\", \"body\": \"General guidance for Nimbus. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-30T11:00:00Z\"}, {\"id\": \"kb_orchid_030\", \"title\": \"Orchid launch checklist revision 0\", \"body\": \"General guidance for Orchid. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-07-31T12:00:00Z\"}, {\"id\": \"kb_pioneer_031\", \"title\": \"Pioneer launch checklist revision 1\", \"body\": \"General guidance for Pioneer. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-01T13:00:00Z\"}, {\"id\": \"kb_atlas_032\", \"title\": \"Atlas launch checklist revision 2\", \"body\": \"General guidance for Atlas. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-02T14:00:00Z\"}, {\"id\": \"kb_beacon_033\", \"title\": \"Beacon launch checklist revision 3\", \"body\": \"General guidance for Beacon. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-03T15:00:00Z\"}, {\"id\": \"kb_cedar_034\", \"title\": \"Cedar launch checklist revision 4\", \"body\": \"General guidance for Cedar. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-04T16:00:00Z\"}, {\"id\": \"kb_delta_035\", \"title\": \"Delta launch checklist revision 0\", \"body\": \"General guidance for Delta. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-05T17:00:00Z\"}, {\"id\": \"kb_ember_036\", \"title\": \"Ember launch checklist revision 1\", \"body\": \"General guidance for Ember. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-06T09:00:00Z\"}, {\"id\": \"kb_fjord_037\", \"title\": \"Fjord launch checklist revision 2\", \"body\": \"General guidance for Fjord. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-07T10:00:00Z\"}, {\"id\": \"kb_grove_038\", \"title\": \"Grove launch checklist revision 3\", \"body\": \"General guidance for Grove. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-08T11:00:00Z\"}], \"pagination\": {\"page\": 2, \"page_size\": 20, \"total_items\": 45, \"total_pages\": 3}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-18T18:54:11.590145784+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-1082e3fb-7f61-43d9-8610-d6a39a52448b",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page": 3,
+            "page_size": 20,
+            "query": ""
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-1082e3fb-7f61-43d9-8610-d6a39a52448b",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_harbor_039\\\",\\n      \\\"title\\\": \\\"Harbor launch checklist revision 4\\\",\\n      \\\"body\\\": \\\"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-09T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_ion_040\\\",\\n      \\\"title\\\": \\\"Ion launch checklist revision 0\\\",\\n      \\\"body\\\": \\\"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-10T13:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_juniper_041\\\",\\n      \\\"title\\\": \\\"Juniper launch checklist revision 1\\\",\\n      \\\"body\\\": \\\"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-11T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_keystone_042\\\",\\n      \\\"title\\\": \\\"Keystone launch checklist revision 2\\\",\\n      \\\"body\\\": \\\"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-12T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"kb_lumen_043\\\",\\n      \\\"title\\\": \\\"Lumen launch checklist revision 3\\\",\\n      \\\"body\\\": \\\"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-13T16:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 3,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 45,\\n    \\\"total_pages\\\": 3\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_harbor_039\", \"title\": \"Harbor launch checklist revision 4\", \"body\": \"General guidance for Harbor. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-09T12:00:00Z\"}, {\"id\": \"kb_ion_040\", \"title\": \"Ion launch checklist revision 0\", \"body\": \"General guidance for Ion. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-10T13:00:00Z\"}, {\"id\": \"kb_juniper_041\", \"title\": \"Juniper launch checklist revision 1\", \"body\": \"General guidance for Juniper. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-11T14:00:00Z\"}, {\"id\": \"kb_keystone_042\", \"title\": \"Keystone launch checklist revision 2\", \"body\": \"General guidance for Keystone. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-12T15:00:00Z\"}, {\"id\": \"kb_lumen_043\", \"title\": \"Lumen launch checklist revision 3\", \"body\": \"General guidance for Lumen. Verify current evidence and approvals in the owning operational system; this document is not a status record.\", \"updated_at\": \"2026-08-13T16:00:00Z\"}], \"pagination\": {\"page\": 3, \"page_size\": 20, \"total_items\": 45, \"total_pages\": 3}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-18T18:54:19.771459336+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-64206c31-4175-4501-ad79-be090d3d27c8",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "page_size": 20,
+            "query": "account customer"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-64206c31-4175-4501-ad79-be090d3d27c8",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 20,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 20, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-18T18:54:23.118282531+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-0c8fb9d0-453a-4a58-9c30-e9ff06698e44",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "salesforce"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-0c8fb9d0-453a-4a58-9c30-e9ff06698e44",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"salesforce\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"salesforce\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-09-18T18:54:37.321603412+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5e5301e9-8aa1-41d9-a174-936aa5bc8ce7",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "pipedrive"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5e5301e9-8aa1-41d9-a174-936aa5bc8ce7",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"pipedrive\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"pipedrive\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 25,
+      "timestamp": "2026-09-18T18:54:39.160352136+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-0c74b6a3-26a9-4ffe-a88f-faf244fc5219",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "zendesk"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-0c74b6a3-26a9-4ffe-a88f-faf244fc5219",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"zendesk\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"zendesk\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 26,
+      "timestamp": "2026-09-18T18:54:41.331841538+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-c6ca3274-2edd-4db9-8fa9-2a2e7e0ffdb9",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "intercom"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-c6ca3274-2edd-4db9-8fa9-2a2e7e0ffdb9",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"intercom\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"intercom\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 27,
+      "timestamp": "2026-09-18T18:54:45.179950105+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-6d7a8a06-4584-43fe-9ada-a9cb59396801",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "close"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-6d7a8a06-4584-43fe-9ada-a9cb59396801",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"close\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"close\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 28,
+      "timestamp": "2026-09-18T18:54:49.023116010+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a1afedd9-ea1e-40b4-ae89-878fe9686fa0",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "copper"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a1afedd9-ea1e-40b4-ae89-878fe9686fa0",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"copper\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"copper\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 29,
+      "timestamp": "2026-09-18T18:54:54.553442229+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-a33d2ac5-249b-4e4b-9118-104aa26c88cd",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "freshworks"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-a33d2ac5-249b-4e4b-9118-104aa26c88cd",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"freshworks\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"freshworks\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 30,
+      "timestamp": "2026-09-18T18:54:59.762581822+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bebf44a9-1452-4548-a175-6e293f3fe05c",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "attio"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bebf44a9-1452-4548-a175-6e293f3fe05c",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"attio\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"attio\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 31,
+      "timestamp": "2026-09-18T18:55:01.922590066+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-3bb5e310-b8ee-4dbf-bb2b-ab01e4880485",
+          "function_name": "mcp__enterprise_world__connectors_get_status",
+          "arguments": {
+            "connector": "affinity"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-3bb5e310-b8ee-4dbf-bb2b-ab01e4880485",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"status\\\": \\\"unknown\\\",\\n  \\\"connector\\\": \\\"affinity\\\"\\n}\", \"structuredContent\": {\"ok\": true, \"status\": \"unknown\", \"connector\": \"affinity\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 32,
+      "timestamp": "2026-09-18T18:55:01.983300011+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nemotron-3-ultra-550b-a55b",
+      "message": "Based on my investigation, I've checked the CRM availability status:\n\n**CRM Connector Status: `needs_auth`**\n\nThe CRM connector is configured and recognized by the system, but it requires authentication before it can be used to look up accounts. All other common CRM connectors (Salesforce, HubSpot, Pipedrive, Zoho, Dynamics, Zendesk, Intercom, Close, Copper, Freshworks, Attio, Affinity) show \"unknown\" status, meaning they're not configured in this environment.\n\n**Summary:**\n- ✅ **CRM connector exists** in the enterprise-world system\n- ⚠️ **Status: `needs_auth`** - Authentication is required before use\n- ❌ Cannot look up accounts until CRM is authenticated\n\nTo proceed with an account lookup, you would need to:\n1. Authenticate the CRM connector (likely through your enterprise-world admin/configuration)\n2. Then use the appropriate search tools (likely `knowledge_search`, `people_search`, or `files_search` depending on where account data is stored)\n\nWould you like me to help with the authentication process, or do you have specific account details you'd like me to search for once CRM is available?"
+    }
+  ]
+}

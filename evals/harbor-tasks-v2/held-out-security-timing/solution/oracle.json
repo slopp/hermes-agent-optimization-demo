@@ -1,0 +1,19 @@
+{
+  "answer": "one business day",
+  "calls": [
+    {
+      "name": "chat.search",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "chat.read_thread",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

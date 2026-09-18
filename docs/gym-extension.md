@@ -41,7 +41,7 @@ Before generating training rollouts, require:
 5. the same frozen held-out partition and provenance fields.
 
 Only then add `gym eval run`. Train on development cases and retain the
-NemoClaw held-out A/B as the external gate so model-learning gains remain
+Harbor held-out A/B as the external gate so model-learning gains remain
 separable from harness changes and environment drift.
 
 Data Designer may propose additional fictional fixture rows and task

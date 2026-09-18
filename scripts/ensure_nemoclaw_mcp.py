@@ -7,9 +7,11 @@ import argparse
 import os
 import re
 import signal
+import socket
 import subprocess
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 TUNNEL_URL = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 
@@ -91,6 +93,24 @@ def _start_tunnel(runtime_dir: Path, cloudflared: str, local_url: str) -> str:
     raise RuntimeError("cloudflared did not publish a quick-tunnel URL within 30 seconds")
 
 
+def wait_for_dns(url: str, *, timeout_seconds: int = 300) -> None:
+    """Wait until the host resolver can see a newly minted quick-tunnel name."""
+    hostname = urlparse(url).hostname
+    if not hostname:
+        raise RuntimeError(f"quick-tunnel URL has no hostname: {url}")
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        try:
+            socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
+            return
+        except socket.gaierror as error:
+            if time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"quick-tunnel hostname did not resolve within {timeout_seconds}s: {hostname}"
+                ) from error
+            time.sleep(5)
+
+
 def ensure_mcp(
     *,
     sandbox: str,
@@ -114,6 +134,9 @@ def ensure_mcp(
         return url_path.read_text().strip() if url_path.exists() else "registered"
 
     url = _start_tunnel(runtime_dir, cloudflared, local_url)
+    # Cloudflare can publish the URL before the host's caching resolver sees
+    # it. NemoClaw validates immediately, so wait before changing registration.
+    wait_for_dns(url)
 
     # NemoClaw 0.0.124 does not change an existing MCP URL via `mcp add`.
     # Its forced removal deliberately preserves the backing provider, so remove

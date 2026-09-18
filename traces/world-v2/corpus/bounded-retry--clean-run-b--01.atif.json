@@ -1,0 +1,1346 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0b5ae-9919-7582-ba20-c90e1d919171",
+  "trajectory_id": "01a0b5ae-9919-7582-ba20-c90e1d919171",
+  "agent": {
+    "name": "Hermes-enterprise-world",
+    "version": "nemoclaw-baseline",
+    "model_name": "nvidia/nemotron-3-ultra-550b-a55b"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_steps": 30
+  },
+  "extra": {
+    "logical_case_id": "bounded-retry",
+    "observed_verdict": "missing required enterprise evidence",
+    "metrics": {
+      "required_signal_coverage": 0.0,
+      "enterprise_tool_share": 0.0,
+      "local_or_session_call_share": 0.9666666666666667
+    },
+    "trajectory_contract": {
+      "required_signals": [
+        "chat.search",
+        "chat.search",
+        "support.search_tickets"
+      ],
+      "missing_signals": [
+        "chat.search",
+        "chat.search",
+        "support.search_tickets"
+      ]
+    },
+    "tool_catalog": {
+      "browser_exec": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute using the pre-imported browser helpers. Use print(...) for any data you need back.",
+            "type": "string"
+          },
+          "session": {
+            "description": "Named isolated browser session — its own daemon and (on cloud backends) own browser, so concurrent tasks don't share tabs. Reuse the same name on every related call; omit for the shared default session.",
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 300,
+            "description": "Max seconds to wait for the code to finish (default 300, max 1800).",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "clarify": {
+        "properties": {
+          "questions": {
+            "description": "The question(s). Each: question text (options excluded), optional choices (recommended first; omit for free-text), optional multi_select. Responses come back in question order with the question text echoed.",
+            "items": {
+              "properties": {
+                "choices": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "multi_select": {
+                  "type": "boolean"
+                },
+                "question": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "question"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "type": "object"
+      },
+      "delegate_task": {
+        "properties": {
+          "action": {
+            "description": "Default 'spawn' (omit for normal delegation). Live orchestration of running subagents: 'list' shows this conversation's live children (ids, goals, status, transcript paths); 'steer' queues course-correction text into one child (requires subagent_id + message) without stopping it; 'stop' ends one child early (requires subagent_id) — its partial result still returns as a completion message. Control actions return immediately; goal/tasks are ignored when action is not 'spawn'.",
+            "enum": [
+              "spawn",
+              "list",
+              "steer",
+              "stop"
+            ],
+            "type": "string"
+          },
+          "background": {
+            "description": "DEPRECATED / IGNORED. Top-level single and batch delegations run in the background automatically — you do not need to (and cannot) opt in or out. A single result or consolidated batch result re-enters the conversation when the work finishes; just continue working in the meantime. Setting this has no effect; the parameter remains only for backward compatibility.",
+            "type": "boolean"
+          },
+          "context": {
+            "description": "Background information the subagent needs: file paths, error messages, project structure, constraints. The more specific you are, the better the subagent performs.",
+            "type": "string"
+          },
+          "goal": {
+            "description": "What the subagent should accomplish. Be specific and self-contained -- the subagent knows nothing about your conversation history.",
+            "type": "string"
+          },
+          "message": {
+            "description": "For action='steer': the course correction. Be directive and specific — the child sees it appended to its next tool result mid-run (e.g. \"Stop exploring X; focus on Y and return early results\").",
+            "type": "string"
+          },
+          "output_schema": {
+            "description": "Optional JSON Schema for the single-goal form — the subagent's final answer must validate against it (same semantics as tasks[].output_schema).",
+            "properties": {},
+            "type": "object"
+          },
+          "role": {
+            "description": "Role of the child agent. 'leaf' (default) = focused worker, cannot delegate further. 'orchestrator' = can use delegate_task to spawn its own workers. Nesting is OFF for this user (max_spawn_depth=1); 'orchestrator' is silently forced to 'leaf'. Raise delegation.max_spawn_depth in config.yaml to enable.",
+            "enum": [
+              "leaf",
+              "orchestrator"
+            ],
+            "type": "string"
+          },
+          "subagent_id": {
+            "description": "Target for action='steer'/'stop'. Ids are returned in the spawn dispatch response (subagent_ids) and by action='list'.",
+            "type": "string"
+          },
+          "tasks": {
+            "description": "Batch mode: tasks to run in parallel (up to 10 for this user, set via delegation.max_concurrent_children). Each gets its own subagent with isolated context and terminal session. When provided, top-level goal/context/role are ignored.",
+            "items": {
+              "properties": {
+                "context": {
+                  "description": "Task-specific context",
+                  "type": "string"
+                },
+                "goal": {
+                  "description": "Task goal",
+                  "type": "string"
+                },
+                "output_schema": {
+                  "description": "Optional JSON Schema the subagent's final answer must validate against. The child is told the contract up front; the parent validates the final answer and allows one bounded correction retry. The result entry gains schema_valid (and schema_errors on final failure). Keep schemas forgiving: require only fields you will actually read.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "role": {
+                  "description": "Per-task role override. See top-level 'role' for semantics.",
+                  "enum": [
+                    "leaf",
+                    "orchestrator"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "goal"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execute_code": {},
+      "memory": {
+        "properties": {
+          "action": {
+            "description": "The action to perform (single-op shape). Omit when using 'operations'.",
+            "enum": [
+              "add",
+              "replace",
+              "remove"
+            ],
+            "type": "string"
+          },
+          "content": {
+            "description": "The entry content. Required for 'add' and 'replace' (single-op shape). Alias: 'new_text' is also accepted (mirrors old_text).",
+            "type": "string"
+          },
+          "new_text": {
+            "description": "Alias for 'content' (single-op shape). Provided so the replace/remove old_text/new_text pairing works; if both are set, 'content' wins.",
+            "type": "string"
+          },
+          "old_text": {
+            "description": "REQUIRED for 'replace' and 'remove' (single-op shape): a short unique substring identifying the existing entry to modify. Omit only for 'add'.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Batch shape: a list of operations applied atomically in one call against the final char budget. Preferred when making multiple changes or consolidating to make room. Each item is {action, content?, old_text?}.",
+            "items": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "add",
+                    "replace",
+                    "remove"
+                  ],
+                  "type": "string"
+                },
+                "content": {
+                  "description": "Entry content for add/replace. Alias: 'new_text'.",
+                  "type": "string"
+                },
+                "new_text": {
+                  "description": "Alias for 'content' in a batch op.",
+                  "type": "string"
+                },
+                "old_text": {
+                  "description": "Substring identifying the entry for replace/remove.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "target": {
+            "description": "Which memory store: 'memory' for personal notes, 'user' for user profile.",
+            "enum": [
+              "memory",
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "patch": {
+        "properties": {
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories.",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "replace",
+            "description": "Edit mode. 'replace' (default): requires path + old_string + new_string. 'patch': requires patch content only.",
+            "enum": [
+              "replace",
+              "patch"
+            ],
+            "type": "string"
+          },
+          "new_string": {
+            "description": "REQUIRED when mode='replace'. Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "REQUIRED when mode='replace'. Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.",
+            "type": "string"
+          },
+          "patch": {
+            "description": "REQUIRED when mode='patch'. V4A format patch content. Format:\n*** Begin Patch\n*** Update File: path/to/file\n@@ context hint @@\n context line\n-removed line\n+added line\n*** End Patch",
+            "type": "string"
+          },
+          "path": {
+            "description": "REQUIRED when mode='replace'. File path to edit.",
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "process": {
+        "properties": {
+          "action": {
+            "description": "Action to perform on background processes",
+            "enum": [
+              "list",
+              "poll",
+              "log",
+              "wait",
+              "kill",
+              "write",
+              "submit",
+              "close"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "description": "Text to send to process stdin (for 'write' and 'submit' actions)",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max lines to return for 'log' action",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Line offset for 'log' action (default: last 200 lines)",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Process session ID (from terminal background output). Required for all actions except 'list'. A unique ID prefix works too (e.g. 'proc_4dae' or just '4dae' for proc_4dae56ca81f6).",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Max seconds to block for 'wait' action. Returns partial output on timeout.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "read_file": {},
+      "search_files": {
+        "properties": {
+          "context": {
+            "default": 0,
+            "description": "Number of context lines before and after each match (grep mode only)",
+            "type": "integer"
+          },
+          "file_glob": {
+            "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum number of results to return (default: 50)",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Skip first N results for pagination (default: 0)",
+            "type": "integer"
+          },
+          "output_mode": {
+            "default": "content",
+            "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+            "enum": [
+              "content",
+              "files_only",
+              "count"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "default": ".",
+            "description": "Directory or file to search in (default: current working directory)",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search",
+            "type": "string"
+          },
+          "target": {
+            "default": "content",
+            "description": "'content' searches inside file contents, 'files' searches for files by name",
+            "enum": [
+              "content",
+              "files"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "type": "object"
+      },
+      "session_search": {},
+      "skill_manage": {
+        "properties": {
+          "action": {
+            "description": "The action to perform.",
+            "enum": [
+              "create",
+              "patch",
+              "delete",
+              "write_file",
+              "remove_file"
+            ],
+            "type": "string"
+          },
+          "category": {
+            "description": "Optional category/domain for organizing the skill (e.g., 'devops', 'data-science', 'mlops'). Creates a subdirectory grouping. Only used with 'create'.",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full SKILL.md content (YAML frontmatter + markdown body). Required for 'create'; on 'patch' it performs a full rewrite (major overhauls only — read the skill first with skill_view(), and don't combine with old_string).",
+            "type": "string"
+          },
+          "file_content": {
+            "description": "Content for the file. Required for 'write_file'.",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Path to a supporting file within the skill directory. For 'write_file'/'remove_file': required, must be under references/, templates/, scripts/, or assets/. For 'patch': optional, defaults to SKILL.md if omitted.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Skill name (lowercase, hyphens/underscores, max 64 chars). Must match an existing skill for patch/edit/delete/write_file/remove_file.",
+            "type": "string"
+          },
+          "new_string": {
+            "description": "Replacement text (required for 'patch'); must differ from old_string. Can be empty string to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "Text to find in the file (required for 'patch'). Must be unique unless replace_all=true. Include enough surrounding context to ensure uniqueness.",
+            "type": "string"
+          },
+          "replace_all": {
+            "description": "For 'patch': replace all occurrences instead of requiring a unique match (default: false).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "name"
+        ],
+        "type": "object"
+      },
+      "skill_view": {
+        "properties": {
+          "file_path": {
+            "description": "OPTIONAL: Path to a linked file within the skill (e.g., 'references/api.md', 'templates/config.yaml', 'scripts/validate.py'). Omit to get the main SKILL.md content.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The skill name (use skills_list to see available skills). For plugin-provided skills, use the qualified form 'plugin:skill' (e.g. 'superpowers:writing-plans').",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "skills_list": {
+        "properties": {
+          "category": {
+            "description": "Optional category filter to narrow results",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "terminal": {},
+      "text_to_speech": {
+        "properties": {
+          "instructions": {
+            "description": "Optional voice-design guidance: tone, emotion, pacing, accent, whispering, impressions (e.g. 'Speak in a cheerful, excited whisper'). Forwarded to the OpenAI backend (gpt-4o-mini-tts and OpenAI-compatible voice-design servers). Silently ignored by backends that don't support it.",
+            "type": "string"
+          },
+          "output_path": {
+            "description": "Optional custom file path to save the audio. Defaults to ~/.hermes/audio_cache/<timestamp>.mp3",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Optional TTS provider override. Accepts built-in names (edge, openai, elevenlabs, minimax, xai, mistral, gemini, neutts, kittentts, piper), user-declared command provider names from tts.providers.<name>, or plugin-registered names. When omitted, the configured tts.provider from config.yaml is used.",
+            "type": "string"
+          },
+          "speed": {
+            "description": "Playback speed multiplier. 1.0 = normal, 0.5 = very slow (language learning), 2.0 = fast. Range: 0.25-4.0. Overrides the speed configured in config.yaml.",
+            "type": "number"
+          },
+          "text": {
+            "description": "The text to convert to speech. Provider-specific per-request character caps apply automatically (OpenAI 4096, xAI 15000, MiniMax 10000, ElevenLabs 5k-40k depending on model); longer input is split into ordered chunks without silent truncation.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "todo": {
+        "properties": {
+          "merge": {
+            "default": false,
+            "description": "true: update existing items by id, add new ones. false (default): replace the entire list.",
+            "type": "boolean"
+          },
+          "todos": {
+            "description": "Task items to write. Omit to read current list.",
+            "items": {
+              "properties": {
+                "content": {
+                  "description": "Task description",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique item identifier",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "Current status",
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "vision_analyze": {
+        "properties": {
+          "image_url": {
+            "description": "Image URL (http/https), local file path, or data: URL to load.",
+            "type": "string"
+          },
+          "question": {
+            "description": "Your specific question or request about the image. Optional context the model uses on the next turn after seeing the image.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Optional [x1, y1, x2, y2] crop region in pixel coordinates of the ORIGINAL image, applied before any downscaling so the region keeps full resolution. Intended flow: load the full image first, then call again with a region to zoom into a detail (small text, UI element, fine print). Coordinates are clamped to the image bounds.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "image_url",
+          "question"
+        ],
+        "type": "object"
+      },
+      "web_extract": {
+        "properties": {
+          "char_limit": {
+            "description": "Optional per-page character budget sent back (default 15000). Pages larger than this are head+tail truncated with the full text stored to disk. Raise it when you need more of a long page inline.",
+            "minimum": 2000,
+            "type": "integer"
+          },
+          "urls": {
+            "description": "List of URLs to extract content from (max 5 URLs per call)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          }
+        },
+        "required": [
+          "urls"
+        ],
+        "type": "object"
+      },
+      "web_search": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return. Defaults to 5.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "The search query to look up on the web. You may include backend-supported operators such as site:example.com, filetype:pdf, intitle:word, -term, or \"exact phrase\".",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "write_file": {
+        "properties": {
+          "content": {
+            "description": "Complete content to write to the file",
+            "type": "string"
+          },
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
+            "type": "boolean"
+          },
+          "path": {
+            "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      },
+      "tool_search": {
+        "properties": {
+          "limit": {
+            "description": "Maximum number of matches per query. Defaults to 5 and is clamped to the configured maximum (25 by default).",
+            "type": "integer"
+          },
+          "queries": {
+            "description": "Search queries, each a few keywords describing one capability (e.g. ['create github issue', 'send slack message']). Searched in parallel; results come back grouped per query. A single string is accepted and treated as one query.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "queries"
+        ],
+        "type": "object"
+      },
+      "tool_describe": {
+        "properties": {
+          "names": {
+            "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "type": "object"
+      },
+      "tool_call": {
+        "properties": {
+          "arguments": {
+            "description": "Arguments for the tool, matching its schema.",
+            "type": "object"
+          },
+          "name": {
+            "description": "Exact tool name to invoke.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "arguments"
+        ],
+        "type": "object"
+      },
+      "nemoclaw_info": {}
+    },
+    "collection": "clean-run-b",
+    "collection_ordinal": 1,
+    "normalization": {
+      "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+      "source_trace_id": "01a0b5ae-9919-7582-ba20-c90e1d919171",
+      "losses": [
+        "Span nesting was flattened into sequential ATIF steps.",
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-18T18:02:29.381484860+00:00",
+      "source": "user",
+      "message": "Find chat context for the network incident.\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3-ultra-550b-a55b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-18T18:02:29.381484860+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-27f37988-b88a-428a-8e87-5c1ba57c01f2",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-27f37988-b88a-428a-8e87-5c1ba57c01f2",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-18T18:02:34.484121586+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-dc64ab6a-ee88-45b2-acfe-df64646410cf",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-dc64ab6a-ee88-45b2-acfe-df64646410cf",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-18T18:02:42.122252735+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-0f05bb87-f23d-4163-b99d-c44302ad1ca3",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-0f05bb87-f23d-4163-b99d-c44302ad1ca3",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-18T18:02:47.836330990+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-acc7a320-4b5b-4bc3-ad8b-f0113514ad05",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-acc7a320-4b5b-4bc3-ad8b-f0113514ad05",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-18T18:02:56.422928916+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-2a9e37b1-6725-42d8-94cf-6fcb6c1f61f2",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-2a9e37b1-6725-42d8-94cf-6fcb6c1f61f2",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-18T18:03:01.933892357+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-7c8517bc-4c83-4a68-b452-c841696b4e0b",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-7c8517bc-4c83-4a68-b452-c841696b4e0b",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-18T18:03:05.723607483+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-cd8e7f6f-6640-48d7-9d30-8e740b1319a0",
+          "function_name": "nemoclaw_info",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-cd8e7f6f-6640-48d7-9d30-8e740b1319a0",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-18T18:03:07.677880194+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ce09d585-ed3b-4208-9959-ce63e7b79f8a",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ce09d585-ed3b-4208-9959-ce63e7b79f8a",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-18T18:03:10.327026910+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-11d81c2a-c39e-47a0-b1ac-284d2fd6a4cb",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-11d81c2a-c39e-47a0-b1ac-284d2fd6a4cb",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-18T18:03:16.555328287+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-fbff1760-5059-40ef-a0bc-15dd49d2a0ce",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-fbff1760-5059-40ef-a0bc-15dd49d2a0ce",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-18T18:03:19.623365726+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-de746b51-c0e2-41c8-ad0f-55593c420e51",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-de746b51-c0e2-41c8-ad0f-55593c420e51",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-18T18:03:21.799464799+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-e54e4940-8ddd-49d6-b587-2eec6d69a5a7",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-e54e4940-8ddd-49d6-b587-2eec6d69a5a7",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-18T18:03:28.687198635+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-b9e09562-6c61-43ea-ae7a-6eb7d9bdbecf",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-b9e09562-6c61-43ea-ae7a-6eb7d9bdbecf",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-18T18:03:31.451936833+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bd984818-2b0c-4e03-9b49-e2036e65cb48",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bd984818-2b0c-4e03-9b49-e2036e65cb48",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-18T18:03:35.015231823+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-6944ca42-c51d-4ef1-8430-ccc124367406",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-6944ca42-c51d-4ef1-8430-ccc124367406",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-18T18:03:44.335547462+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bb5b13dd-6c88-4203-a1a0-dc82257bd8e3",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bb5b13dd-6c88-4203-a1a0-dc82257bd8e3",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-18T18:03:57.817583713+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-7728c991-a9cb-493f-8844-c359384f7c35",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-7728c991-a9cb-493f-8844-c359384f7c35",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-18T18:04:13.113877171+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-53a7ab39-af67-49fd-ba88-88020a3b6849",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-53a7ab39-af67-49fd-ba88-88020a3b6849",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-18T18:04:27.965349789+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-1d9871d4-04ac-4ef0-a19b-012eef162c0a",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-1d9871d4-04ac-4ef0-a19b-012eef162c0a",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-18T18:04:35.931915684+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-252b3bcd-3eeb-4e23-bf10-986b4a53e7da",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-252b3bcd-3eeb-4e23-bf10-986b4a53e7da",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-18T18:04:40.792449986+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-7faa3740-5d20-4cc7-aa4a-0c91c6041706",
+          "function_name": "session_search",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-7faa3740-5d20-4cc7-aa4a-0c91c6041706",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-18T18:04:55.318057447+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5c0ff264-5ca4-48b6-8e2d-fc92cd79e809",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5c0ff264-5ca4-48b6-8e2d-fc92cd79e809",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-09-18T18:05:56.616426157+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-2ef5e0c1-6d99-4e48-ad37-4e805c53c646",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-2ef5e0c1-6d99-4e48-ad37-4e805c53c646",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 25,
+      "timestamp": "2026-09-18T18:06:02.629204050+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-7c55b2e4-57e3-4fe0-b5c0-f6bfa60a6de2",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-7c55b2e4-57e3-4fe0-b5c0-f6bfa60a6de2",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 26,
+      "timestamp": "2026-09-18T18:06:23.039874680+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-2e9b5f9b-074a-4a55-bd71-6f715f7d7204",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-2e9b5f9b-074a-4a55-bd71-6f715f7d7204",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 27,
+      "timestamp": "2026-09-18T18:06:29.568545435+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-91c535d9-eb7b-462c-b798-23c858fb9e8c",
+          "function_name": "execute_code",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-91c535d9-eb7b-462c-b798-23c858fb9e8c",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 28,
+      "timestamp": "2026-09-18T18:06:32.487007898+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-d42d6cd1-2e32-4712-8fe6-6e7db41b8fd8",
+          "function_name": "terminal",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-d42d6cd1-2e32-4712-8fe6-6e7db41b8fd8",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 29,
+      "timestamp": "2026-09-18T18:06:52.387435005+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-dac1a943-07b1-4f80-be4a-4803fbf3c706",
+          "function_name": "read_file",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-dac1a943-07b1-4f80-be4a-4803fbf3c706",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 30,
+      "timestamp": "2026-09-18T18:06:52.501257075+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nemotron-3-ultra-550b-a55b",
+      "message": ""
+    }
+  ]
+}

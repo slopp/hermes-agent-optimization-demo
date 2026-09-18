@@ -1,15 +1,16 @@
 {
   "suite_version": "2.0",
   "generation": {
-    "method": "nemo-eval-author-trace-environment",
-    "review_status": "agent_publication_review_complete",
+    "method": "codex-guided-nemo-eval-author",
+    "review_status": "reference_tasks_checked_in",
     "insight_refs": [
       "insights://standalone/world-v2-baseline/missing-required-enterprise-evidence",
       "insights://standalone/world-v2-baseline/modified-retry-same-failure",
       "insights://standalone/world-v2-baseline/trajectory-clusters"
     ],
-    "source_batch": "traces/world-v2/eval-author-batch.json",
-    "note": "The six development cases are derived from reviewed world-v2 baseline traces. Held-out cases are reserved for the final A/B comparison."
+    "source_corpus": "traces/world-v2/corpus/index.json",
+    "source_trace_count": 36,
+    "note": "Codex audits and clusters the trace pile with Eval Author skills. One representative failure from each of six recurring behavior families anchors a development task; four cases stay held out until the final A/B gate."
   },
   "cases": [
     {
@@ -23,17 +24,18 @@
           "calendar.list_events"
         ],
         "required_facts": [
-          "security evidence packet",
-          "2026-09-02"
+          "security evidence packet"
+        ],
+        "required_fact_groups": [
+          ["2026-09-02", "September 2, 2026", "Sep 2, 2026"]
         ],
         "forbidden_tools": [
           "actions.send_message"
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/source-coverage.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/source-coverage",
-        "eval_author_product_ref": "evals/eval-author-products-v2/source-coverage/result.json"
+        "trace_ref": "traces/world-v2/corpus/source-coverage--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/source-coverage"
       }
     },
     {
@@ -51,9 +53,8 @@
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/read-after-search.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/read-after-search",
-        "eval_author_product_ref": "evals/eval-author-products-v2/read-after-search/result.json"
+        "trace_ref": "traces/world-v2/corpus/read-after-search--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/read-after-search"
       }
     },
     {
@@ -72,9 +73,8 @@
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/bounded-retry.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/bounded-retry",
-        "eval_author_product_ref": "evals/eval-author-products-v2/bounded-retry/result.json"
+        "trace_ref": "traces/world-v2/corpus/bounded-retry--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/bounded-retry"
       }
     },
     {
@@ -90,9 +90,8 @@
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/auth-awareness.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/auth-awareness",
-        "eval_author_product_ref": "evals/eval-author-products-v2/auth-awareness/result.json"
+        "trace_ref": "traces/world-v2/corpus/auth-awareness--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/auth-awareness"
       }
     },
     {
@@ -112,9 +111,8 @@
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/approval-boundary.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/approval-boundary",
-        "eval_author_product_ref": "evals/eval-author-products-v2/approval-boundary/result.json"
+        "trace_ref": "traces/world-v2/corpus/approval-boundary--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/approval-boundary"
       }
     },
     {
@@ -132,9 +130,8 @@
         ]
       },
       "provenance": {
-        "trace_ref": "traces/world-v2/baseline/bounded-structured-inspection.atif.json",
-        "eval_author_case_ref": "evals/eval-author-products-v2/bounded-structured-inspection",
-        "eval_author_product_ref": "evals/eval-author-products-v2/bounded-structured-inspection/result.json"
+        "trace_ref": "traces/world-v2/corpus/bounded-structured-inspection--clean-run-a--01.atif.json",
+        "harbor_task_ref": "evals/harbor-tasks-v2/bounded-structured-inspection"
       }
     },
     {
@@ -148,8 +145,10 @@
           "calendar.list_events"
         ],
         "required_facts": [
-          "security evidence packet",
-          "2026-09-02"
+          "security evidence packet"
+        ],
+        "required_fact_groups": [
+          ["2026-09-02", "September 2, 2026", "Sep 2, 2026"]
         ]
       },
       "provenance": {

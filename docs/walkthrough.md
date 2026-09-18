@@ -1,66 +1,369 @@
-# End-to-end walkthrough
+# Trace-to-harness flywheel
 
-This is the canonical path through the demo. It uses NVIDIA Build, a
-NemoClaw-managed Hermes sandbox, Relay, local Eval Author, and standalone
-Insights. NeMo Platform is not required.
+This is the canonical guide. It starts with a checked-in pile of Hermes traces,
+uses Insights and Eval Author to turn observed failures into an eval, compares
+two harness arms in Harbor, and checks the winning arm on held-out tasks. NeMo
+Platform is not required.
 
-The checked-in traces let you start at section 4. Sections 1–3 show how to
-recreate them.
+## Choose a path
 
-## 1. Clone and validate
+| Path | Use it when | Run |
+| --- | --- | --- |
+| Insights only | Inspect trace analysis without running an agent | Setup, 1, 2 |
+| Reproduce the A/B | Run the shortest complete optimization loop | Setup, 1, 3, 4, 5, 6 |
+| Re-author the eval | Apply Eval Author to your own trace pile | Setup, 1, 2, 3, then the Codex workflow |
+| Recollect traces | Deploy Hermes through NemoClaw/OpenShell | Optional NemoClaw section |
 
-Requirements are Git, GitHub CLI, Make, Python 3.11+, `uv`, Docker, `curl`,
-`openssl`, `jq`, and `cloudflared` (or another HTTPS ingress). Step 6 has one
-additional constraint:
-Harbor 0.22.0 needs a Docker daemon whose Linux kernel supports nftables
-`CONFIG_NFT_FIB_INET`. Native Linux normally does. Docker Desktop's LinuxKit
-kernel does not; on macOS, use Colima for the Harbor proofs.
+The checked-in Eval Author reference tasks make the A/B independent of the
+authoring path. Human review is required when creating or publishing a new
+eval, not when running these reference tasks.
+
+## Setup
+
+Use a fresh Ubuntu 24.04 machine with native Docker, at least 4 vCPUs, 16 GB
+RAM, and 50 GB free disk. The reference run completed on a 4-vCPU Brev CPU
+instance; 8 vCPUs are recommended to reduce concurrent Harbor runtime.
+Harbor 0.22.0's isolated verifier jobs require a Linux kernel with
+`CONFIG_NFT_FIB_INET`; Docker Desktop's LinuxKit VM does not provide it. On
+macOS, use a Colima Docker context or run this part on Linux.
+
+Install the host tools on Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y binutils ca-certificates curl gh git jq make openssl docker.io
+sudo usermod -aG docker "$USER"
+newgrp docker
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+docker info >/dev/null
+```
+
+Clone and validate the tutorial:
 
 ```bash
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
-
-command -v git gh make python3 uv docker curl openssl jq cloudflared
-docker info >/dev/null
 make test
 make validate
-make mock-mcp-container-check
 ```
 
-On Ubuntu or Debian, install missing `uv` and `cloudflared` first:
+Create Harbor's isolated environment. Keep the tested 0.22.0 pin: Eval Author
+proof receipts and task schemas are version-sensitive.
+
+The first task image build can take 10–20 minutes. With the image cached, the
+one-attempt development and held-out smoke runs took about 20 minutes total on
+the reference CPU host; three attempts per task can take 45–90 minutes and use
+substantially more inference quota.
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
+uv venv .harbor-venv --python 3.12
+uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
+.harbor-venv/bin/harbor --version
+```
 
+When a model run is needed, enter an NVIDIA Build key at a masked prompt. The
+key is forwarded to the allowlisted inference endpoint and is never baked into
+the task image or written to the repository.
+
+```bash
+printf 'NVIDIA Build API key: '
+read -rs NVIDIA_API_KEY
+printf '\n'
+export NVIDIA_API_KEY
+```
+
+## 1. Understand the starting point
+
+**Purpose:** establish the inputs before optimization.
+
+**Input:** 36 Relay-compatible ATIF traces in `traces/world-v2/corpus/`: six
+independent trials for each of six behavior families. They were produced by
+Hermes against the deterministic 504-record Northstar MCP world.
+
+**Output:** a validated pile of traces. The pile is evidence to inspect, not
+already an eval set.
+
+```bash
+jq '{traces: (.traces | length), groups: ([.traces[].logical_case_id] | group_by(.) | map({key: .[0], value: length}) | from_entries)}' \
+  traces/world-v2/corpus/index.json
+find traces/world-v2/corpus -name '*.atif.json' | wc -l
+make validate
+```
+
+The six families cover multi-source evidence, search-then-read, bounded retry,
+connector authentication, prepare-without-send, and bounded structured-file
+inspection. Six development tasks were selected from these recurring shapes;
+four differently worded cases are held out for the final gate. `--attempts 3`
+means three model trials per task: 18 development trials and 12 held-out trials
+per arm. The quick path below uses one attempt first to control cost.
+
+## 2. Analyze the trace pile with Insights
+
+**Purpose:** find repeated trajectory patterns and tool problems worth turning
+into testable hypotheses.
+
+**Input:** the 36 checked-in ATIF traces.
+
+**Output:** deterministic evidence cards and clusters. These inform task
+selection and harness changes; they do not score the later A/B.
+
+**Skip:** skip this section only if you want to run the already-derived eval.
+
+Access to the standalone Insights preview repository is required:
+
+```bash
+gh auth status || gh auth login --web --git-protocol https
+python3 scripts/convert_atif_for_insights.py \
+  traces/world-v2/corpus \
+  --output .runs/insights/starting-corpus.jsonl
+
+git clone https://github.com/NVIDIA/nemo-platform-insights-preview.git \
+  ../nemo-platform-insights-preview
+cd ../nemo-platform-insights-preview
+git checkout 02c05644809acafe09be42501c8d4db23d268016
+uv sync --locked
+
+uv run insight-agent validate \
+  --traces ../hermes-agent-optimization-demo/.runs/insights/starting-corpus.jsonl
+uv run insight-agent coverage \
+  ../hermes-agent-optimization-demo/.runs/insights/starting-corpus.jsonl \
+  --with-findings
+```
+
+Run the full deterministic pipeline from the tutorial root:
+
+```bash
+cd ../hermes-agent-optimization-demo
+export DEMO_ROOT="$PWD"
+sed \
+  -e "s#path: .*#path: $DEMO_ROOT/.runs/insights/starting-corpus.jsonl#" \
+  -e "s#directory: .*#directory: $DEMO_ROOT/.runs/insights/starting-output#" \
+  configs/insights-standalone.yaml > /tmp/hermes-insights.yaml
+
+cd ../nemo-platform-insights-preview
+uv run insight-agent --config /tmp/hermes-insights.yaml
+cd ../hermes-agent-optimization-demo
+```
+
+Read the cards alongside their cited traces. In this world, useful signals are
+incomplete enterprise evidence, search hits used without a subsequent read,
+repeated or modified retries, invalid structured-read arguments, and irrelevant
+local/web detours. Treat each as a hypothesis until an eval isolates it.
+
+### Optional: use the LLM Analyst
+
+The deterministic pipeline above needs no model. To ask Nemotron to synthesize
+its findings, enable the Analyst only after the A/B or with separate quota:
+
+```bash
+cd ../nemo-platform-insights-preview
+export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
+uv run insight-agent run-analyst \
+  ../hermes-agent-optimization-demo/.runs/insights/starting-corpus.jsonl \
+  -o ../hermes-agent-optimization-demo/.runs/insights/analyst \
+  --model openai/nvidia/nemotron-3-ultra-550b-a55b \
+  --api-base https://integrate.api.nvidia.com/v1
+cd ../hermes-agent-optimization-demo
+```
+
+## 3. Understand or re-author the Eval Author tasks
+
+**Purpose:** turn trace evidence into portable tasks with explicit tool access,
+isolated verifiers, and control proofs.
+
+**Input:** the trace pile, `ETHOS.md`, and the Insights hypotheses.
+
+**Output:** six development Harbor tasks. Each runs the real fixture-backed
+`enterprise-world` MCP surface and grades the answer, actual MCP call log,
+retry/call budget, and mutation state.
+
+**Skip:** the tasks under `evals/harbor-tasks-v2/` are checked in. Skip task
+authoring when your goal is to reproduce the A/B.
+
+Eval Author is a collection of skills for a coding agent, not a prompt-mining
+CLI. The coding agent inspects and clusters the trace pile, proposes the finite
+behavior denominator, selects representative traces, and applies the skills one
+trace at a time. A person reviews privacy, tool access, task meaning, and final
+publication artifacts. That review is an attestation about what a task may
+contain and access; it should never be replaced by editing a JSON status field.
+
+Install the source skills and the [Codex CLI](https://developers.openai.com/codex/cli):
+
+```bash
+git clone https://github.com/NVIDIA-NeMo/nemo-platform.git ../nemo-platform
+git -C ../nemo-platform checkout a0bb79bbfa122063c7fcdff824a94e46220efc37
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+codex
+```
+
+At the Codex prompt, paste `prompts/eval-author-from-traces.md`. It directs
+Codex to read the definitive Eval Author skills, audit all 36 traces, select
+representatives, and stop at every human review gate. Resume Codex after each
+review. Working artifacts remain under `.eval-author/`; reviewed exports can be
+compared with `evals/harbor-tasks-v2/`.
+
+The important access decision is `real`, not `none`: the task starts the same
+task-local MCP server the evaluated Hermes agent uses. The server is synthetic,
+but the agent must discover and call it through MCP. A frozen
+`enterprise-query` shortcut would test answer lookup rather than the harness
+behavior under optimization.
+
+The reference tasks make that mechanism inspectable:
+
+```bash
+sed -n '1,180p' evals/harbor-tasks-v2/source-coverage/task.toml
+sed -n '1,220p' evals/harbor-tasks-v2/source-coverage/tests/verify.py
+
+python3 scripts/materialize_harbor_tasks.py \
+  --output .runs/reference-task-rebuild
+diff -qr evals/harbor-tasks-v2 .runs/reference-task-rebuild
+```
+
+Before trusting a new task, require NOP failure, Oracle success, a relevant
+negative control, MCP registration/discovery/invocation evidence, and a separate
+no-network verifier. The checked-in set passed NOP and Oracle controls for all
+ten tasks on the tested Linux host.
+
+## 4. Run the development A/B in Harbor
+
+**Purpose:** test a harness hypothesis while holding the model, prompts, world,
+MCP tools, and verifiers fixed.
+
+**Input:** six development tasks and two Hermes harness arms.
+
+**Output:** authoritative Harbor rewards plus Relay ATOF/ATIF for every trial.
+
+**Skip:** do not skip this section in the complete optimization loop.
+
+Run a one-attempt smoke comparison:
+
+```bash
+python3 scripts/run_harbor_eval.py \
+  --arm baseline --split development --attempts 1 --concurrency 2 \
+  --harbor .harbor-venv/bin/harbor --job-name baseline-development
+
+python3 scripts/run_harbor_eval.py \
+  --arm candidate-v4 --split development --attempts 1 --concurrency 2 \
+  --harbor .harbor-venv/bin/harbor --job-name candidate-development
+
+python3 scripts/summarize_harbor_job.py \
+  .runs/harbor/baseline-development \
+  --output .runs/harbor/baseline-development-summary.json
+python3 scripts/summarize_harbor_job.py \
+  .runs/harbor/candidate-development \
+  --output .runs/harbor/candidate-development-summary.json
+```
+
+For a measured result, rerun both arms with fresh job names and
+`--attempts 3`. Do not overwrite or selectively discard trials. A trial with a
+clean runner exit but a zero verifier reward is an agent failure, not an
+infrastructure exclusion.
+
+Harbor's verifier reward is the score. Insights traces explain the behavior but
+do not substitute a second scorer. The summary's `runtime` object records the
+Hermes version and resolved provider/model; require those fields to match across
+arms.
+
+## 5. Inspect and adjust the harness change
+
+**Purpose:** connect trace evidence to a concrete, editable intervention.
+
+**Input:** baseline task failures, Relay traces, and Insights findings.
+
+**Output:** a candidate profile that can be tested without changing the task.
+
+The arms are defined in `harbor_agents/hermes_flywheel.py`:
+
+| Arm | Hermes profile | Built-in toolsets | Turn cap |
+| --- | --- | --- | ---: |
+| baseline | `profiles/nemoclaw-baseline-soul.md` | broad `hermes-cli` surface | 60 |
+| candidate-v4 | `profiles/nemoclaw-candidate-v4-soul.md` | skills only; MCP remains available | 12 |
+
+The candidate profile applies several emergent patterns:
+
+- claim-to-source routing and an evidence-completeness stop check;
+- search-then-read before citing chat or mail evidence;
+- one identical retry followed by one declared fallback;
+- schema inspection before a bounded `/evidence` JSON read;
+- connector-status awareness rather than invented CRM data;
+- prepare-without-send for approval-gated actions; and
+- irrelevant-tool downsampling plus a smaller turn budget.
+
+Nothing is hidden in a configurator: edit the Markdown profile, `toolsets`, or
+`max_turns` mapping directly. Keep task inputs and verifiers untouched while
+iterating. These policies are examples to test against your traces, not generic
+rules to paste into every agent.
+
+Convert Harbor Relay artifacts and run another Insights pass when you need to
+understand a score:
+
+```bash
+python3 scripts/convert_atif_for_insights.py \
+  .runs/harbor/baseline-development \
+  --output .runs/harbor/baseline-development-insights.jsonl
+python3 scripts/convert_atif_for_insights.py \
+  .runs/harbor/candidate-development \
+  --output .runs/harbor/candidate-development-insights.jsonl
+```
+
+## 6. Open the held-out gate
+
+**Purpose:** test whether the harness change generalizes beyond the six cases
+used during development.
+
+**Input:** the frozen candidate and four held-out paraphrases.
+
+**Output:** baseline-versus-candidate rewards on unseen task wording.
+
+**Skip:** skip only during iteration; a result is not ready to claim without
+this gate.
+
+```bash
+python3 scripts/run_harbor_eval.py \
+  --arm baseline --split held-out --attempts 3 --concurrency 2 \
+  --harbor .harbor-venv/bin/harbor --job-name baseline-held-out
+
+python3 scripts/run_harbor_eval.py \
+  --arm candidate-v4 --split held-out --attempts 3 --concurrency 2 \
+  --harbor .harbor-venv/bin/harbor --job-name candidate-held-out
+
+python3 scripts/summarize_harbor_job.py \
+  .runs/harbor/baseline-held-out \
+  --output .runs/harbor/baseline-held-out-summary.json
+python3 scripts/summarize_harbor_job.py \
+  .runs/harbor/candidate-held-out \
+  --output .runs/harbor/candidate-held-out-summary.json
+```
+
+The summarizer writes the available result and exits nonzero when a trial has an
+exception. A timeout from an overlong agent trajectory is a measured harness
+failure; inspect it and keep it in the denominator rather than rerunning only
+that trial.
+
+Compare pass rate, exceptions, call counts, forbidden mutations, and cited
+failure reasons. Keep baseline and candidate model IDs, attempt counts, and
+infrastructure identical. The measured reference run is in `docs/results.md`.
+
+## Optional: deploy and recollect with NemoClaw
+
+This path demonstrates that the same profiles and MCP world can run in a
+deployed OpenShell sandbox. It is not required for Insights, Eval Author, or
+the Harbor A/B.
+
+Install the HTTPS tunnel dependency on Ubuntu:
+
+```bash
 sudo mkdir -p --mode=0755 /usr/share/keyrings
 curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | \
   sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
 echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | \
   sudo tee /etc/apt/sources.list.d/cloudflared.list
 sudo apt-get update
-sudo apt-get install -y gh make cloudflared
+sudo apt-get install -y cloudflared
 ```
 
-On macOS:
-
-```bash
-brew install gh uv cloudflared jq
-```
-
-On macOS, also prepare the compatible Docker context that Step 6 will use:
-
-```bash
-brew install colima
-colima start --cpu 6 --memory 12 --disk 100
-docker --context colima info >/dev/null
-```
-
-Docker Desktop can remain the default context for the other sections.
-
-## 2. Provision Hermes with NemoClaw
-
-Install NemoClaw with Hermes selected, then run the onboarding wizard:
+Install and onboard the tested Hermes integration:
 
 ```bash
 curl -fsSL https://www.nvidia.com/nemoclaw.sh | \
@@ -69,538 +372,74 @@ curl -fsSL https://www.nvidia.com/nemoclaw.sh | \
 export DEMO_SANDBOX=hermes-demo
 nemoclaw onboard --agent hermes --name "$DEMO_SANDBOX"
 nemoclaw "$DEMO_SANDBOX" status
-openshell gateway list
-export DEMO_GATEWAY="$(openshell gateway list --output json | jq -r '.[] | select(.active) | .name')"
+export DEMO_GATEWAY="$(openshell gateway list --output json | \
+  jq -r '.[] | select(.active) | .name')"
 test -n "$DEMO_GATEWAY"
 ```
 
-Choose the NVIDIA provider, `nvidia/nemotron-3-ultra-550b-a55b`, the default
-resource profile, and the Balanced policy presets in the wizard. Enter the
-NVIDIA Build key only at its masked credential prompt; do not put it in this
-repository or the command line. This walkthrough was verified with NemoClaw
-v0.0.124. If onboarding stops after a recoverable preflight failure:
+Choose NVIDIA Build, `nvidia/nemotron-3-ultra-550b-a55b`, `No profile
+(OpenShell defaults)`, and Balanced policies in the masked onboarding prompts. Sandbox names
+are limited to 19 characters. If onboarding stopped after a recoverable check:
 
 ```bash
-nemoclaw onboard --resume
+nemoclaw onboard --resume --agent hermes --name "$DEMO_SANDBOX"
 ```
 
-Sandbox names are limited to 19 characters. If a previous attempt left this
-disposable tutorial sandbox in a not-ready state and its automatic backup also
-fails, discard only that known demo sandbox and start the wizard again:
+On a fresh host with UFW enabled, the gateway preflight may print a bridge- and
+address-specific `ufw allow` command for port 8080. Run that exact generated
+command, then use the resume command above; do not copy a rule from another
+host.
+
+Build and expose the deterministic MCP server:
 
 ```bash
-nemoclaw "$DEMO_SANDBOX" destroy --yes --no-cleanup-gateway
-nemoclaw onboard --agent hermes --name "$DEMO_SANDBOX" --fresh
-```
-
-Do not use this recovery for a sandbox containing state you need to preserve.
-
-NemoClaw creates the OpenShell gateway, isolated sandbox, inference route, and
-Hermes runtime. `nemoclaw "$DEMO_SANDBOX" status` is the authoritative
-readiness check.
-
-## 3. Serve and register the fictional MCP
-
-Build the 504-record world-v2 server, create an ephemeral bearer token, and run
-it in the background:
-
-```bash
-docker build -f deploy/mock-mcp/Dockerfile \
-  -t enterprise-world-mcp:local .
-
+docker build -f deploy/mock-mcp/Dockerfile -t enterprise-world-mcp:local .
 export PA_STYLE_MOCK_MCP_TOKEN="$(openssl rand -hex 24)"
-
 docker run --detach --rm --name enterprise-world-mcp \
   -p 127.0.0.1:8000:8000 \
   -e PA_STYLE_MOCK_MCP_TOKEN="$PA_STYLE_MOCK_MCP_TOKEN" \
-  enterprise-world-mcp:local \
-  --fixture /app/fixtures/world-v2.json
-```
+  enterprise-world-mcp:local --fixture /app/fixtures/world-v2.json
 
-Expose loopback through HTTPS and register it. The helper verifies discovery,
-starts a quick tunnel when needed, and requires exactly 15 tools:
-
-```bash
 mkdir -p .runs/runtime
 python3 scripts/ensure_nemoclaw_mcp.py \
   --sandbox "$DEMO_SANDBOX" --runtime-dir .runs/runtime
-nemoclaw "$DEMO_SANDBOX" mcp list
 nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 ```
 
-A quick tunnel can exit or receive a new hostname during a long run. NemoClaw
-0.0.124 does not update an existing URL by repeating `mcp add`: repair requires
-removing the MCP entry, deleting the preserved sandbox-scoped OpenShell
-provider, and adding it again. `ensure_nemoclaw_mcp.py` performs those steps
-only after discovery fails; the matrix runner calls it before every attempt.
-The bearer token remains in the environment and is never passed as a command
-argument. For repeatable team use, deploy the same image behind stable HTTPS.
+Apply either arm and collect more Relay traces:
 
-After the tutorial:
+```bash
+python3 scripts/configure_nemoclaw_arm.py \
+  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
+  --arm baseline --trace-label world-v2-baseline-repro
+
+python3 scripts/run_nemoclaw_matrix.py \
+  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
+  --matrix experiments/fidelity-matrix-v2.json \
+  --arm baseline --trials 3 --ensure-mock-mcp \
+  --mcp-runtime-dir .runs/runtime --reset-demo-sessions \
+  --output .runs/nemoclaw/baseline/responses
+```
+
+`configure_nemoclaw_arm.py` is optional convenience. To apply the change
+yourself, upload the chosen profile to `/sandbox/.hermes/SOUL.md`, set
+`agent.max_turns` with `hermes config set`, enable or disable the toolsets shown
+in the table above, and install `configs/nemoclaw-relay-plugins.toml` at the path
+named by `HERMES_NEMO_RELAY_PLUGINS_TOML`. The helper performs only those
+operations; inspect it before using it on a non-disposable sandbox.
+
+The runtime helper uses an ephemeral HTTPS tunnel. For repeatable team use,
+deploy the same container behind stable HTTPS. Stop the tutorial server when
+finished:
 
 ```bash
 kill "$(cat .runs/runtime/cloudflared.pid)"
 docker stop enterprise-world-mcp
 ```
 
-## 4. Inspect the starting artifacts
-
-No model call is needed:
-
-```bash
-python3 scripts/validate_trace_manifest.py traces/world-v2/manifest.json
-python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v2.json
-python3 scripts/validate_eval_author_products.py evals/flywheel-eval-set-v2.json
-```
-
-The bundle contains six baseline ATIF traces, a 10-case suite (six
-trace-derived development cases plus four held-outs), and six technically
-proved Eval Author products. Publication status remains pending human review.
-
-## 5. Collect baseline traces with Relay
-
-An arm is a versioned harness configuration: system policy, visible built-in
-tools, turn budget, and Relay output label. The baseline intentionally exposes
-the broad Hermes toolset and allows 60 turns.
-
-Install it directly so every mutation is visible:
-
-```bash
-export DEMO_SANDBOX=hermes-demo
-export TRACE_LABEL=world-v2-baseline-repro
-
-openshell sandbox upload "$DEMO_SANDBOX" \
-  profiles/nemoclaw-baseline-soul.md /sandbox
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mv /sandbox/nemoclaw-baseline-soul.md /sandbox/.hermes/SOUL.md
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  hermes config set agent.max_turns 60
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  hermes tools enable --platform cli \
-  web browser terminal file code_execution vision image_gen tts skills todo \
-  memory session_search clarify delegation cronjob computer_use audio nemoclaw
-
-sed "s/replace-me/$TRACE_LABEL/g" configs/nemoclaw-relay-plugins.toml \
-  > /tmp/relay-plugins.toml
-openshell sandbox upload "$DEMO_SANDBOX" /tmp/relay-plugins.toml /sandbox
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mkdir -p /sandbox/.hermes/nemo-relay
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mv /sandbox/relay-plugins.toml \
-  /sandbox/.hermes/nemo-relay/relay-plugins.toml
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  cp /sandbox/.hermes/nemo-relay/relay-plugins.toml \
-  /sandbox/.hermes/nemo-relay/nemoclaw-relay-plugins.toml
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- sh -c \
-  "grep -q '^HERMES_NEMO_RELAY_PLUGINS_TOML=' /sandbox/.hermes/.env 2>/dev/null \
-  || echo HERMES_NEMO_RELAY_PLUGINS_TOML=/sandbox/.hermes/nemo-relay/relay-plugins.toml \
-  >>/sandbox/.hermes/.env"
-```
-
-Hermes owns Relay directly and reads its exporter config only from the file named
-by `HERMES_NEMO_RELAY_PLUGINS_TOML`. Nothing creates `/sandbox/.hermes/nemo-relay`
-for you, and without the variable the arm runs but writes no ATOF or ATIF.
-
-The equivalent convenience command is:
-
-```bash
-python3 scripts/configure_nemoclaw_arm.py \
-  --gateway "$DEMO_GATEWAY" \
-  --sandbox "$DEMO_SANDBOX" --arm baseline --trace-label "$TRACE_LABEL"
-```
-
-Run three development trials. `--reset-demo-sessions` deletes Hermes session
-history, so use it only with this disposable sandbox. `--ensure-mock-mcp`
-checks discovery before each attempt and repairs a stale quick-tunnel
-registration before Hermes runs.
-
-```bash
-python3 scripts/run_nemoclaw_matrix.py \
-  --sandbox "$DEMO_SANDBOX" \
-  --gateway "$DEMO_GATEWAY" \
-  --matrix experiments/fidelity-matrix-v2.json \
-  --arm baseline --trials 3 --delay-seconds 30 \
-  --retries 3 --retry-backoff-seconds 180 \
-  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
-  --reset-demo-sessions \
-  --output .runs/world-v2/baseline-dev/responses
-```
-
-Download Relay ATOF and convert it:
-
-```bash
-mkdir -p .runs/world-v2/baseline-dev/relay
-openshell sandbox download "$DEMO_SANDBOX" \
-  "/sandbox/hermes-flywheel-traces/$TRACE_LABEL/atof/events.jsonl" \
-  .runs/world-v2/baseline-dev/relay
-
-python3 scripts/convert_atof_to_atif.py \
-  --atof .runs/world-v2/baseline-dev/relay/events.jsonl \
-  --output-dir .runs/world-v2/baseline-dev/atif
-python3 scripts/convert_atof_for_insights.py \
-  --atof .runs/world-v2/baseline-dev/relay/events.jsonl \
-  --matrix experiments/fidelity-matrix-v2.json \
-  --responses .runs/world-v2/baseline-dev/responses \
-  --include-incomplete \
-  --output .runs/world-v2/baseline-dev/insights.jsonl
-```
-
-Inspect Relay's requested and returned model IDs. Treat the returned ID as
-authoritative.
-
-## 6. Derive the eval with Eval Author
-
-Clone only the source tree that contains Eval Author; no Platform service is
-started:
-
-```bash
-git clone https://github.com/NVIDIA-NeMo/nemo-platform.git ../nemo-platform
-cd ../nemo-platform
-git checkout a0bb79bbfa122063c7fcdff824a94e46220efc37
-uv venv .venv --python 3.12
-cd ../hermes-agent-optimization-demo
-
-export EA_REPO="$(cd ../nemo-platform && pwd)"
-export EA_PY="$EA_REPO/.venv/bin/python"
-export EA="$EA_REPO/plugins/nemo-eval-author/skills/eval-author-trace-environment/scripts/trace_environment.py"
-export EA_ROOT="$PWD/.eval-author/world-v2-trace-environments"
-
-"$EA_PY" "$EA" batch-prepare \
-  --root "$EA_ROOT" --manifest traces/world-v2/eval-author-batch.json
-"$EA_PY" "$EA" batch-status \
-  --root "$EA_ROOT" --manifest traces/world-v2/eval-author-batch.json
-```
-
-Open every `safe/trace.atif.json` and `private/privacy-audit.json`. After
-reviewing all strings and findings, record each review:
-
-```bash
-for CASE in source-coverage read-after-search bounded-retry auth-awareness \
-  approval-boundary bounded-structured-inspection; do
-  "$EA_PY" "$EA" review-privacy \
-    --task-dir "$EA_ROOT/$CASE" --reviewer-kind human \
-    --note "Reviewed every safe string and privacy-audit finding."
-done
-
-python3 scripts/materialize_eval_author_tasks.py \
-  --task-root "$EA_ROOT" --world fixtures/world-v2.json
-```
-
-The source traces contain tool calls, while each portable candidate deliberately
-uses the frozen world snapshot through `enterprise-query` and needs no live or
-replayed source tool. Inventory those calls, inspect the generated plans, and
-record `none` for every source-tool surface before proving the candidates:
-
-```bash
-for CASE in source-coverage read-after-search bounded-retry auth-awareness \
-  approval-boundary bounded-structured-inspection; do
-  "$EA_PY" "$EA" inventory-tool-calls --task-dir "$EA_ROOT/$CASE"
-  "$EA_PY" "$EA" plan-tool-call-access --task-dir "$EA_ROOT/$CASE"
-  python3 scripts/prepare_eval_author_tool_access.py \
-    --task-dir "$EA_ROOT/$CASE"
-
-  jq . "$EA_ROOT/$CASE/private/tool-call-plan.json"
-  jq . "$EA_ROOT/$CASE/private/tool-access-decisions.json"
-
-  "$EA_PY" "$EA" resolve-tool-call-access \
-    --task-dir "$EA_ROOT/$CASE" \
-    --decisions "$EA_ROOT/$CASE/private/tool-access-decisions.json" \
-    --reviewer-kind human
-done
-```
-
-Do not select `none` for a task that actually needs a live integration or mock
-replay. In that case, author and review the corresponding `real` or `mock`
-decision and provide the required adapter instead.
-
-Install Harbor in a separate environment, then prove every candidate:
-
-```bash
-uv venv .harbor-venv --python 3.12
-uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
-
-if [ "$(uname -s)" = Darwin ]; then
-  export HARBOR_DOCKER_CONTEXT=colima
-else
-  export HARBOR_DOCKER_CONTEXT=default
-fi
-
-python3 scripts/prove_eval_author_tasks.py \
-  --task-root "$EA_ROOT" \
-  --case source-coverage \
-  --case read-after-search \
-  --case bounded-retry \
-  --case auth-awareness \
-  --case approval-boundary \
-  --case bounded-structured-inspection \
-  --helper "$EA" \
-  --harbor-python "$PWD/.harbor-venv/bin/python" \
-  --harbor "$PWD/.harbor-venv/bin/harbor" \
-  --docker-context "$HARBOR_DOCKER_CONTEXT"
-```
-
-Each proof runs two NOPs, two Oracles, and one incomplete-answer control with a
-separate no-network verifier. The runner creates the shared `private/jobs`
-directory and performs Harbor's kernel-capability probe before writing any run
-receipts. If it rejects Docker Desktop, switching only the selected context to
-Colima is the expected macOS workaround. Do not change `network_mode` to
-`public`: the isolation is part of the Eval Author proof contract. Harbor's
-static no-network
-[Docker Desktop limitation](https://github.com/harbor-framework/harbor/issues/2593)
-remains open upstream, so upgrading past this tutorial's tested pin is not
-currently a fix. Use Eval Author's
-`prepare-publication`, `review-publication`, and `export` commands only
-after inspecting their exact previews. The checked-in exports show the expected
-result under `evals/eval-author-products-v2`.
-
-With all technical proofs passing, `batch-status` reports
-`candidate_unproven` until a human records the privacy, tool-access, and
-publication reviews. That status is expected during an automated or
-agent-assisted walkthrough; do not mislabel an agent review as human.
-
-## 7. Analyze with standalone Insights
-
-The standalone Insight Agent repository is currently an access-controlled
-preview. Obtain repository access and authenticate GitHub before continuing;
-this is the only non-public source dependency in the walkthrough.
-
-```bash
-gh auth status || gh auth login --web --git-protocol https
-git clone https://github.com/NVIDIA/nemo-platform-insights-preview.git \
-  ../nemo-platform-insights-preview
-cd ../nemo-platform-insights-preview
-git checkout 02c05644809acafe09be42501c8d4db23d268016
-uv sync --locked
-
-uv run insight-agent validate \
-  --traces ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/insights.jsonl
-uv run insight-agent coverage \
-  ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/insights.jsonl \
-  --with-findings
-```
-
-For the deterministic full pipeline, create an absolute-path config and run:
-
-```bash
-cd ../hermes-agent-optimization-demo
-export DEMO_ROOT="$PWD"
-sed -e "s#path: .*#path: $DEMO_ROOT/.runs/world-v2/baseline-dev/insights.jsonl#" \
-  -e "s#directory: .*#directory: $DEMO_ROOT/.runs/world-v2/baseline-dev/insights-out#" \
-  configs/insights-standalone.yaml > /tmp/insights-world-v2.yaml
-
-cd ../nemo-platform-insights-preview
-uv run insight-agent --config /tmp/insights-world-v2.yaml
-```
-
-Use `/tmp/insights-world-v2.yaml` in the final command. Review
-`anomaly_and_patterns/digest.md`, `tool_issues/cards.md`, and cited traces
-together. A finding is a hypothesis, not a fix. Run the optional LLM Analyst
-after rollout collection in section 9 so it does not consume the same Build
-quota immediately before the A/B test.
-
-## 8. Apply the candidate arm
-
-In the clean baseline, 12/18 traces ended without the required enterprise
-evidence. Recurring clusters showed session-only search, mixed web/local/MCP
-exploration, and repeated chat calls; tool-issue cards showed structured
-argument failures. The optional Analyst confirmed incorrect required arguments
-and repeated failing web searches while correctly flagging the dynamic-catalog
-finding as a discovery/instrumentation issue.
-
-Those observations become testable harness hypotheses: prefer enterprise
-evidence, remove irrelevant fallback tools, inspect schemas before structured
-calls, and bound retries. Candidate v3 is retained as an intermediate policy;
-world-v2 still exposed source enumeration, modified retries, and guessed JSON
-arguments. Candidate v4 makes the transitions explicit.
-
-Its direct Hermes changes are:
-
-```bash
-export TRACE_LABEL=world-v2-candidate-v4-repro
-openshell sandbox upload "$DEMO_SANDBOX" \
-  profiles/nemoclaw-candidate-v4-soul.md /sandbox
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mv /sandbox/nemoclaw-candidate-v4-soul.md /sandbox/.hermes/SOUL.md
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  hermes config set agent.max_turns 12
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  hermes tools disable --platform cli \
-  web browser terminal file code_execution vision image_gen tts todo memory \
-  session_search clarify delegation cronjob computer_use audio nemoclaw
-
-sed "s/replace-me/$TRACE_LABEL/g" configs/nemoclaw-relay-plugins.toml \
-  > /tmp/relay-plugins.toml
-openshell sandbox upload "$DEMO_SANDBOX" /tmp/relay-plugins.toml /sandbox
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mkdir -p /sandbox/.hermes/nemo-relay
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  mv /sandbox/relay-plugins.toml \
-  /sandbox/.hermes/nemo-relay/relay-plugins.toml
-openshell sandbox exec -n "$DEMO_SANDBOX" --no-tty -- \
-  cp /sandbox/.hermes/nemo-relay/relay-plugins.toml \
-  /sandbox/.hermes/nemo-relay/nemoclaw-relay-plugins.toml
-```
-
-`nemoclaw-candidate-v4-soul.md` is ordinary Hermes policy text: edit its
-source routing, retry transition, JSON pointer, approval rule, or call budget
-to test a different hypothesis. The helper merely performs these same uploads,
-config writes, and tool toggles:
-
-```bash
-python3 scripts/configure_nemoclaw_arm.py \
-  --gateway "$DEMO_GATEWAY" \
-  --sandbox "$DEMO_SANDBOX" --arm candidate-v4 \
-  --trace-label "$TRACE_LABEL"
-```
-
-Run three candidate trials at a paced cadence, download their distinct Relay
-stream, and convert it:
-
-```bash
-python3 scripts/run_nemoclaw_matrix.py \
-  --sandbox "$DEMO_SANDBOX" --gateway "$DEMO_GATEWAY" \
-  --matrix experiments/fidelity-matrix-v2.json \
-  --arm candidate --trials 3 --delay-seconds 30 \
-  --retries 3 --retry-backoff-seconds 180 \
-  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
-  --reset-demo-sessions \
-  --output .runs/world-v2/candidate-v4-dev/responses
-
-mkdir -p .runs/world-v2/candidate-v4-dev/relay
-openshell sandbox download "$DEMO_SANDBOX" \
-  "/sandbox/hermes-flywheel-traces/$TRACE_LABEL/atof/events.jsonl" \
-  .runs/world-v2/candidate-v4-dev/relay
-python3 scripts/convert_atof_for_insights.py \
-  --atof .runs/world-v2/candidate-v4-dev/relay/events.jsonl \
-  --matrix experiments/fidelity-matrix-v2.json \
-  --responses .runs/world-v2/candidate-v4-dev/responses \
-  --include-incomplete \
-  --output .runs/world-v2/candidate-v4-dev/insights.jsonl
-```
-
-The runner treats Hermes terminal messages such as exhausted 429 retries as
-failures even when the CLI exits zero. It catches non-timeout host/runtime
-failures, preserves each failed attempt, waits, and retries the same logical
-trial. With `--ensure-mock-mcp`, it also checks discovery after every turn and
-retries a failed quick-tunnel transport; the converter independently excludes
-any transport loss recorded inside the Relay trajectory. The fixed exit-124
-timeout is different when infrastructure stayed healthy: it is not retried or
-filtered away. `--include-incomplete` retains its partial Relay trajectory and
-scores it as a harness failure, avoiding survivor bias toward lucky
-completions. If all provider or MCP retries fail, wait for the endpoint to
-recover and rerun only the affected scenario with `--scenario CASE`; keep
-`--valid-only` when scoring. Then score:
-
-```bash
-python3 scripts/score_insights_traces.py --valid-only \
-  --trials-per-case 3 \
-  --suite evals/flywheel-eval-set-v2.json \
-  --arm baseline=.runs/world-v2/baseline-dev/insights.jsonl \
-  --arm candidate-v4=.runs/world-v2/candidate-v4-dev/insights.jsonl \
-  --output .runs/world-v2/development-ab.json
-```
-
-## 9. Run the held-out gate
-
-Reconfigure and run both arms against
-`experiments/held-out-matrix-v2.json`, keeping fixture, provider route, model,
-trial count, and timeout fixed. Convert each ATOF file with the held-out matrix,
-then score:
-
-```bash
-python3 scripts/configure_nemoclaw_arm.py \
-  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
-  --arm baseline --trace-label world-v2-baseline-held-out
-python3 scripts/run_nemoclaw_matrix.py \
-  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
-  --matrix experiments/held-out-matrix-v2.json \
-  --arm baseline --trials 3 --delay-seconds 30 \
-  --retries 3 --retry-backoff-seconds 180 \
-  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
-  --reset-demo-sessions \
-  --output .runs/world-v2/baseline-held-out/responses
-
-python3 scripts/configure_nemoclaw_arm.py \
-  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
-  --arm candidate-v4 --trace-label world-v2-candidate-v4-held-out
-python3 scripts/run_nemoclaw_matrix.py \
-  --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
-  --matrix experiments/held-out-matrix-v2.json \
-  --arm candidate --trials 3 --delay-seconds 30 \
-  --retries 3 --retry-backoff-seconds 180 \
-  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
-  --reset-demo-sessions \
-  --output .runs/world-v2/candidate-v4-held-out/responses
-
-mkdir -p .runs/world-v2/baseline-held-out/relay \
-  .runs/world-v2/candidate-v4-held-out/relay
-openshell sandbox download "$DEMO_SANDBOX" \
-  /sandbox/hermes-flywheel-traces/world-v2-baseline-held-out/atof/events.jsonl \
-  .runs/world-v2/baseline-held-out/relay
-openshell sandbox download "$DEMO_SANDBOX" \
-  /sandbox/hermes-flywheel-traces/world-v2-candidate-v4-held-out/atof/events.jsonl \
-  .runs/world-v2/candidate-v4-held-out/relay
-
-python3 scripts/convert_atof_for_insights.py \
-  --atof .runs/world-v2/baseline-held-out/relay/events.jsonl \
-  --matrix experiments/held-out-matrix-v2.json \
-  --responses .runs/world-v2/baseline-held-out/responses \
-  --include-incomplete \
-  --output .runs/world-v2/baseline-held-out/insights.jsonl
-python3 scripts/convert_atof_for_insights.py \
-  --atof .runs/world-v2/candidate-v4-held-out/relay/events.jsonl \
-  --matrix experiments/held-out-matrix-v2.json \
-  --responses .runs/world-v2/candidate-v4-held-out/responses \
-  --include-incomplete \
-  --output .runs/world-v2/candidate-v4-held-out/insights.jsonl
-
-python3 scripts/score_insights_traces.py --valid-only \
-  --trials-per-case 3 \
-  --suite evals/flywheel-eval-set-v2.json \
-  --arm baseline=.runs/world-v2/baseline-held-out/insights.jsonl \
-  --arm candidate-v4=.runs/world-v2/candidate-v4-held-out/insights.jsonl \
-  --output .runs/world-v2/held-out-ab.json
-
-python3 scripts/assemble_insights_corpus.py \
-  --valid-only \
-  --input .runs/world-v2/baseline-dev/insights.jsonl \
-  --input .runs/world-v2/candidate-v4-dev/insights.jsonl \
-  --input .runs/world-v2/baseline-held-out/insights.jsonl \
-  --input .runs/world-v2/candidate-v4-held-out/insights.jsonl \
-  --output .runs/world-v2/final-insights.jsonl
-```
-
-Retries remain in Relay for reliability analysis. Scoring takes the first
-three valid trials per observed case and rejects a case with fewer than three;
-the combined Insights corpus may therefore contain more than 60 valid records
-if a host-timed-out attempt later finished inside Hermes.
-
-Require answer, trajectory, approval state, timeout, and efficiency guardrails
-to improve or remain acceptable. The clean-machine run reached 50.0% →
-100% held-out pass rate and 12.75 → 4.33 mean calls.
-
-After rollout collection, optionally ask the Insights Analyst to synthesize
-the deterministic evidence. This run can consume substantial input-token quota,
-so keep it after the A/B gate or use a separately provisioned endpoint:
-
-```bash
-cd ../nemo-platform-insights-preview
-printf 'NVIDIA Build key: '
-read -s NVIDIA_API_KEY
-printf '\n'
-export NVIDIA_API_KEY
-export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
-
-uv run insight-agent run-analyst \
-  ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/insights.jsonl \
-  -o ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/analyst \
-  --model openai/nvidia/nemotron-3-ultra-550b-a55b \
-  --api-base https://integrate.api.nvidia.com/v1
-```
-
-## 10. Where Gym begins
-
-This loop is sufficient for trace-driven harness work. Promote the same world,
-tools, and verifier into NeMo Gym when you need rollout-scale benchmarking or
-model/harness reinforcement learning. The required parity gates are in the
-[Gym extension](gym-extension.md).
+## Where NeMo Gym begins
+
+This loop optimizes a harness from trace evidence. Move the same world, tools,
+and verifier into NeMo Gym when you need rollout-scale benchmarking or
+model/harness reinforcement learning. See `docs/gym-extension.md` for the
+parity gates.

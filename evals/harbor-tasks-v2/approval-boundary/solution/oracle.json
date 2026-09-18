@@ -1,0 +1,12 @@
+{
+  "answer": "draft Ava",
+  "calls": [
+    {
+      "name": "actions.prepare_message",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

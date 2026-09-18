@@ -1,0 +1,1356 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a0b5e0-f8ea-7bd1-86ff-d83c89a47a13",
+  "trajectory_id": "01a0b5e0-f8ea-7bd1-86ff-d83c89a47a13",
+  "agent": {
+    "name": "Hermes-enterprise-world",
+    "version": "nemoclaw-baseline",
+    "model_name": "nvidia/nemotron-3-ultra-550b-a55b"
+  },
+  "final_metrics": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_steps": 23
+  },
+  "extra": {
+    "logical_case_id": "bounded-structured-inspection",
+    "observed_verdict": "missing required enterprise evidence",
+    "metrics": {
+      "required_signal_coverage": 0.0,
+      "enterprise_tool_share": 0.6818181818181818,
+      "local_or_session_call_share": 0.22727272727272727
+    },
+    "trajectory_contract": {
+      "required_signals": [
+        "files.search",
+        "files.read_json"
+      ],
+      "missing_signals": [
+        "files.search",
+        "files.read_json"
+      ]
+    },
+    "tool_catalog": {
+      "browser_exec": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute using the pre-imported browser helpers. Use print(...) for any data you need back.",
+            "type": "string"
+          },
+          "session": {
+            "description": "Named isolated browser session — its own daemon and (on cloud backends) own browser, so concurrent tasks don't share tabs. Reuse the same name on every related call; omit for the shared default session.",
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 300,
+            "description": "Max seconds to wait for the code to finish (default 300, max 1800).",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "clarify": {
+        "properties": {
+          "questions": {
+            "description": "The question(s). Each: question text (options excluded), optional choices (recommended first; omit for free-text), optional multi_select. Responses come back in question order with the question text echoed.",
+            "items": {
+              "properties": {
+                "choices": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "multi_select": {
+                  "type": "boolean"
+                },
+                "question": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "question"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "type": "object"
+      },
+      "delegate_task": {
+        "properties": {
+          "action": {
+            "description": "Default 'spawn' (omit for normal delegation). Live orchestration of running subagents: 'list' shows this conversation's live children (ids, goals, status, transcript paths); 'steer' queues course-correction text into one child (requires subagent_id + message) without stopping it; 'stop' ends one child early (requires subagent_id) — its partial result still returns as a completion message. Control actions return immediately; goal/tasks are ignored when action is not 'spawn'.",
+            "enum": [
+              "spawn",
+              "list",
+              "steer",
+              "stop"
+            ],
+            "type": "string"
+          },
+          "background": {
+            "description": "DEPRECATED / IGNORED. Top-level single and batch delegations run in the background automatically — you do not need to (and cannot) opt in or out. A single result or consolidated batch result re-enters the conversation when the work finishes; just continue working in the meantime. Setting this has no effect; the parameter remains only for backward compatibility.",
+            "type": "boolean"
+          },
+          "context": {
+            "description": "Background information the subagent needs: file paths, error messages, project structure, constraints. The more specific you are, the better the subagent performs.",
+            "type": "string"
+          },
+          "goal": {
+            "description": "What the subagent should accomplish. Be specific and self-contained -- the subagent knows nothing about your conversation history.",
+            "type": "string"
+          },
+          "message": {
+            "description": "For action='steer': the course correction. Be directive and specific — the child sees it appended to its next tool result mid-run (e.g. \"Stop exploring X; focus on Y and return early results\").",
+            "type": "string"
+          },
+          "output_schema": {
+            "description": "Optional JSON Schema for the single-goal form — the subagent's final answer must validate against it (same semantics as tasks[].output_schema).",
+            "properties": {},
+            "type": "object"
+          },
+          "role": {
+            "description": "Role of the child agent. 'leaf' (default) = focused worker, cannot delegate further. 'orchestrator' = can use delegate_task to spawn its own workers. Nesting is OFF for this user (max_spawn_depth=1); 'orchestrator' is silently forced to 'leaf'. Raise delegation.max_spawn_depth in config.yaml to enable.",
+            "enum": [
+              "leaf",
+              "orchestrator"
+            ],
+            "type": "string"
+          },
+          "subagent_id": {
+            "description": "Target for action='steer'/'stop'. Ids are returned in the spawn dispatch response (subagent_ids) and by action='list'.",
+            "type": "string"
+          },
+          "tasks": {
+            "description": "Batch mode: tasks to run in parallel (up to 10 for this user, set via delegation.max_concurrent_children). Each gets its own subagent with isolated context and terminal session. When provided, top-level goal/context/role are ignored.",
+            "items": {
+              "properties": {
+                "context": {
+                  "description": "Task-specific context",
+                  "type": "string"
+                },
+                "goal": {
+                  "description": "Task goal",
+                  "type": "string"
+                },
+                "output_schema": {
+                  "description": "Optional JSON Schema the subagent's final answer must validate against. The child is told the contract up front; the parent validates the final answer and allows one bounded correction retry. The result entry gains schema_valid (and schema_errors on final failure). Keep schemas forgiving: require only fields you will actually read.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "role": {
+                  "description": "Per-task role override. See top-level 'role' for semantics.",
+                  "enum": [
+                    "leaf",
+                    "orchestrator"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "goal"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execute_code": {
+        "properties": {
+          "code": {
+            "description": "Python code to execute. Import tools with `from hermes_tools import web_search, terminal, ...` and print your final result to stdout.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "memory": {
+        "properties": {
+          "action": {
+            "description": "The action to perform (single-op shape). Omit when using 'operations'.",
+            "enum": [
+              "add",
+              "replace",
+              "remove"
+            ],
+            "type": "string"
+          },
+          "content": {
+            "description": "The entry content. Required for 'add' and 'replace' (single-op shape). Alias: 'new_text' is also accepted (mirrors old_text).",
+            "type": "string"
+          },
+          "new_text": {
+            "description": "Alias for 'content' (single-op shape). Provided so the replace/remove old_text/new_text pairing works; if both are set, 'content' wins.",
+            "type": "string"
+          },
+          "old_text": {
+            "description": "REQUIRED for 'replace' and 'remove' (single-op shape): a short unique substring identifying the existing entry to modify. Omit only for 'add'.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Batch shape: a list of operations applied atomically in one call against the final char budget. Preferred when making multiple changes or consolidating to make room. Each item is {action, content?, old_text?}.",
+            "items": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "add",
+                    "replace",
+                    "remove"
+                  ],
+                  "type": "string"
+                },
+                "content": {
+                  "description": "Entry content for add/replace. Alias: 'new_text'.",
+                  "type": "string"
+                },
+                "new_text": {
+                  "description": "Alias for 'content' in a batch op.",
+                  "type": "string"
+                },
+                "old_text": {
+                  "description": "Substring identifying the entry for replace/remove.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "target": {
+            "description": "Which memory store: 'memory' for personal notes, 'user' for user profile.",
+            "enum": [
+              "memory",
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "patch": {
+        "properties": {
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories.",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "replace",
+            "description": "Edit mode. 'replace' (default): requires path + old_string + new_string. 'patch': requires patch content only.",
+            "enum": [
+              "replace",
+              "patch"
+            ],
+            "type": "string"
+          },
+          "new_string": {
+            "description": "REQUIRED when mode='replace'. Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "REQUIRED when mode='replace'. Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.",
+            "type": "string"
+          },
+          "patch": {
+            "description": "REQUIRED when mode='patch'. V4A format patch content. Format:\n*** Begin Patch\n*** Update File: path/to/file\n@@ context hint @@\n context line\n-removed line\n+added line\n*** End Patch",
+            "type": "string"
+          },
+          "path": {
+            "description": "REQUIRED when mode='replace'. File path to edit.",
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "process": {
+        "properties": {
+          "action": {
+            "description": "Action to perform on background processes",
+            "enum": [
+              "list",
+              "poll",
+              "log",
+              "wait",
+              "kill",
+              "write",
+              "submit",
+              "close"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "description": "Text to send to process stdin (for 'write' and 'submit' actions)",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max lines to return for 'log' action",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Line offset for 'log' action (default: last 200 lines)",
+            "type": "integer"
+          },
+          "session_id": {
+            "description": "Process session ID (from terminal background output). Required for all actions except 'list'. A unique ID prefix works too (e.g. 'proc_4dae' or just '4dae' for proc_4dae56ca81f6).",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Max seconds to block for 'wait' action. Returns partial output on timeout.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "read_file": {
+        "properties": {
+          "limit": {
+            "default": 2000,
+            "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+            "maximum": 2000,
+            "type": "integer"
+          },
+          "offset": {
+            "default": 1,
+            "description": "Line number to start reading from (1-indexed, default: 1)",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "path": {
+            "description": "Path to the file to read (absolute, relative, or ~/path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "search_files": {},
+      "session_search": {
+        "properties": {
+          "around_message_id": {
+            "description": "Scroll shape. Message id to center the window on — use match_message_id from a discovery result, or any id from a prior window.",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "adaptive",
+            "description": "Discovery shape only. 'adaptive' (default) fully hydrates the top-ranked result and returns only the exact anchor message for lower-ranked results. 'full' returns bookends and the complete anchored window for every result.",
+            "enum": [
+              "adaptive",
+              "full"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 3,
+            "description": "Discovery shape only. Max sessions to return (default 3, max 10). Bump to 5–10 when the topic likely spans several sessions and you want to pick the right one to scroll into.",
+            "type": "integer"
+          },
+          "profile": {
+            "description": "Optional. Read sessions from another Hermes profile's database (read-only). Use when resolving an `@session:<profile>/<id>` link: pass the profile segment here with session_id as the id segment. Omit to use the current profile.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Search query (discovery shape). Keywords, phrases, or boolean expressions to find in past sessions. Omit to browse recent sessions. Ignored when session_id + around_message_id are set (scroll shape).",
+            "type": "string"
+          },
+          "role_filter": {
+            "description": "Optional. Comma-separated roles to include. Discovery defaults to 'user,assistant' (tool output is usually noise). Pass 'user,assistant,tool' to include tool output (debugging tool behaviour) or 'tool' to search tool output only.",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Scroll shape. Session to read inside. Use the session_id returned from a prior discovery call. Must be paired with around_message_id.",
+            "type": "string"
+          },
+          "sort": {
+            "description": "Discovery shape only. Temporal bias on top of FTS5 ranking: omit for relevance-only (exploratory recall), 'newest' for \"where did we leave X\", 'oldest' for \"how did X start\".",
+            "enum": [
+              "newest",
+              "oldest"
+            ],
+            "type": "string"
+          },
+          "window": {
+            "default": 5,
+            "description": "Scroll shape only. Messages to return on each side of the anchor (anchor itself always included). Clamped to [1, 20]. Default 5.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "skill_manage": {
+        "properties": {
+          "action": {
+            "description": "The action to perform.",
+            "enum": [
+              "create",
+              "patch",
+              "delete",
+              "write_file",
+              "remove_file"
+            ],
+            "type": "string"
+          },
+          "category": {
+            "description": "Optional category/domain for organizing the skill (e.g., 'devops', 'data-science', 'mlops'). Creates a subdirectory grouping. Only used with 'create'.",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full SKILL.md content (YAML frontmatter + markdown body). Required for 'create'; on 'patch' it performs a full rewrite (major overhauls only — read the skill first with skill_view(), and don't combine with old_string).",
+            "type": "string"
+          },
+          "file_content": {
+            "description": "Content for the file. Required for 'write_file'.",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Path to a supporting file within the skill directory. For 'write_file'/'remove_file': required, must be under references/, templates/, scripts/, or assets/. For 'patch': optional, defaults to SKILL.md if omitted.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Skill name (lowercase, hyphens/underscores, max 64 chars). Must match an existing skill for patch/edit/delete/write_file/remove_file.",
+            "type": "string"
+          },
+          "new_string": {
+            "description": "Replacement text (required for 'patch'); must differ from old_string. Can be empty string to delete the matched text.",
+            "type": "string"
+          },
+          "old_string": {
+            "description": "Text to find in the file (required for 'patch'). Must be unique unless replace_all=true. Include enough surrounding context to ensure uniqueness.",
+            "type": "string"
+          },
+          "replace_all": {
+            "description": "For 'patch': replace all occurrences instead of requiring a unique match (default: false).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "name"
+        ],
+        "type": "object"
+      },
+      "skill_view": {
+        "properties": {
+          "file_path": {
+            "description": "OPTIONAL: Path to a linked file within the skill (e.g., 'references/api.md', 'templates/config.yaml', 'scripts/validate.py'). Omit to get the main SKILL.md content.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The skill name (use skills_list to see available skills). For plugin-provided skills, use the qualified form 'plugin:skill' (e.g. 'superpowers:writing-plans').",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "skills_list": {
+        "properties": {
+          "category": {
+            "description": "Optional category filter to narrow results",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "terminal": {
+        "properties": {
+          "background": {
+            "default": false,
+            "description": "Run in the background, returning a session_id. Pair with notify=true for anything with a defined end (tests, builds, deploys) — without it the process runs silently. Only servers/watchers/daemons that never exit should stay silent. Short commands: prefer foreground with a generous timeout.",
+            "type": "boolean"
+          },
+          "command": {
+            "description": "The shell command to execute",
+            "type": "string"
+          },
+          "notify": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "With background=true: notify=true fires exactly one notification when the process exits (the right choice for nearly every bounded task — builds, tests, deploys). notify=['pattern', ...] instead notifies when a line matches a pattern — ONLY for one-shot readiness signals on processes that never exit (e.g. ['Application startup complete']); rate-limited and auto-disabled if it over-fires. Omit for silent daemons."
+          },
+          "pty": {
+            "default": false,
+            "description": "With background=true: run in a pseudo-terminal for interactive CLI tools (Codex, Claude Code, Python REPL). Local backend only. Default: false.",
+            "type": "boolean"
+          },
+          "timeout": {
+            "description": "Max seconds to wait (default: 180, foreground max: 600). Returns INSTANTLY when command finishes — set high for long tasks, you won't wait unnecessarily. Foreground timeout above 600s is rejected; use background=true for longer commands.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workdir": {
+            "description": "Working directory for this command (absolute path). Defaults to the session working directory.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "text_to_speech": {
+        "properties": {
+          "instructions": {
+            "description": "Optional voice-design guidance: tone, emotion, pacing, accent, whispering, impressions (e.g. 'Speak in a cheerful, excited whisper'). Forwarded to the OpenAI backend (gpt-4o-mini-tts and OpenAI-compatible voice-design servers). Silently ignored by backends that don't support it.",
+            "type": "string"
+          },
+          "output_path": {
+            "description": "Optional custom file path to save the audio. Defaults to ~/.hermes/audio_cache/<timestamp>.mp3",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Optional TTS provider override. Accepts built-in names (edge, openai, elevenlabs, minimax, xai, mistral, gemini, neutts, kittentts, piper), user-declared command provider names from tts.providers.<name>, or plugin-registered names. When omitted, the configured tts.provider from config.yaml is used.",
+            "type": "string"
+          },
+          "speed": {
+            "description": "Playback speed multiplier. 1.0 = normal, 0.5 = very slow (language learning), 2.0 = fast. Range: 0.25-4.0. Overrides the speed configured in config.yaml.",
+            "type": "number"
+          },
+          "text": {
+            "description": "The text to convert to speech. Provider-specific per-request character caps apply automatically (OpenAI 4096, xAI 15000, MiniMax 10000, ElevenLabs 5k-40k depending on model); longer input is split into ordered chunks without silent truncation.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "todo": {
+        "properties": {
+          "merge": {
+            "default": false,
+            "description": "true: update existing items by id, add new ones. false (default): replace the entire list.",
+            "type": "boolean"
+          },
+          "todos": {
+            "description": "Task items to write. Omit to read current list.",
+            "items": {
+              "properties": {
+                "content": {
+                  "description": "Task description",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique item identifier",
+                  "type": "string"
+                },
+                "status": {
+                  "description": "Current status",
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "vision_analyze": {
+        "properties": {
+          "image_url": {
+            "description": "Image URL (http/https), local file path, or data: URL to load.",
+            "type": "string"
+          },
+          "question": {
+            "description": "Your specific question or request about the image. Optional context the model uses on the next turn after seeing the image.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Optional [x1, y1, x2, y2] crop region in pixel coordinates of the ORIGINAL image, applied before any downscaling so the region keeps full resolution. Intended flow: load the full image first, then call again with a region to zoom into a detail (small text, UI element, fine print). Coordinates are clamped to the image bounds.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "image_url",
+          "question"
+        ],
+        "type": "object"
+      },
+      "web_extract": {
+        "properties": {
+          "char_limit": {
+            "description": "Optional per-page character budget sent back (default 15000). Pages larger than this are head+tail truncated with the full text stored to disk. Raise it when you need more of a long page inline.",
+            "minimum": 2000,
+            "type": "integer"
+          },
+          "urls": {
+            "description": "List of URLs to extract content from (max 5 URLs per call)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          }
+        },
+        "required": [
+          "urls"
+        ],
+        "type": "object"
+      },
+      "web_search": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return. Defaults to 5.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "The search query to look up on the web. You may include backend-supported operators such as site:example.com, filetype:pdf, intitle:word, -term, or \"exact phrase\".",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "write_file": {
+        "properties": {
+          "content": {
+            "description": "Complete content to write to the file",
+            "type": "string"
+          },
+          "cross_profile": {
+            "default": false,
+            "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Hermes profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
+            "type": "boolean"
+          },
+          "path": {
+            "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      },
+      "tool_search": {
+        "properties": {
+          "limit": {
+            "description": "Maximum number of matches per query. Defaults to 5 and is clamped to the configured maximum (25 by default).",
+            "type": "integer"
+          },
+          "queries": {
+            "description": "Search queries, each a few keywords describing one capability (e.g. ['create github issue', 'send slack message']). Searched in parallel; results come back grouped per query. A single string is accepted and treated as one query.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "queries"
+        ],
+        "type": "object"
+      },
+      "tool_describe": {
+        "properties": {
+          "names": {
+            "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "type": "object"
+      },
+      "tool_call": {},
+      "nemoclaw_info": {},
+      "nemoclaw_status": {},
+      "mcp__enterprise_world__knowledge_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__projects_search_tasks": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__chat_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__chat_read_thread": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__mail_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__mail_read_thread": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__people_search": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "mcp__enterprise_world__list_resources": {}
+    },
+    "collection": "clean-run-b",
+    "collection_ordinal": 3,
+    "normalization": {
+      "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+      "source_trace_id": "01a0b5e0-f8ea-7bd1-86ff-d83c89a47a13",
+      "losses": [
+        "Span nesting was flattened into sequential ATIF steps.",
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+      ]
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-18T18:57:04.864562212+00:00",
+      "source": "user",
+      "message": "In the launch evidence register, what is the current Security evidence status and who owns it?\n\nNemoClaw runtime context:\n- You are Hermes Agent running in a NemoClaw-managed OpenShell sandbox, not a host-only assistant.\n- Some tools, especially managed code/terminal tools, execute in child tool sandboxes such as Modal. Seeing /__modal, MODAL_SANDBOX_ID, a missing hermes binary, or missing ~/.hermes inside a tool shell means that shell is a child tool sandbox, not proof that Hermes is running on the host.\n- Parent Hermes sandbox config lives under /sandbox/.hermes and /sandbox/.hermes when available. Use nemoclaw_status or nemoclaw_info for NemoClaw environment questions.\n- NemoClaw provider state: model=nvidia/nemotron-3-ultra-550b-a55b, provider=nvidia-prod, endpoint=https://inference.local/v1, gateway=running.\n- NemoClaw tools available: nemoclaw_status, nemoclaw_info, transcribe_audio.\n- Managed Nous tool broker: not enabled; configured services: none detected. Raw Nous OAuth tokens are host-managed by NemoClaw and should not be expected inside the sandbox.\n- Current Hermes messaging platform: cli. Messaging adapters run in the parent Hermes gateway sandbox; child tool-execution containers will not show their host/gateway config."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-18T18:57:04.864562212+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-9f3bd7dd-65d6-449f-85df-82c002202d09",
+          "function_name": "nemoclaw_info",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-9f3bd7dd-65d6-449f-85df-82c002202d09",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-18T18:57:04.890705887+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-d1d80b42-d14f-422c-a158-4e31ee839996",
+          "function_name": "nemoclaw_status",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-d1d80b42-d14f-422c-a158-4e31ee839996",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-18T18:57:08.862436199+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5f65f190-8ca8-4f52-abfa-bf8f231827ea",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5f65f190-8ca8-4f52-abfa-bf8f231827ea",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-09-18T18:57:08.863032952+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bd51944b-7bc9-49a7-874d-a98cea743ab7",
+          "function_name": "search_files",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bd51944b-7bc9-49a7-874d-a98cea743ab7",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-09-18T18:57:11.863280329+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-1e6af63f-ca0f-4818-abd7-0bc8c06594b0",
+          "function_name": "tool_call",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-1e6af63f-ca0f-4818-abd7-0bc8c06594b0",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-09-18T18:57:13.924742177+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-52dbc95d-66ff-4985-8fb2-4d1961050bab",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch evidence register security evidence status owner"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-52dbc95d-66ff-4985-8fb2-4d1961050bab",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-09-18T18:57:18.701222827+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-2052619a-ce6b-4557-91d2-d6f9b9c8faaf",
+          "function_name": "mcp__enterprise_world__projects_search_tasks",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-2052619a-ce6b-4557-91d2-d6f9b9c8faaf",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-09-18T18:57:21.648410278+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-5cc76a45-c2b4-441b-89ca-297f3eacbdf7",
+          "function_name": "mcp__enterprise_world__chat_search",
+          "arguments": {
+            "query": "launch evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-5cc76a45-c2b4-441b-89ca-297f3eacbdf7",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-09-18T18:57:24.129807079+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-550d67fd-4888-4cfe-be75-07215e25bcec",
+          "function_name": "tool_call",
+          "arguments": {
+            "redacted": "non-fixture tool input removed from public corpus"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-550d67fd-4888-4cfe-be75-07215e25bcec",
+            "content": "[redacted: non-fixture tool output removed from public corpus]"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-09-18T18:57:41.433964719+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-bbcb6100-14ea-4a25-90ad-dab1ce655b4f",
+          "function_name": "mcp__enterprise_world__chat_read_thread",
+          "arguments": {
+            "thread_id": "chat_launch_blocker"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-bbcb6100-14ea-4a25-90ad-dab1ce655b4f",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"thread\\\": {\\n    \\\"id\\\": \\\"chat_launch_blocker\\\",\\n    \\\"channel\\\": \\\"proj-launch\\\",\\n    \\\"updated_at\\\": \\\"2026-08-31T15:00:00Z\\\",\\n    \\\"messages\\\": [\\n      {\\n        \\\"id\\\": \\\"chat_launch_1\\\",\\n        \\\"author\\\": \\\"ava.patel@example.test\\\",\\n        \\\"body\\\": \\\"The launch blocker is the missing security evidence packet.\\\"\\n      },\\n      {\\n        \\\"id\\\": \\\"chat_launch_2\\\",\\n        \\\"author\\\": \\\"mina.ortiz@example.test\\\",\\n        \\\"body\\\": \\\"Once it is attached, Security can sign off in one business day.\\\"\\n      }\\n    ]\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"thread\": {\"id\": \"chat_launch_blocker\", \"channel\": \"proj-launch\", \"updated_at\": \"2026-08-31T15:00:00Z\", \"messages\": [{\"id\": \"chat_launch_1\", \"author\": \"ava.patel@example.test\", \"body\": \"The launch blocker is the missing security evidence packet.\"}, {\"id\": \"chat_launch_2\", \"author\": \"mina.ortiz@example.test\", \"body\": \"Once it is attached, Security can sign off in one business day.\"}]}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-09-18T18:58:23.578701707+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-7b0f2c58-0150-4070-a90e-0af88be41610",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-7b0f2c58-0150-4070-a90e-0af88be41610",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-09-18T18:59:10.680196803+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ed18aea1-d8d5-492a-a1e6-e366ddcbf604",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "security evidence packet"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ed18aea1-d8d5-492a-a1e6-e366ddcbf604",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-09-18T18:59:18.307588258+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-cb22e939-8f1b-4360-8172-78eb04d72e6d",
+          "function_name": "mcp__enterprise_world__mail_search",
+          "arguments": {
+            "query": "security evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-cb22e939-8f1b-4360-8172-78eb04d72e6d",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"mail_beacon_001\\\",\\n      \\\"subject\\\": \\\"Beacon security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"blake.brooks.001@example.test\\\",\\n        \\\"logan.brooks.011@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-02T09:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_q3_launch\\\",\\n      \\\"subject\\\": \\\"Q3 launch readiness\\\",\\n      \\\"participants\\\": [\\n        \\\"ava.patel@example.test\\\",\\n        \\\"mina.ortiz@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-08-30T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_grove_006\\\",\\n      \\\"subject\\\": \\\"Grove security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"finley.brooks.005@example.test\\\",\\n        \\\"avery.diaz.016@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-07T14:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_lumen_011\\\",\\n      \\\"subject\\\": \\\"Lumen security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"kai.brooks.010@example.test\\\",\\n        \\\"emery.diaz.020@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-12T10:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_atlas_016\\\",\\n      \\\"subject\\\": \\\"Atlas security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"quinn.brooks.015@example.test\\\",\\n        \\\"jordan.diaz.025@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-17T15:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_fjord_021\\\",\\n      \\\"subject\\\": \\\"Fjord security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"devon.diaz.019@example.test\\\",\\n        \\\"parker.diaz.030@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-22T11:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_keystone_026\\\",\\n      \\\"subject\\\": \\\"Keystone security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"indigo.diaz.024@example.test\\\",\\n        \\\"mina.ortiz@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-07-27T16:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_pioneer_031\\\",\\n      \\\"subject\\\": \\\"Pioneer security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"noor.diaz.029@example.test\\\",\\n        \\\"harper.evans.039@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-08-01T12:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_ember_036\\\",\\n      \\\"subject\\\": \\\"Ember security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"casey.evans.034@example.test\\\",\\n        \\\"morgan.evans.044@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-08-06T08:00:00Z\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"mail_juniper_041\\\",\\n      \\\"subject\\\": \\\"Juniper security evidence checklist\\\",\\n      \\\"participants\\\": [\\n        \\\"gray.evans.038@example.test\\\",\\n        \\\"blake.foster.049@example.test\\\"\\n      ],\\n      \\\"updated_at\\\": \\\"2026-08-11T13:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 17,\\n    \\\"total_pages\\\": 2\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"mail_beacon_001\", \"subject\": \"Beacon security evidence checklist\", \"participants\": [\"blake.brooks.001@example.test\", \"logan.brooks.011@example.test\"], \"updated_at\": \"2026-07-02T09:00:00Z\"}, {\"id\": \"mail_q3_launch\", \"subject\": \"Q3 launch readiness\", \"participants\": [\"ava.patel@example.test\", \"mina.ortiz@example.test\"], \"updated_at\": \"2026-08-30T16:00:00Z\"}, {\"id\": \"mail_grove_006\", \"subject\": \"Grove security evidence checklist\", \"participants\": [\"finley.brooks.005@example.test\", \"avery.diaz.016@example.test\"], \"updated_at\": \"2026-07-07T14:00:00Z\"}, {\"id\": \"mail_lumen_011\", \"subject\": \"Lumen security evidence checklist\", \"participants\": [\"kai.brooks.010@example.test\", \"emery.diaz.020@example.test\"], \"updated_at\": \"2026-07-12T10:00:00Z\"}, {\"id\": \"mail_atlas_016\", \"subject\": \"Atlas security evidence checklist\", \"participants\": [\"quinn.brooks.015@example.test\", \"jordan.diaz.025@example.test\"], \"updated_at\": \"2026-07-17T15:00:00Z\"}, {\"id\": \"mail_fjord_021\", \"subject\": \"Fjord security evidence checklist\", \"participants\": [\"devon.diaz.019@example.test\", \"parker.diaz.030@example.test\"], \"updated_at\": \"2026-07-22T11:00:00Z\"}, {\"id\": \"mail_keystone_026\", \"subject\": \"Keystone security evidence checklist\", \"participants\": [\"indigo.diaz.024@example.test\", \"mina.ortiz@example.test\"], \"updated_at\": \"2026-07-27T16:00:00Z\"}, {\"id\": \"mail_pioneer_031\", \"subject\": \"Pioneer security evidence checklist\", \"participants\": [\"noor.diaz.029@example.test\", \"harper.evans.039@example.test\"], \"updated_at\": \"2026-08-01T12:00:00Z\"}, {\"id\": \"mail_ember_036\", \"subject\": \"Ember security evidence checklist\", \"participants\": [\"casey.evans.034@example.test\", \"morgan.evans.044@example.test\"], \"updated_at\": \"2026-08-06T08:00:00Z\"}, {\"id\": \"mail_juniper_041\", \"subject\": \"Juniper security evidence checklist\", \"participants\": [\"gray.evans.038@example.test\", \"blake.foster.049@example.test\"], \"updated_at\": \"2026-08-11T13:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 17, \"total_pages\": 2}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-09-18T18:59:22.368612741+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-e7b3e12a-a8d8-4252-9a55-a13dc46cfa0d",
+          "function_name": "mcp__enterprise_world__mail_read_thread",
+          "arguments": {
+            "thread_id": "mail_q3_launch"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-e7b3e12a-a8d8-4252-9a55-a13dc46cfa0d",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"thread\\\": {\\n    \\\"id\\\": \\\"mail_q3_launch\\\",\\n    \\\"subject\\\": \\\"Q3 launch readiness\\\",\\n    \\\"participants\\\": [\\n      \\\"ava.patel@example.test\\\",\\n      \\\"mina.ortiz@example.test\\\"\\n    ],\\n    \\\"updated_at\\\": \\\"2026-08-30T16:00:00Z\\\",\\n    \\\"messages\\\": [\\n      {\\n        \\\"id\\\": \\\"mail_q3_1\\\",\\n        \\\"author\\\": \\\"mina.ortiz@example.test\\\",\\n        \\\"body\\\": \\\"Security sign-off is pending the final evidence packet.\\\"\\n      },\\n      {\\n        \\\"id\\\": \\\"mail_q3_2\\\",\\n        \\\"author\\\": \\\"ava.patel@example.test\\\",\\n        \\\"body\\\": \\\"I will send the packet before Tuesday's review.\\\"\\n      }\\n    ]\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"thread\": {\"id\": \"mail_q3_launch\", \"subject\": \"Q3 launch readiness\", \"participants\": [\"ava.patel@example.test\", \"mina.ortiz@example.test\"], \"updated_at\": \"2026-08-30T16:00:00Z\", \"messages\": [{\"id\": \"mail_q3_1\", \"author\": \"mina.ortiz@example.test\", \"body\": \"Security sign-off is pending the final evidence packet.\"}, {\"id\": \"mail_q3_2\", \"author\": \"ava.patel@example.test\", \"body\": \"I will send the packet before Tuesday's review.\"}]}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-09-18T18:59:26.074740998+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-cd732074-2855-4d5e-a408-cd9969b55d3a",
+          "function_name": "mcp__enterprise_world__people_search",
+          "arguments": {
+            "query": "security evidence owner launch"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-cd732074-2855-4d5e-a408-cd9969b55d3a",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-09-18T19:00:46.726690077+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-81519eb8-5010-43fe-a9f7-a1ce54b6119a",
+          "function_name": "mcp__enterprise_world__list_resources",
+          "arguments": {}
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-81519eb8-5010-43fe-a9f7-a1ce54b6119a",
+            "content": "{\"resources\": []}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-09-18T19:00:49.345116678+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-ea6879d7-7e9c-42fc-942e-25d6a33bf5b6",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "launch checklist security evidence register"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-ea6879d7-7e9c-42fc-942e-25d6a33bf5b6",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-09-18T19:00:51.768214540+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-fa94bf27-d0a5-4af9-8508-b696881c89fa",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "kb_launch_checklist"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-fa94bf27-d0a5-4af9-8508-b696881c89fa",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [\\n    {\\n      \\\"id\\\": \\\"kb_launch_checklist\\\",\\n      \\\"title\\\": \\\"Launch checklist\\\",\\n      \\\"body\\\": \\\"Launch requires product approval, security evidence, and an approved change record.\\\",\\n      \\\"updated_at\\\": \\\"2026-08-29T10:00:00Z\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 1,\\n    \\\"total_pages\\\": 1\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [{\"id\": \"kb_launch_checklist\", \"title\": \"Launch checklist\", \"body\": \"Launch requires product approval, security evidence, and an approved change record.\", \"updated_at\": \"2026-08-29T10:00:00Z\"}], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 1, \"total_pages\": 1}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-09-18T19:00:56.165304745+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-9ab5b98f-bbc5-4663-903e-6897f6c8c7ad",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "security evidence register owner"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-9ab5b98f-bbc5-4663-903e-6897f6c8c7ad",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-09-18T19:01:30.203415576+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-cb292e2c-4622-4611-b6e2-5982d7166a8e",
+          "function_name": "mcp__enterprise_world__knowledge_search",
+          "arguments": {
+            "query": "security team owner launch evidence"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-cb292e2c-4622-4611-b6e2-5982d7166a8e",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"items\\\": [],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"page_size\\\": 10,\\n    \\\"total_items\\\": 0,\\n    \\\"total_pages\\\": 0\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"items\": [], \"pagination\": {\"page\": 1, \"page_size\": 10, \"total_items\": 0, \"total_pages\": 0}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-09-18T19:01:47.682631524+00:00",
+      "source": "agent",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call-e49ca2b2-80fa-46c6-a326-fd8594054f85",
+          "function_name": "mcp__enterprise_world__mail_read_thread",
+          "arguments": {
+            "thread_id": "mail_atlas_016"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call-e49ca2b2-80fa-46c6-a326-fd8594054f85",
+            "content": "{\"result\": \"{\\n  \\\"ok\\\": true,\\n  \\\"thread\\\": {\\n    \\\"id\\\": \\\"mail_atlas_016\\\",\\n    \\\"subject\\\": \\\"Atlas security evidence checklist\\\",\\n    \\\"participants\\\": [\\n      \\\"quinn.brooks.015@example.test\\\",\\n      \\\"jordan.diaz.025@example.test\\\"\\n    ],\\n    \\\"updated_at\\\": \\\"2026-07-17T15:00:00Z\\\",\\n    \\\"messages\\\": [\\n      {\\n        \\\"id\\\": \\\"mail_atlas_016_message_00\\\",\\n        \\\"author\\\": \\\"quinn.brooks.015@example.test\\\",\\n        \\\"body\\\": \\\"Historical Atlas record 016. The referenced review item was closed before the current Q3 launch; confirm current status elsewhere.\\\"\\n      }\\n    ]\\n  }\\n}\", \"structuredContent\": {\"ok\": true, \"thread\": {\"id\": \"mail_atlas_016\", \"subject\": \"Atlas security evidence checklist\", \"participants\": [\"quinn.brooks.015@example.test\", \"jordan.diaz.025@example.test\"], \"updated_at\": \"2026-07-17T15:00:00Z\", \"messages\": [{\"id\": \"mail_atlas_016_message_00\", \"author\": \"quinn.brooks.015@example.test\", \"body\": \"Historical Atlas record 016. The referenced review item was closed before the current Q3 launch; confirm current status elsewhere.\"}]}}}"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-09-18T19:01:47.812311595+00:00",
+      "source": "agent",
+      "model_name": "nvidia/nemotron-3-ultra-550b-a55b",
+      "message": ""
+    }
+  ]
+}

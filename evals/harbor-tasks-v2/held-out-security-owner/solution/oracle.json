@@ -1,0 +1,19 @@
+{
+  "answer": "ava.patel@example.test",
+  "calls": [
+    {
+      "name": "files.search",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "files.read_json",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

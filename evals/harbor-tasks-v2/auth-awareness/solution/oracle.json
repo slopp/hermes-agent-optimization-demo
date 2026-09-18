@@ -1,0 +1,12 @@
+{
+  "answer": "needs_auth",
+  "calls": [
+    {
+      "name": "connectors.get_status",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

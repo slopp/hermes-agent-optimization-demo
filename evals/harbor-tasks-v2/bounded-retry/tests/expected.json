@@ -1,0 +1,12 @@
+{
+  "max_tool_calls": 12,
+  "required_facts": [
+    "historical",
+    "no bearing"
+  ],
+  "required_tools": [
+    "chat.search",
+    "chat.search",
+    "support.search_tickets"
+  ]
+}

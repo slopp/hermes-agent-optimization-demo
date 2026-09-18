@@ -1,0 +1,10 @@
+{
+  "max_tool_calls": 12,
+  "required_facts": [
+    "ava.patel@example.test"
+  ],
+  "required_tools": [
+    "files.search",
+    "files.read_json"
+  ]
+}
