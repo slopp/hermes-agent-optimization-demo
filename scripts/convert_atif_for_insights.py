@@ -19,13 +19,28 @@ def _files(inputs: list[Path]) -> list[Path]:
     for item in inputs:
         if item.is_dir():
             found.extend(
-                path for path in sorted(item.rglob("*.json")) if path.parent.name == "atif"
+                path
+                for path in sorted(item.rglob("*.json"))
+                if path.name.endswith(".atif.json")
+                or (path.parent.name == "atif" and path.parent.parent.name == "relay")
             )
         elif item.is_file():
             found.append(item)
         else:
             raise FileNotFoundError(item)
     return found
+
+
+def _harbor_case_id(path: Path) -> str | None:
+    """Resolve the logical case from the enclosing Harbor trial result."""
+    for parent in path.parents:
+        result_path = parent / "result.json"
+        if not result_path.is_file():
+            continue
+        task_name = json.loads(result_path.read_text(encoding="utf-8")).get("task_name")
+        if isinstance(task_name, str) and task_name:
+            return task_name.rsplit("/", 1)[-1]
+    return None
 
 
 def main() -> int:
@@ -59,7 +74,7 @@ def main() -> int:
             suffix = ".atif.json"
             case_id = path.name[: -len(suffix)] if path.name.endswith(suffix) else path.stem
         else:
-            case_id = None
+            case_id = trajectory.get("extra", {}).get("logical_case_id") or _harbor_case_id(path)
         trace = atif_to_insights_trace(trajectory, logical_case_id=case_id)
         if trace["id"] in seen:
             raise ValueError(f"duplicate trace id: {trace['id']}")

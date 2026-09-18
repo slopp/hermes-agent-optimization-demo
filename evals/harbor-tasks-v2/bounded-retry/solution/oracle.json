@@ -1,0 +1,26 @@
+{
+  "answer": "historical no bearing",
+  "calls": [
+    {
+      "name": "chat.search",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "chat.search",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "support.search_tickets",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

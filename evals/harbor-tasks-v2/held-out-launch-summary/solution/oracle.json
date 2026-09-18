@@ -1,0 +1,26 @@
+{
+  "answer": "security evidence packet 2026-09-02",
+  "calls": [
+    {
+      "name": "chat.search",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "chat.read_thread",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    },
+    {
+      "name": "calendar.list_events",
+      "arguments": {},
+      "result": {
+        "ok": true
+      }
+    }
+  ]
+}

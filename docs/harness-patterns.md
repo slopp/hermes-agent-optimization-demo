@@ -13,7 +13,8 @@ small JSON Pointer such as `/evidence`. Return value, type, truncation, and
 available child keys. Never silently truncate.
 
 **Test:** Put the target below a large appendix and verify correct retrieval
-with bounded bytes and calls. Candidate v4 reduced this path to four calls.
+with bounded bytes and calls. The Harbor verifier requires the search and
+bounded read while enforcing the overall call budget.
 
 ## Tool downsampling with discovery
 

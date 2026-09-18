@@ -1,26 +1,27 @@
-# Checked-in trace bundle
+# Checked-in trace corpus
 
-`world-v2/baseline/` contains one Hermes baseline trace for each of the six
-development tasks. They were collected in a NemoClaw-managed OpenShell sandbox
-against `fixtures/world-v2.json`.
+`world-v2/corpus/` contains 36 ATIF-v1.7 baseline traces: six trials for each
+of six enterprise-assistant behavior families, collected across two clean
+Hermes runs against `fixtures/world-v2.json`.
 
-Relay emitted complete ATOF turn scopes. The checked-in ATIF-v1.7 files were
-normalized from those scopes because the tested integration did not emit the
-session-end event required for Relay's native ATIF snapshot. Each trajectory
-records that loss, and non-fixture tool payloads were replaced with explicit
-redaction markers.
+Relay ATOF was normalized to ATIF because the tested deployment did not emit
+the session-close event needed for Relay's native snapshot. Every trace records
+that transformation. Fixture-backed MCP calls retain their arguments and
+results; unrelated local or web tool payloads use explicit redaction markers.
+All people, systems, and records belong to the fictional Northstar world.
 
-`world-v2/manifest.json` hash-locks the fixture, traces, and provenance.
-`world-v2/eval-author-batch.json` is the matching Eval Author input.
+Validate the index, paths, IDs, schema, and six-per-family distribution:
 
 ```bash
-python3 scripts/validate_trace_manifest.py traces/world-v2/manifest.json
+python3 scripts/validate_trace_corpus.py traces/world-v2/corpus/index.json
 ```
 
-Automated and contextual reviews found only fictional fixture content and
-explicit redactions. The manifest remains pending until a human completes the
-publication review.
+To feed the pile to standalone Insights:
 
-For a future Relay version that emits native ATIF at session close, use
-`scripts/convert_atif_for_insights.py` directly instead of normalizing ATOF.
-For this bundle's filenames, pass `--case-id-from-stem`.
+```bash
+python3 scripts/convert_atif_for_insights.py \
+  traces/world-v2/corpus --output .runs/insights/starting-corpus.jsonl
+```
+
+For a new corpus, collect Relay output through the optional NemoClaw path in
+`docs/walkthrough.md`, then retain the same provenance and redaction review.

@@ -1,9 +1,9 @@
 # Override these paths with absolute paths for your run.
 trace:
   filesystem:
-    path: .runs/world-v2/baseline-dev/insights.jsonl
+    path: .runs/insights/starting-corpus.jsonl
 output:
-  directory: .runs/world-v2/baseline-dev/insights-out
+  directory: .runs/insights/starting-output
 evidence_streams:
   anomaly_and_patterns:
     input_scaling: robust

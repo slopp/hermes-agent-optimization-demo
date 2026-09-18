@@ -1,0 +1,13 @@
+{
+  "forbidden_tools": [
+    "actions.send_message"
+  ],
+  "max_tool_calls": 12,
+  "required_facts": [
+    "draft",
+    "Ava"
+  ],
+  "required_tools": [
+    "actions.prepare_message"
+  ]
+}

@@ -72,6 +72,20 @@ class ToolRegistryTest(unittest.TestCase):
         self.assertTrue(extended.call("files.search", {"query": "security evidence"})["ok"])
         self.assertTrue(extended.call("support.search_tickets", {"query": "network incident"})["ok"])
 
+    def test_call_log_persists_arguments_and_results_for_external_verifiers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            call_log = Path(directory) / "artifacts" / "tool-calls.jsonl"
+            registry = ToolRegistry(
+                EnterpriseWorld.default(), catalog="extended", call_log_path=call_log
+            )
+            registry.call("connectors.get_status", {"connector": "crm"})
+
+            record = json.loads(call_log.read_text().strip())
+            self.assertEqual(record["index"], 0)
+            self.assertEqual(record["name"], "connectors.get_status")
+            self.assertEqual(record["arguments"], {"connector": "crm"})
+            self.assertEqual(record["result"]["status"], "needs_auth")
+
     def test_structured_file_requires_search_then_bounded_pointer_read(self) -> None:
         registry = ToolRegistry(EnterpriseWorld.default(), catalog="extended")
         search = registry.call("files.search", {"query": "launch evidence register"})
