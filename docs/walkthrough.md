@@ -124,7 +124,6 @@ starts a quick tunnel when needed, and requires exactly 15 tools:
 mkdir -p .runs/runtime
 python3 scripts/ensure_nemoclaw_mcp.py \
   --sandbox "$DEMO_SANDBOX" --runtime-dir .runs/runtime
-export ENTERPRISE_MCP_URL="$(cat .runs/runtime/mock-mcp-url)"
 nemoclaw "$DEMO_SANDBOX" mcp list
 nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 ```

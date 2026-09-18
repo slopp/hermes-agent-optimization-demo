@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.run_nemoclaw_matrix import retryable_failure, terminal_failure
+from scripts.run_nemoclaw_matrix import attempt_failed, retryable_failure, terminal_failure
 
 
 class NemoClawMatrixRunnerTests(unittest.TestCase):
@@ -16,6 +16,10 @@ class NemoClawMatrixRunnerTests(unittest.TestCase):
         self.assertTrue(retryable_failure(125, None))
         self.assertFalse(retryable_failure(124, None))
         self.assertFalse(retryable_failure(0, None))
+
+    def test_timeout_is_failed_but_not_retryable(self) -> None:
+        self.assertTrue(attempt_failed(124, None))
+        self.assertFalse(retryable_failure(124, None))
 
 
 if __name__ == "__main__":

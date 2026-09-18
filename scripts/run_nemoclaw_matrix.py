@@ -36,6 +36,11 @@ def retryable_failure(returncode: int, terminal_error: str | None) -> bool:
     return bool(terminal_error or (returncode and returncode != 124))
 
 
+def attempt_failed(returncode: int, terminal_error: str | None) -> bool:
+    """Return whether an attempt failed, independently of retry policy."""
+    return bool(returncode or terminal_error)
+
+
 def clear_demo_sessions(gateway: str, sandbox: str) -> None:
     """Clear session history in an explicitly disposable demo sandbox."""
     script = """import sqlite3, subprocess
@@ -198,7 +203,7 @@ def main() -> int:
                         )
                 response = completed.stdout.strip()
                 terminal_error = terminal_failure(response)
-                failed_attempt = retryable_failure(completed.returncode, terminal_error)
+                failed_attempt = attempt_failed(completed.returncode, terminal_error)
                 record = {
                     "schema_version": "nemoclaw-matrix-run-v1",
                     "arm": args.arm,
@@ -220,7 +225,11 @@ def main() -> int:
                         f"{case_id}-trial-{trial:02d}-attempt-{attempt:02d}.json"
                     )
                     attempt_path.write_text(json.dumps(record, indent=2) + "\n")
-                if failed_attempt and attempt <= args.retries:
+                if (
+                    failed_attempt
+                    and retryable_failure(completed.returncode, terminal_error)
+                    and attempt <= args.retries
+                ):
                     detail = completed.stderr.strip() or terminal_error or f"exit {completed.returncode}"
                     print(
                         f"  {detail}; retrying attempt {attempt + 1}/"
