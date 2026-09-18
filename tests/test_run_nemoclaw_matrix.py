@@ -13,7 +13,8 @@ class NemoClawMatrixRunnerTests(unittest.TestCase):
         self.assertIsNone(terminal_failure("The security packet is missing."))
 
     def test_retries_nonzero_runtime_exit(self) -> None:
-        self.assertTrue(retryable_failure(124, None))
+        self.assertTrue(retryable_failure(125, None))
+        self.assertFalse(retryable_failure(124, None))
         self.assertFalse(retryable_failure(0, None))
 
 

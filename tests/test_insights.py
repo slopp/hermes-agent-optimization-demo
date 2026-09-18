@@ -200,6 +200,29 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertEqual(trace["attributes"]["metrics"]["required_signal_coverage"], 1.0)
         self.assertNotIn("observed_verdict", trace["attributes"])
 
+    def test_includes_bounded_incomplete_turn_as_agent_failure(self) -> None:
+        events = [
+            {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn", "timestamp": "2026-09-11T12:00:00+00:00"},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "timestamp": "2026-09-11T12:00:01+00:00", "data": {"content": {"messages": [{"role": "user", "content": "Find it"}]}}},
+            {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "timestamp": "2026-09-11T12:00:02+00:00", "data": {"choices": [{"message": {"content": "Still searching"}}]}},
+            {"kind": "scope", "scope_category": "start", "category": "tool", "name": "terminal", "uuid": "tool", "parent_uuid": "turn", "timestamp": "2026-09-11T12:00:03+00:00", "metadata": {"tool_call_id": "call"}},
+            {"kind": "scope", "scope_category": "end", "category": "tool", "name": "terminal", "uuid": "tool", "parent_uuid": "turn", "timestamp": "2026-09-11T12:00:04+00:00", "data": {"outcome": "success"}},
+        ]
+
+        self.assertEqual(atof_events_to_insights_traces(events), [])
+        trace = atof_events_to_insights_traces(
+            events,
+            prompt_case_ids={"Find it": "find"},
+            include_incomplete=True,
+        )[0]
+
+        self.assertEqual(trace["attributes"]["logical_case_id"], "find")
+        self.assertEqual(trace["attributes"]["turn_outcome"], "failed")
+        self.assertEqual(trace["attributes"]["termination_reason"], "incomplete_relay_turn")
+        self.assertTrue(trace["attributes"]["infrastructure_valid"])
+        self.assertEqual(trace["aggregate"]["latency_ms"], 4000)
+        self.assertEqual(trace["root_spans"][0]["tool_name"], "terminal")
+
 
 if __name__ == "__main__":
     unittest.main()

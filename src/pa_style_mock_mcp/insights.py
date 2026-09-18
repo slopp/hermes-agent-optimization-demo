@@ -170,8 +170,9 @@ def atof_events_to_insights_traces(
     *,
     prompt_case_ids: Mapping[str, str] | None = None,
     case_required_signals: Mapping[str, list[str]] | None = None,
+    include_incomplete: bool = False,
 ) -> list[dict[str, Any]]:
-    """Group completed Hermes turns in Relay ATOF into canonical Insights traces."""
+    """Group Hermes turns in Relay ATOF into canonical Insights traces."""
     pairs = _scope_pairs(events)
     children: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for event in events:
@@ -185,7 +186,9 @@ def atof_events_to_insights_traces(
     for turn_id, turn_pair in pairs.items():
         start = turn_pair.get("start")
         end = turn_pair.get("end")
-        if not start or not end or start.get("name") != "hermes.turn":
+        if not start or start.get("name") != "hermes.turn":
+            continue
+        if not end and not include_incomplete:
             continue
         descendants = _descendants(turn_id, children)
         llm_pairs = [
@@ -298,7 +301,21 @@ def atof_events_to_insights_traces(
             spans.append(span)
 
         started = _timestamp(start.get("timestamp"))
-        ended = _timestamp(end.get("timestamp"))
+        ended = _timestamp(end.get("timestamp")) if end else None
+        if started and not ended and descendants:
+            terminal_events = [
+                pair["end"]
+                for event in descendants
+                if (pair := pairs.get(event.get("uuid"), {})).get("end")
+            ]
+            ended = max(
+                (
+                    timestamp
+                    for event in descendants + terminal_events
+                    if (timestamp := _timestamp(event.get("timestamp")))
+                ),
+                default=None,
+            )
         aggregate: dict[str, Any] = {
             "token_counts": {
                 "input_tokens": input_tokens,
@@ -308,10 +325,12 @@ def atof_events_to_insights_traces(
         }
         if started and ended:
             aggregate["latency_ms"] = (ended - started).total_seconds() * 1000
-        turn_end_data = end.get("data")
+        turn_end_data = end.get("data") if end else None
         turn_outcome = (
             turn_end_data.get("outcome") if isinstance(turn_end_data, dict) else None
         )
+        if not end:
+            turn_outcome = "failed"
         attributes = {
             "complete_provenance_context": False,
             "source_pointer": {"format": "ATOF", "turn_id": turn_id},
@@ -328,6 +347,8 @@ def atof_events_to_insights_traces(
             # terminal turns from quality aggregates.
             "infrastructure_valid": not provider_errors or turn_outcome != "failed",
         }
+        if not end:
+            attributes["termination_reason"] = "incomplete_relay_turn"
         if case_id and case_required_signals and case_id in case_required_signals:
             required = Counter(case_required_signals[case_id])
             observed_names = [_canonical_pa_tool_name(span.get("tool_name")) for span in spans]

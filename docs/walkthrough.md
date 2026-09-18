@@ -241,6 +241,7 @@ python3 scripts/convert_atof_to_atif.py \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/baseline-dev/relay/events.jsonl \
   --matrix experiments/fidelity-matrix-v2.json \
+  --include-incomplete \
   --output .runs/world-v2/baseline-dev/insights.jsonl
 ```
 
@@ -464,15 +465,19 @@ openshell sandbox download "$DEMO_SANDBOX" \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/candidate-v4-dev/relay/events.jsonl \
   --matrix experiments/fidelity-matrix-v2.json \
+  --include-incomplete \
   --output .runs/world-v2/candidate-v4-dev/insights.jsonl
 ```
 
 The runner treats Hermes terminal messages such as exhausted 429 retries as
-failures even when the CLI exits zero. It also catches host/runtime failures,
-preserves each failed attempt, waits, and retries the same logical trial. If all
-configured retries fail, wait for
-the shared endpoint quota to recover and rerun only the affected scenario with
-`--scenario CASE`; keep `--valid-only` when scoring. Then score:
+failures even when the CLI exits zero. It catches non-timeout host/runtime
+failures, preserves each failed attempt, waits, and retries the same logical
+trial. The fixed exit-124 timeout is different: it is not retried or filtered
+away. `--include-incomplete` retains its partial Relay trajectory and scores it
+as a harness failure, avoiding survivor bias toward lucky completions. If all
+provider retries fail, wait for the shared endpoint quota to recover and rerun
+only the affected scenario with `--scenario CASE`; keep `--valid-only` when
+scoring. Then score:
 
 ```bash
 python3 scripts/score_insights_traces.py --valid-only \
@@ -527,10 +532,12 @@ openshell sandbox download "$DEMO_SANDBOX" \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/baseline-held-out/relay/events.jsonl \
   --matrix experiments/held-out-matrix-v2.json \
+  --include-incomplete \
   --output .runs/world-v2/baseline-held-out/insights.jsonl
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/candidate-v4-held-out/relay/events.jsonl \
   --matrix experiments/held-out-matrix-v2.json \
+  --include-incomplete \
   --output .runs/world-v2/candidate-v4-held-out/insights.jsonl
 
 python3 scripts/score_insights_traces.py --valid-only \

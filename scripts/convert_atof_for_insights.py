@@ -20,6 +20,11 @@ def main() -> int:
     parser.add_argument("--atof", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--matrix", type=Path)
+    parser.add_argument(
+        "--include-incomplete",
+        action="store_true",
+        help="Include bounded Hermes turns without a closing Relay event as scored failures.",
+    )
     args = parser.parse_args()
 
     events, recovered_lines = read_relay_jsonl(args.atof)
@@ -35,6 +40,7 @@ def main() -> int:
         events,
         prompt_case_ids=prompt_case_ids,
         case_required_signals=case_required_signals,
+        include_incomplete=args.include_incomplete,
     )
     if not traces:
         raise SystemExit("no completed hermes.turn scopes found")
@@ -42,7 +48,7 @@ def main() -> int:
     args.output.write_text("".join(json.dumps(trace, separators=(",", ":")) + "\n" for trace in traces))
     if recovered_lines:
         print(f"Recovered complete records after interrupted writes on lines {recovered_lines}")
-    print(f"Converted {len(traces)} completed Hermes turns to {args.output}")
+    print(f"Converted {len(traces)} Hermes turns to {args.output}")
     return 0
 
 

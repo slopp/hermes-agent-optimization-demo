@@ -31,7 +31,9 @@ def terminal_failure(response: str) -> str | None:
 
 def retryable_failure(returncode: int, terminal_error: str | None) -> bool:
     """Treat host/runtime failures and recognized provider errors as retryable."""
-    return bool(returncode or terminal_error)
+    # The fixed evaluation timeout is a measured harness failure. Retrying it
+    # and selecting only later completions would bias the arm toward lucky runs.
+    return bool(terminal_error or (returncode and returncode != 124))
 
 
 def clear_demo_sessions(gateway: str, sandbox: str) -> None:
