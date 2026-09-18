@@ -73,9 +73,11 @@ export DEMO_GATEWAY="$(openshell gateway list --output json | jq -r '.[] | selec
 test -n "$DEMO_GATEWAY"
 ```
 
-Choose the NVIDIA provider and a Nemotron model in the wizard. Enter the
-NVIDIA Build key at its credential prompt; do not put it in this repository or
-the command line. If onboarding stops after a recoverable preflight failure:
+Choose the NVIDIA provider, `nvidia/nemotron-3-ultra-550b-a55b`, the default
+resource profile, and the Balanced policy presets in the wizard. Enter the
+NVIDIA Build key only at its masked credential prompt; do not put it in this
+repository or the command line. This walkthrough was verified with NemoClaw
+v0.0.124. If onboarding stops after a recoverable preflight failure:
 
 ```bash
 nemoclaw onboard --resume
@@ -218,14 +220,21 @@ python3 scripts/configure_nemoclaw_arm.py \
 ```
 
 Run three development trials. `--reset-demo-sessions` deletes Hermes session
-history, so use it only with this disposable sandbox.
+history, so use it only with this disposable sandbox. Refresh and verify the
+MCP bridge immediately before a batch; quick-tunnel DNS can change while the
+sandbox's egress policy remains pinned.
 
 ```bash
+nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
+  --url "$ENTERPRISE_MCP_URL/mcp" \
+  --env PA_STYLE_MOCK_MCP_TOKEN
+nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
+
 python3 scripts/run_nemoclaw_matrix.py \
   --sandbox "$DEMO_SANDBOX" \
   --gateway "$DEMO_GATEWAY" \
   --matrix experiments/fidelity-matrix-v2.json \
-  --arm baseline --trials 3 --reset-demo-sessions \
+  --arm baseline --trials 3 --delay-seconds 30 --reset-demo-sessions \
   --output .runs/world-v2/baseline-dev/responses
 ```
 
@@ -257,6 +266,7 @@ started:
 ```bash
 git clone https://github.com/NVIDIA-NeMo/nemo-platform.git ../nemo-platform
 cd ../nemo-platform
+git checkout a0bb79bbfa122063c7fcdff824a94e46220efc37
 uv venv .venv --python 3.12
 cd ../hermes-agent-optimization-demo
 
@@ -353,12 +363,23 @@ currently a fix. Use Eval Author's
 after inspecting their exact previews. The checked-in exports show the expected
 result under `evals/eval-author-products-v2`.
 
+With all technical proofs passing, `batch-status` reports
+`candidate_unproven` until a human records the privacy, tool-access, and
+publication reviews. That status is expected during an automated or
+agent-assisted walkthrough; do not mislabel an agent review as human.
+
 ## 7. Analyze with standalone Insights
 
+The standalone Insight Agent repository is currently an access-controlled
+preview. Obtain repository access and authenticate GitHub before continuing;
+this is the only non-public source dependency in the walkthrough.
+
 ```bash
+gh auth status
 git clone https://github.com/NVIDIA/nemo-platform-insights-preview.git \
   ../nemo-platform-insights-preview
 cd ../nemo-platform-insights-preview
+git checkout 02c05644809acafe09be42501c8d4db23d268016
 uv sync --locked
 
 uv run insight-agent validate \
@@ -368,36 +389,24 @@ uv run insight-agent coverage \
   --with-findings
 ```
 
-For the deterministic full pipeline, copy
-`configs/insights-standalone.yaml`, replace its absolute input/output paths,
-and run:
+For the deterministic full pipeline, create an absolute-path config and run:
 
 ```bash
-uv run insight-agent --config /absolute/path/to/insights-world-v2.yaml
+cd ../hermes-agent-optimization-demo
+export DEMO_ROOT="$PWD"
+sed -e "s#path: .*#path: $DEMO_ROOT/.runs/world-v2/baseline-dev/insights.jsonl#" \
+  -e "s#directory: .*#directory: $DEMO_ROOT/.runs/world-v2/baseline-dev/insights-out#" \
+  configs/insights-standalone.yaml > /tmp/insights-world-v2.yaml
+
+cd ../nemo-platform-insights-preview
+uv run insight-agent --config /tmp/insights-world-v2.yaml
 ```
 
-The optional Analyst uses NVIDIA Build. Load the key without placing it in
-history, confirm the currently available Nemotron ID, then run:
-
-```bash
-printf 'NVIDIA Build key: '
-read -s NVIDIA_API_KEY
-printf '\n'
-export NVIDIA_API_KEY
-export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
-curl -fsS https://integrate.api.nvidia.com/v1/models \
-  -H "Authorization: Bearer $NVIDIA_API_KEY" | \
-  jq -r '.data[].id' | grep -i nemotron
-
-uv run insight-agent run-analyst \
-  ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/insights.jsonl \
-  -o ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/analyst \
-  --model openai/nvidia/nemotron-3-ultra-550b-a55b \
-  --api-base https://integrate.api.nvidia.com/v1
-```
-
-Review `anomaly_and_patterns/digest.md`, `tool_issues/cards.md`, cited
-traces, and Analyst output together. A finding is a hypothesis, not a fix.
+Use `/tmp/insights-world-v2.yaml` in the final command. Review
+`anomaly_and_patterns/digest.md`, `tool_issues/cards.md`, and cited traces
+together. A finding is a hypothesis, not a fix. Run the optional LLM Analyst
+after rollout collection in section 9 so it does not consume the same Build
+quota immediately before the A/B test.
 
 ## 8. Apply the candidate arm
 
@@ -446,8 +455,35 @@ python3 scripts/configure_nemoclaw_arm.py \
   --trace-label "$TRACE_LABEL"
 ```
 
-Run and convert development exactly as in section 5, changing the arm, output,
-and trace label. Then score:
+Refresh the MCP bridge, run three candidate trials at a paced cadence, download
+their distinct Relay stream, and convert it:
+
+```bash
+nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
+  --url "$ENTERPRISE_MCP_URL/mcp" \
+  --env PA_STYLE_MOCK_MCP_TOKEN
+nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
+
+python3 scripts/run_nemoclaw_matrix.py \
+  --sandbox "$DEMO_SANDBOX" --gateway "$DEMO_GATEWAY" \
+  --matrix experiments/fidelity-matrix-v2.json \
+  --arm candidate --trials 3 --delay-seconds 30 --reset-demo-sessions \
+  --output .runs/world-v2/candidate-v4-dev/responses
+
+mkdir -p .runs/world-v2/candidate-v4-dev/relay
+openshell sandbox download "$DEMO_SANDBOX" \
+  "/sandbox/hermes-flywheel-traces/$TRACE_LABEL/atof/events.jsonl" \
+  .runs/world-v2/candidate-v4-dev/relay
+python3 scripts/convert_atof_for_insights.py \
+  --atof .runs/world-v2/candidate-v4-dev/relay/events.jsonl \
+  --matrix experiments/fidelity-matrix-v2.json \
+  --output .runs/world-v2/candidate-v4-dev/insights.jsonl
+```
+
+The runner treats Hermes terminal messages such as exhausted 429 retries as
+failures even when the CLI exits zero. If it reports one, wait for the shared
+endpoint quota to recover and rerun only the affected scenario with
+`--scenario CASE`; keep `--valid-only` when scoring. Then score:
 
 ```bash
 python3 scripts/score_insights_traces.py --valid-only \
@@ -468,22 +504,36 @@ then score:
 python3 scripts/configure_nemoclaw_arm.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --arm baseline --trace-label world-v2-baseline-held-out
+nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
+  --url "$ENTERPRISE_MCP_URL/mcp" --env PA_STYLE_MOCK_MCP_TOKEN
+nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
-  --arm baseline --trials 3 --reset-demo-sessions \
+  --arm baseline --trials 3 --delay-seconds 30 --reset-demo-sessions \
   --output .runs/world-v2/baseline-held-out/responses
 
 python3 scripts/configure_nemoclaw_arm.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --arm candidate-v4 --trace-label world-v2-candidate-v4-held-out
+nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
+  --url "$ENTERPRISE_MCP_URL/mcp" --env PA_STYLE_MOCK_MCP_TOKEN
+nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
-  --arm candidate --trials 3 --reset-demo-sessions \
+  --arm candidate --trials 3 --delay-seconds 30 --reset-demo-sessions \
   --output .runs/world-v2/candidate-v4-held-out/responses
 
-# Download each arm's events.jsonl as in section 5, then:
+mkdir -p .runs/world-v2/baseline-held-out/relay \
+  .runs/world-v2/candidate-v4-held-out/relay
+openshell sandbox download "$DEMO_SANDBOX" \
+  /sandbox/hermes-flywheel-traces/world-v2-baseline-held-out/atof/events.jsonl \
+  .runs/world-v2/baseline-held-out/relay
+openshell sandbox download "$DEMO_SANDBOX" \
+  /sandbox/hermes-flywheel-traces/world-v2-candidate-v4-held-out/atof/events.jsonl \
+  .runs/world-v2/candidate-v4-held-out/relay
+
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/baseline-held-out/relay/events.jsonl \
   --matrix experiments/held-out-matrix-v2.json \
@@ -500,6 +550,7 @@ python3 scripts/score_insights_traces.py --valid-only \
   --output .runs/world-v2/held-out-ab.json
 
 python3 scripts/assemble_insights_corpus.py \
+  --valid-only \
   --input .runs/world-v2/baseline-dev/insights.jsonl \
   --input .runs/world-v2/candidate-v4-dev/insights.jsonl \
   --input .runs/world-v2/baseline-held-out/insights.jsonl \
@@ -510,6 +561,25 @@ python3 scripts/assemble_insights_corpus.py \
 Require answer, trajectory, approval state, timeout, and efficiency guardrails
 to improve or remain acceptable. The measured run reached 41.7% → 91.7%
 held-out pass rate and 11.75 → 4.58 mean calls.
+
+After rollout collection, optionally ask the Insights Analyst to synthesize
+the deterministic evidence. This run can consume substantial input-token quota,
+so keep it after the A/B gate or use a separately provisioned endpoint:
+
+```bash
+cd ../nemo-platform-insights-preview
+printf 'NVIDIA Build key: '
+read -s NVIDIA_API_KEY
+printf '\n'
+export NVIDIA_API_KEY
+export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
+
+uv run insight-agent run-analyst \
+  ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/insights.jsonl \
+  -o ../hermes-agent-optimization-demo/.runs/world-v2/baseline-dev/analyst \
+  --model openai/nvidia/nemotron-3-ultra-550b-a55b \
+  --api-base https://integrate.api.nvidia.com/v1
+```
 
 ## 10. Where Gym begins
 

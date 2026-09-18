@@ -31,3 +31,18 @@ class AssembleInsightsCorpusTests(unittest.TestCase):
             path.write_text(json.dumps({"id": "same"}) + "\n" + json.dumps({"id": "same"}) + "\n")
             with self.assertRaisesRegex(ValueError, "duplicate trace id"):
                 MODULE.assemble([path], Path(raw_temp) / "out.jsonl")
+
+    def test_valid_only_excludes_infrastructure_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_temp:
+            root = Path(raw_temp)
+            source = root / "source.jsonl"
+            output = root / "out.jsonl"
+            source.write_text(
+                json.dumps({"id": "ok", "attributes": {"infrastructure_valid": True}})
+                + "\n"
+                + json.dumps({"id": "bad", "attributes": {"infrastructure_valid": False}})
+                + "\n"
+            )
+
+            self.assertEqual(MODULE.assemble([source], output, valid_only=True), 1)
+            self.assertEqual(json.loads(output.read_text())["id"], "ok")
