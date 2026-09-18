@@ -286,6 +286,33 @@ python3 scripts/materialize_eval_author_tasks.py \
   --task-root "$EA_ROOT" --world fixtures/world-v2.json
 ```
 
+The source traces contain tool calls, while each portable candidate deliberately
+uses the frozen world snapshot through `enterprise-query` and needs no live or
+replayed source tool. Inventory those calls, inspect the generated plans, and
+record `none` for every source-tool surface before proving the candidates:
+
+```bash
+for CASE in source-coverage read-after-search bounded-retry auth-awareness \
+  approval-boundary bounded-structured-inspection; do
+  "$EA_PY" "$EA" inventory-tool-calls --task-dir "$EA_ROOT/$CASE"
+  "$EA_PY" "$EA" plan-tool-call-access --task-dir "$EA_ROOT/$CASE"
+  python3 scripts/prepare_eval_author_tool_access.py \
+    --task-dir "$EA_ROOT/$CASE"
+
+  jq . "$EA_ROOT/$CASE/private/tool-call-plan.json"
+  jq . "$EA_ROOT/$CASE/private/tool-access-decisions.json"
+
+  "$EA_PY" "$EA" resolve-tool-call-access \
+    --task-dir "$EA_ROOT/$CASE" \
+    --decisions "$EA_ROOT/$CASE/private/tool-access-decisions.json" \
+    --reviewer-kind human
+done
+```
+
+Do not select `none` for a task that actually needs a live integration or mock
+replay. In that case, author and review the corresponding `real` or `mock`
+decision and provide the required adapter instead.
+
 Install Harbor in a separate environment, then prove every candidate:
 
 ```bash
