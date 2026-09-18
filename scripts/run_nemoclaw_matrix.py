@@ -12,14 +12,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    from scripts.ensure_nemoclaw_mcp import ensure_mcp
+    from scripts.ensure_nemoclaw_mcp import ensure_mcp, healthy_status
 except ModuleNotFoundError:  # Direct execution: python scripts/run_nemoclaw_matrix.py
-    from ensure_nemoclaw_mcp import ensure_mcp
+    from ensure_nemoclaw_mcp import ensure_mcp, healthy_status
 
 TERMINAL_FAILURE_MARKERS = (
     "api call failed after",
     "context length exceeded",
     "service temporarily overloaded",
+)
+
+MCP_INFRASTRUCTURE_FAILURE_MARKERS = (
+    "mcp server 'enterprise-world' transport is down",
+    "enterprise-world mcp tools (chat.search, chat.read_thread, etc.) are not currently available",
+    "the enterprise-world mcp tools are not currently available",
 )
 
 
@@ -29,16 +35,52 @@ def terminal_failure(response: str) -> str | None:
     return next((marker for marker in TERMINAL_FAILURE_MARKERS if marker in lowered), None)
 
 
-def retryable_failure(returncode: int, terminal_error: str | None) -> bool:
+def infrastructure_failure(response: str) -> str | None:
+    """Recognize a normal Hermes answer that reports a failed MCP transport."""
+    lowered = response.lower()
+    return next(
+        (marker for marker in MCP_INFRASTRUCTURE_FAILURE_MARKERS if marker in lowered),
+        None,
+    )
+
+
+def retryable_failure(
+    returncode: int,
+    terminal_error: str | None,
+    infrastructure_error: str | None = None,
+) -> bool:
     """Treat host/runtime failures and recognized provider errors as retryable."""
     # The fixed evaluation timeout is a measured harness failure. Retrying it
     # and selecting only later completions would bias the arm toward lucky runs.
-    return bool(terminal_error or (returncode and returncode != 124))
+    return bool(infrastructure_error or terminal_error or (returncode and returncode != 124))
 
 
-def attempt_failed(returncode: int, terminal_error: str | None) -> bool:
+def attempt_failed(
+    returncode: int,
+    terminal_error: str | None,
+    infrastructure_error: str | None = None,
+) -> bool:
     """Return whether an attempt failed, independently of retry policy."""
-    return bool(returncode or terminal_error)
+    return bool(returncode or terminal_error or infrastructure_error)
+
+
+def mcp_postflight_failure(sandbox: str, name: str, expected_tools: int) -> str | None:
+    """Return an infrastructure error when MCP discovery failed after a turn."""
+    try:
+        status = subprocess.run(
+            ["nemoclaw", sandbox, "mcp", "status", name, "--tools"],
+            text=True,
+            capture_output=True,
+            timeout=120,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        return f"MCP postflight failed: {error}"
+    if status.returncode or not healthy_status(
+        status.stdout + status.stderr, expected_tools
+    ):
+        return "MCP postflight discovery failed"
+    return None
 
 
 def clear_demo_sessions(gateway: str, sandbox: str) -> None:
@@ -203,7 +245,14 @@ def main() -> int:
                         )
                 response = completed.stdout.strip()
                 terminal_error = terminal_failure(response)
-                failed_attempt = attempt_failed(completed.returncode, terminal_error)
+                infrastructure_error = infrastructure_failure(response)
+                if args.ensure_mock_mcp and preflight_error is None:
+                    infrastructure_error = infrastructure_error or mcp_postflight_failure(
+                        args.sandbox, args.mcp_name, args.mcp_expected_tools
+                    )
+                failed_attempt = attempt_failed(
+                    completed.returncode, terminal_error, infrastructure_error
+                )
                 record = {
                     "schema_version": "nemoclaw-matrix-run-v1",
                     "arm": args.arm,
@@ -216,6 +265,7 @@ def main() -> int:
                     "response": response,
                     "stderr": completed.stderr.strip(),
                     "terminal_error": terminal_error,
+                    "infrastructure_error": infrastructure_error,
                     "timeout_seconds": args.timeout,
                     "workspace": run_workspace,
                 }
@@ -228,10 +278,17 @@ def main() -> int:
                     attempt_path.write_text(json.dumps(record, indent=2) + "\n")
                 if (
                     failed_attempt
-                    and retryable_failure(completed.returncode, terminal_error)
+                    and retryable_failure(
+                        completed.returncode, terminal_error, infrastructure_error
+                    )
                     and attempt <= args.retries
                 ):
-                    detail = completed.stderr.strip() or terminal_error or f"exit {completed.returncode}"
+                    detail = (
+                        completed.stderr.strip()
+                        or infrastructure_error
+                        or terminal_error
+                        or f"exit {completed.returncode}"
+                    )
                     print(
                         f"  {detail}; retrying attempt {attempt + 1}/"
                         f"{args.retries + 1} after {args.retry_backoff_seconds:g}s",
@@ -241,7 +298,12 @@ def main() -> int:
                     continue
                 logical_trial_failed = failed_attempt
                 if logical_trial_failed:
-                    detail = completed.stderr.strip() or terminal_error or "unknown failure"
+                    detail = (
+                        completed.stderr.strip()
+                        or infrastructure_error
+                        or terminal_error
+                        or "unknown failure"
+                    )
                     print(f"  failed with exit {completed.returncode}: {detail}", flush=True)
                 break
             if logical_trial_failed:

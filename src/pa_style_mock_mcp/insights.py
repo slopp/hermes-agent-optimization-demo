@@ -7,11 +7,43 @@ it does not infer failures, timings, or provenance that ATIF did not capture.
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import Any
+
+
+MCP_TRANSPORT_ERROR_MARKERS = (
+    "mcp server 'enterprise-world' transport is down",
+    "mcp call failed: mcperror: connection closed",
+    "reconnect requested",
+)
+
+
+def _mcp_transport_errors(spans: Iterable[dict[str, Any]]) -> list[dict[str, str]]:
+    errors: list[dict[str, str]] = []
+    for span in spans:
+        output = span.get("output")
+        try:
+            text = json.dumps(output, sort_keys=True)
+        except TypeError:
+            text = str(output)
+        lowered = text.lower()
+        marker = next(
+            (item for item in MCP_TRANSPORT_ERROR_MARKERS if item in lowered),
+            None,
+        )
+        if marker:
+            errors.append(
+                {
+                    "tool_name": str(span.get("tool_name") or ""),
+                    "call_id": str(span.get("tool_call", {}).get("call_id") or ""),
+                    "marker": marker,
+                }
+            )
+    return errors
 
 
 def _tool_catalog(steps: Iterable[dict[str, Any]]) -> dict[str, Any]:
@@ -129,6 +161,10 @@ def atif_to_insights_trace(
         "final_answer": final_answer,
         "final_metrics": trajectory.get("final_metrics", {}),
     }
+    infrastructure_errors = _mcp_transport_errors(spans)
+    if infrastructure_errors:
+        attributes["infrastructure_errors"] = infrastructure_errors
+        attributes["infrastructure_valid"] = False
     if logical_case_id:
         attributes["logical_case_id"] = logical_case_id
 
@@ -336,6 +372,7 @@ def atof_events_to_insights_traces(
         )
         if not end:
             turn_outcome = "failed"
+        infrastructure_errors = _mcp_transport_errors(spans)
         attributes = {
             "complete_provenance_context": False,
             "source_pointer": {"format": "ATOF", "turn_id": turn_id},
@@ -348,11 +385,15 @@ def atof_events_to_insights_traces(
             "started_at": start.get("timestamp"),
             "ended_at": end.get("timestamp") if end else None,
             "provider_errors": provider_errors,
+            "infrastructure_errors": infrastructure_errors,
             # A transient provider error that Hermes retries successfully does
             # not invalidate the observed behavior. It remains recorded for
             # reliability/latency analysis. Exclude only provider-caused
             # terminal turns from quality aggregates.
-            "infrastructure_valid": not provider_errors or turn_outcome != "failed",
+            "infrastructure_valid": (
+                (not provider_errors or turn_outcome != "failed")
+                and not infrastructure_errors
+            ),
         }
         if not end:
             attributes["termination_reason"] = "incomplete_relay_turn"
@@ -440,6 +481,16 @@ def apply_runner_outcomes(
                 attributes["turn_outcome"] = "failed"
                 attributes["termination_reason"] = "runner_runtime_failure"
                 attributes["infrastructure_valid"] = False
+            if record.get("infrastructure_error"):
+                attributes["turn_outcome"] = "failed"
+                attributes["termination_reason"] = "runner_infrastructure_failure"
+                attributes["infrastructure_valid"] = False
+                attributes.setdefault("infrastructure_errors", []).append(
+                    {
+                        "source": "matrix_runner",
+                        "marker": str(record["infrastructure_error"]),
+                    }
+                )
 
 
 def _canonical_pa_tool_name(value: Any) -> str | None:

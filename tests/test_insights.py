@@ -128,6 +128,22 @@ class InsightsAdapterTests(unittest.TestCase):
             [{"error_type": "rate_limit", "exception_type": "RateLimitError"}],
         )
 
+    def test_marks_mcp_transport_failure_as_infrastructure_invalid(self) -> None:
+        events = [
+            {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn"},
+            {"kind": "scope", "scope_category": "start", "category": "tool", "name": "mcp__enterprise_world__chat_search", "uuid": "tool", "parent_uuid": "turn", "metadata": {"tool_call_id": "call"}},
+            {"kind": "scope", "scope_category": "end", "category": "tool", "name": "mcp__enterprise_world__chat_search", "uuid": "tool", "parent_uuid": "turn", "data": {"error": "MCP call failed: MCPError: Connection closed"}, "metadata": {"tool_call_id": "call"}},
+            {"kind": "scope", "scope_category": "end", "category": "function", "name": "hermes.turn", "uuid": "turn", "data": {"outcome": "success"}},
+        ]
+
+        trace = atof_events_to_insights_traces(events)[0]
+
+        self.assertFalse(trace["attributes"]["infrastructure_valid"])
+        self.assertEqual(
+            trace["attributes"]["infrastructure_errors"][0]["marker"],
+            "mcp call failed: mcperror: connection closed",
+        )
+
     def test_recovered_provider_error_remains_valid_and_recorded(self) -> None:
         events = [
             {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn"},
@@ -263,6 +279,39 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertEqual(traces[0]["attributes"]["final_answer"], "")
         self.assertEqual([span["tool_name"] for span in traces[0]["root_spans"]], ["before"])
         self.assertEqual(traces[0]["aggregate"]["latency_ms"], 300000)
+
+    def test_runner_infrastructure_failure_overrides_exit_zero(self) -> None:
+        traces = [
+            {
+                "id": "turn",
+                "root_spans": [],
+                "aggregate": {},
+                "attributes": {
+                    "logical_case_id": "case",
+                    "turn_outcome": "success",
+                    "infrastructure_valid": True,
+                },
+            }
+        ]
+        records = [
+            {
+                "case_id": "case",
+                "trial": 1,
+                "attempt": 1,
+                "returncode": 0,
+                "completed_at": "2026-09-11T12:00:00+00:00",
+                "workspace": "/sandbox/eval-workspaces/case",
+                "infrastructure_error": "MCP postflight discovery failed",
+            }
+        ]
+
+        apply_runner_outcomes(traces, records)
+
+        self.assertFalse(traces[0]["attributes"]["infrastructure_valid"])
+        self.assertEqual(
+            traces[0]["attributes"]["termination_reason"],
+            "runner_infrastructure_failure",
+        )
 
 
 if __name__ == "__main__":
