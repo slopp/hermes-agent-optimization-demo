@@ -280,6 +280,34 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertEqual([span["tool_name"] for span in traces[0]["root_spans"]], ["before"])
         self.assertEqual(traces[0]["aggregate"]["latency_ms"], 300000)
 
+    def test_runner_timeout_does_not_erase_recorded_infrastructure_failure(self) -> None:
+        traces = [
+            {
+                "id": "turn",
+                "root_spans": [],
+                "aggregate": {},
+                "attributes": {
+                    "logical_case_id": "case",
+                    "turn_outcome": "failed",
+                    "infrastructure_valid": False,
+                },
+            }
+        ]
+        records = [
+            {
+                "case_id": "case",
+                "trial": 1,
+                "attempt": 1,
+                "returncode": 124,
+                "completed_at": "2026-09-11T12:05:00+00:00",
+                "workspace": "/sandbox/eval-workspaces/case",
+            }
+        ]
+
+        apply_runner_outcomes(traces, records)
+
+        self.assertFalse(traces[0]["attributes"]["infrastructure_valid"])
+
     def test_runner_infrastructure_failure_overrides_exit_zero(self) -> None:
         traces = [
             {

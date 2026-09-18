@@ -464,7 +464,6 @@ def apply_runner_outcomes(
                 attributes["turn_outcome"] = "failed"
                 attributes["termination_reason"] = "runner_timeout"
                 attributes["final_answer"] = ""
-                attributes["infrastructure_valid"] = True
                 cutoff = _timestamp(record.get("completed_at"))
                 if cutoff:
                     trace["root_spans"] = [
