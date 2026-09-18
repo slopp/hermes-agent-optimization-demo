@@ -270,7 +270,7 @@ for collection, records in world.items():
 
 def _test_script() -> str:
     return '''#!/bin/sh
-python - <<'PY'
+python - <<'PY' > /logs/verifier/results
 import json
 from pathlib import Path
 
@@ -279,9 +279,18 @@ expected_path = Path("/tests/expected.json")
 try:
     answer = json.loads(answer_path.read_text(encoding="utf-8"))
     expected = json.loads(expected_path.read_text(encoding="utf-8"))
-    passed = isinstance(answer, dict) and all(answer.get(key) == value for key, value in expected.items())
 except (OSError, UnicodeError, json.JSONDecodeError):
-    passed = False
+    answer = None
+    expected = json.loads(expected_path.read_text(encoding="utf-8"))
+
+checks = []
+for key, value in expected.items():
+    passed = isinstance(answer, dict) and answer.get(key) == value
+    check_id = "answer-" + key.replace("_", "-")
+    checks.append(passed)
+    print(f"{check_id}\\t{'PASS' if passed else 'FAIL'}")
+
+passed = bool(checks) and all(checks)
 Path("/logs/verifier/reward.txt").write_text("1\\n" if passed else "0\\n", encoding="utf-8")
 PY
 '''
