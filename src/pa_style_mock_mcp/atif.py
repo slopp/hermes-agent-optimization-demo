@@ -10,6 +10,8 @@ from typing import Any
 
 from .tools import ToolRegistry
 
+MCP_SERVER_PREFIXES = ("mcp__pa_style_enterprise__", "mcp__enterprise_world__")
+
 
 def _atof_scope_pairs(
     events: Iterable[dict[str, Any]],
@@ -99,7 +101,7 @@ def atof_events_to_atif_trajectories(
             call_id = metadata.get("tool_call_id") or scope_id
             tool_name = event.get("name")
             is_fixture_tool = isinstance(tool_name, str) and tool_name.startswith(
-                "mcp__pa_style_enterprise__"
+                MCP_SERVER_PREFIXES
             )
             arguments = event.get("data") if isinstance(event.get("data"), dict) else {}
             if redact_non_fixture_tools and not is_fixture_tool:
@@ -188,8 +190,9 @@ def _sanitize(value: str) -> str:
 def hermes_tool_name_map(catalog: str = "extended") -> dict[str, str]:
     """Map Hermes' provider-safe MCP names back to public mock tool names."""
     return {
-        f"mcp__pa_style_enterprise__{_sanitize(schema['name'])}": schema["name"]
+        f"{prefix}{_sanitize(schema['name'])}": schema["name"]
         for schema in ToolRegistry(catalog=catalog).schemas()
+        for prefix in MCP_SERVER_PREFIXES
     }
 
 

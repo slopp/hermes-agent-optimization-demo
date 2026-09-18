@@ -10,7 +10,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-MCP_PREFIX = "mcp__pa_style_enterprise__"
+MCP_PREFIXES = ("mcp__pa_style_enterprise__", "mcp__enterprise_world__")
 TERMINAL_FAILURE_MARKERS = (
     "context length exceeded",
     "api call failed after",
@@ -19,10 +19,13 @@ TERMINAL_FAILURE_MARKERS = (
 
 
 def canonical_tool_name(name: Any) -> str:
-    if not isinstance(name, str) or not name.startswith(MCP_PREFIX):
+    if not isinstance(name, str):
         return str(name or "")
-    domain, separator, operation = name[len(MCP_PREFIX) :].partition("_")
-    return f"{domain}.{operation}" if separator else domain
+    for prefix in MCP_PREFIXES:
+        if name.startswith(prefix):
+            domain, separator, operation = name[len(prefix) :].partition("_")
+            return f"{domain}.{operation}" if separator else domain
+    return name
 
 
 def score_trace(trace: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:

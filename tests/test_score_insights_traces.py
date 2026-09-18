@@ -40,6 +40,16 @@ class ScoreInsightsTraceTests(unittest.TestCase):
 
         self.assertFalse(result["infrastructure_valid"])
 
+    def test_scores_walkthrough_mcp_server_prefix(self) -> None:
+        trace = {
+            "id": "trace-1",
+            "root_spans": [{"tool_name": "mcp__enterprise_world__chat_search"}],
+            "attributes": {"final_answer": "found it"},
+        }
+        case = {"id": "case", "expectations": {"required_tools": ["chat.search"]}}
+
+        self.assertTrue(score_trace(trace, case)["trajectory_pass"])
+
 
 if __name__ == "__main__":
     unittest.main()

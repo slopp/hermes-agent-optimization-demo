@@ -181,6 +181,25 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertEqual(trace["attributes"]["logical_case_id"], "find")
         self.assertTrue(trace["attributes"]["prompt"].startswith("Find it\n\n"))
 
+    def test_recognizes_tool_prefix_created_by_walkthrough_server_name(self) -> None:
+        events = [
+            {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn"},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it"}]}}},
+            {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "data": {}},
+            {"kind": "scope", "scope_category": "start", "category": "tool", "name": "mcp__enterprise_world__chat_search", "uuid": "tool", "parent_uuid": "turn", "metadata": {"tool_call_id": "call"}},
+            {"kind": "scope", "scope_category": "end", "category": "tool", "name": "mcp__enterprise_world__chat_search", "uuid": "tool", "parent_uuid": "turn", "data": {"ok": True}},
+            {"kind": "scope", "scope_category": "end", "category": "function", "name": "hermes.turn", "uuid": "turn", "data": {"outcome": "success"}},
+        ]
+
+        trace = atof_events_to_insights_traces(
+            events,
+            prompt_case_ids={"Find it": "find"},
+            case_required_signals={"find": ["chat.search"]},
+        )[0]
+
+        self.assertEqual(trace["attributes"]["metrics"]["required_signal_coverage"], 1.0)
+        self.assertNotIn("observed_verdict", trace["attributes"])
+
 
 if __name__ == "__main__":
     unittest.main()

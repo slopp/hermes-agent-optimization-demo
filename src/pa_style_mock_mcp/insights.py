@@ -355,9 +355,9 @@ def atof_events_to_insights_traces(
 def _canonical_pa_tool_name(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
-    prefix = "mcp__pa_style_enterprise__"
-    if not value.startswith(prefix):
-        return None
-    short = value[len(prefix) :]
-    domain, separator, operation = short.partition("_")
-    return f"{domain}.{operation}" if separator else short
+    for prefix in ("mcp__pa_style_enterprise__", "mcp__enterprise_world__"):
+        if value.startswith(prefix):
+            short = value[len(prefix) :]
+            domain, separator, operation = short.partition("_")
+            return f"{domain}.{operation}" if separator else short
+    return None

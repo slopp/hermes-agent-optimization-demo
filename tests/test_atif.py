@@ -46,3 +46,22 @@ class AtifExtractionTest(unittest.TestCase):
         atif = {"schema_version": "ATIF-v1.7", "steps": [{"tool_calls": [{"function_name": "terminal", "arguments": {}}]}]}
         with self.assertRaisesRegex(ValueError, "unknown or non-demo tool"):
             extract_run("bad", atif)
+
+    def test_replays_walkthrough_mcp_server_prefix(self) -> None:
+        atif = {
+            "schema_version": "ATIF-v1.7",
+            "steps": [
+                {
+                    "tool_calls": [
+                        {
+                            "function_name": "mcp__enterprise_world__chat_search",
+                            "arguments": {"query": "launch"},
+                        }
+                    ]
+                }
+            ],
+        }
+
+        run = extract_run("walkthrough-prefix", atif)
+
+        self.assertEqual(run["calls"][0]["name"], "chat.search")
