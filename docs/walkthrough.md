@@ -9,7 +9,7 @@ recreate them.
 
 ## 1. Clone and validate
 
-Requirements are Git, Python 3.11+, `uv`, Docker, `openssl`, `jq`, and
+Requirements are Git, Python 3.11+, `uv`, Docker, `curl`, `openssl`, `jq`, and
 `cloudflared` (or another HTTPS ingress). Step 6 has one additional constraint:
 Harbor 0.22.0 needs a Docker daemon whose Linux kernel supports nftables
 `CONFIG_NFT_FIB_INET`. Native Linux normally does. Docker Desktop's LinuxKit
@@ -19,14 +19,29 @@ kernel does not; on macOS, use Colima for the Harbor proofs.
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
 
-command -v git python3 uv docker openssl jq
+command -v git python3 uv docker curl openssl jq cloudflared
 docker info >/dev/null
 make test
 make validate
 make mock-mcp-container-check
 ```
 
-If `uv` or `cloudflared` is absent on macOS:
+On Ubuntu or Debian, install missing `uv` and `cloudflared` first:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+sudo mkdir -p --mode=0755 /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | \
+  sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | \
+  sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt-get update
+sudo apt-get install -y cloudflared
+```
+
+On macOS:
 
 ```bash
 brew install uv cloudflared jq
@@ -36,7 +51,7 @@ On macOS, also prepare the compatible Docker context that Step 6 will use:
 
 ```bash
 brew install colima
-colima start --cpu 4 --memory 8
+colima start --cpu 6 --memory 12 --disk 100
 docker --context colima info >/dev/null
 ```
 
@@ -50,7 +65,7 @@ Install NemoClaw with Hermes selected, then run the onboarding wizard:
 curl -fsSL https://www.nvidia.com/nemoclaw.sh | \
   NEMOCLAW_AGENT=hermes bash -s -- --defer-onboarding
 
-export DEMO_SANDBOX=hermes-flywheel-demo
+export DEMO_SANDBOX=hermes-demo
 nemoclaw onboard --agent hermes --name "$DEMO_SANDBOX"
 nemoclaw "$DEMO_SANDBOX" status
 openshell gateway list
@@ -65,6 +80,17 @@ the command line. If onboarding stops after a recoverable preflight failure:
 ```bash
 nemoclaw onboard --resume
 ```
+
+Sandbox names are limited to 19 characters. If a previous attempt left this
+disposable tutorial sandbox in a not-ready state and its automatic backup also
+fails, discard only that known demo sandbox and start the wizard again:
+
+```bash
+nemoclaw "$DEMO_SANDBOX" destroy --yes --no-cleanup-gateway
+nemoclaw onboard --agent hermes --name "$DEMO_SANDBOX" --fresh
+```
+
+Do not use this recovery for a sandbox containing state you need to preserve.
 
 NemoClaw creates the OpenShell gateway, isolated sandbox, inference route, and
 Hermes runtime. `nemoclaw "$DEMO_SANDBOX" status` is the authoritative
@@ -148,7 +174,7 @@ the broad Hermes toolset and allows 60 turns.
 Install it directly so every mutation is visible:
 
 ```bash
-export DEMO_SANDBOX=hermes-flywheel-demo
+export DEMO_SANDBOX=hermes-demo
 export TRACE_LABEL=world-v2-baseline-repro
 
 openshell sandbox upload "$DEMO_SANDBOX" \

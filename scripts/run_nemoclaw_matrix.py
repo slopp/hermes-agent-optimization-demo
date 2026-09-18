@@ -32,7 +32,7 @@ for session_id in ids:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sandbox", default="hermes-flywheel-demo")
+    parser.add_argument("--sandbox", default="hermes-demo")
     parser.add_argument("--gateway", default="nemoclaw-18080")
     parser.add_argument("--matrix", type=Path, default=Path("experiments/fidelity-matrix-v2.json"))
     parser.add_argument("--trials", type=int, default=3)

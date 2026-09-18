@@ -99,9 +99,11 @@ def main() -> int:
         prefix
         + [
             "exec", "-n", args.sandbox, "--no-tty", "--", "sh", "-c",
-            "grep -q '^HERMES_NEMO_RELAY_PLUGINS_TOML=' /sandbox/.hermes/.env 2>/dev/null"
-            " || printf 'HERMES_NEMO_RELAY_PLUGINS_TOML=%s\\n'"
-            " /sandbox/.hermes/nemo-relay/relay-plugins.toml >>/sandbox/.hermes/.env",
+            (
+                "grep -q '^HERMES_NEMO_RELAY_PLUGINS_TOML=' /sandbox/.hermes/.env 2>/dev/null"
+                " || printf 'HERMES_NEMO_RELAY_PLUGINS_TOML=%s\\n'"
+                " /sandbox/.hermes/nemo-relay/relay-plugins.toml >>/sandbox/.hermes/.env"
+            ),
         ],
         dry_run=args.dry_run,
     )
