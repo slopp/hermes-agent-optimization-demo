@@ -11,6 +11,11 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from scripts.ensure_nemoclaw_mcp import ensure_mcp
+except ModuleNotFoundError:  # Direct execution: python scripts/run_nemoclaw_matrix.py
+    from ensure_nemoclaw_mcp import ensure_mcp
+
 TERMINAL_FAILURE_MARKERS = (
     "api call failed after",
     "context length exceeded",
@@ -92,6 +97,16 @@ def main() -> int:
         action="store_true",
         help="Delete prior Hermes sessions before every run; only use with a disposable demo sandbox.",
     )
+    parser.add_argument(
+        "--ensure-mock-mcp",
+        action="store_true",
+        help="Verify and, if necessary, recreate the tutorial quick-tunnel MCP before each attempt.",
+    )
+    parser.add_argument("--mcp-runtime-dir", type=Path, default=Path(".runs/runtime"))
+    parser.add_argument("--mcp-name", default="enterprise-world")
+    parser.add_argument("--mcp-local-url", default="http://127.0.0.1:8000")
+    parser.add_argument("--mcp-credential-env", default="PA_STYLE_MOCK_MCP_TOKEN")
+    parser.add_argument("--mcp-expected-tools", type=int, default=15)
     args = parser.parse_args()
 
     matrix = json.loads(args.matrix.read_text())
@@ -110,21 +125,46 @@ def main() -> int:
             print(f"[{args.arm}] {case_id} trial {trial}/{args.trials}", flush=True)
             logical_trial_failed = False
             for attempt in range(1, args.retries + 2):
-                if args.reset_demo_sessions:
+                run_workspace = ""
+                preflight_error = None
+                if args.ensure_mock_mcp:
+                    try:
+                        ensure_mcp(
+                            sandbox=args.sandbox,
+                            name=args.mcp_name,
+                            runtime_dir=args.mcp_runtime_dir,
+                            local_url=args.mcp_local_url,
+                            credential_env=args.mcp_credential_env,
+                            expected_tools=args.mcp_expected_tools,
+                        )
+                    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+                        preflight_error = error
+                if preflight_error is not None:
+                    completed = subprocess.CompletedProcess(
+                        [],
+                        125,
+                        stdout="",
+                        stderr=f"MCP preflight failed: {preflight_error}",
+                    )
+                    run_workspace = ""
+                else:
+                    completed = None
+                if args.reset_demo_sessions and completed is None:
                     clear_demo_sessions(args.gateway, args.sandbox)
-                run_workspace = (
-                    f"/sandbox/eval-workspaces/{args.arm}-{case_id}-{trial}-"
-                    f"{uuid.uuid4().hex[:8]}"
-                )
-                subprocess.run(
-                    [
-                        "openshell", "-g", args.gateway, "sandbox", "exec", "-n",
-                        args.sandbox, "--no-tty", "--", "mkdir", "-p", run_workspace,
-                    ],
-                    check=True,
-                    text=True,
-                    capture_output=True,
-                )
+                if completed is None:
+                    run_workspace = (
+                        f"/sandbox/eval-workspaces/{args.arm}-{case_id}-{trial}-"
+                        f"{uuid.uuid4().hex[:8]}"
+                    )
+                    subprocess.run(
+                        [
+                            "openshell", "-g", args.gateway, "sandbox", "exec", "-n",
+                            args.sandbox, "--no-tty", "--", "mkdir", "-p", run_workspace,
+                        ],
+                        check=True,
+                        text=True,
+                        capture_output=True,
+                    )
                 command = [
                     "openshell", "-g", args.gateway, "sandbox", "exec", "-n",
                     args.sandbox, "--timeout", str(args.timeout), "--no-tty", "--",
@@ -136,23 +176,24 @@ def main() -> int:
                     command.extend(["--model", args.model])
                 if args.provider:
                     command.extend(["--provider", args.provider])
-                try:
-                    completed = subprocess.run(
-                        command,
-                        text=True,
-                        capture_output=True,
-                        timeout=args.timeout + 30,
-                        check=False,
-                    )
-                except subprocess.TimeoutExpired as error:
-                    stdout = error.stdout.decode() if isinstance(error.stdout, bytes) else error.stdout
-                    stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else error.stderr
-                    completed = subprocess.CompletedProcess(
-                        command,
-                        124,
-                        stdout=stdout or "",
-                        stderr=stderr or "host-side timeout",
-                    )
+                if completed is None:
+                    try:
+                        completed = subprocess.run(
+                            command,
+                            text=True,
+                            capture_output=True,
+                            timeout=args.timeout + 30,
+                            check=False,
+                        )
+                    except subprocess.TimeoutExpired as error:
+                        stdout = error.stdout.decode() if isinstance(error.stdout, bytes) else error.stdout
+                        stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else error.stderr
+                        completed = subprocess.CompletedProcess(
+                            command,
+                            124,
+                            stdout=stdout or "",
+                            stderr=stderr or "host-side timeout",
+                        )
                 response = completed.stdout.strip()
                 terminal_error = terminal_failure(response)
                 failed_attempt = retryable_failure(completed.returncode, terminal_error)

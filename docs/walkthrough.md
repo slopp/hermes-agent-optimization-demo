@@ -117,40 +117,30 @@ docker run --detach --rm --name enterprise-world-mcp \
   --fixture /app/fixtures/world-v2.json
 ```
 
-Expose loopback through HTTPS and extract the temporary URL:
+Expose loopback through HTTPS and register it. The helper verifies discovery,
+starts a quick tunnel when needed, and requires exactly 15 tools:
 
 ```bash
-export DEMO_RUNTIME="$(mktemp -d)"
-cloudflared tunnel --url http://127.0.0.1:8000 \
-  >"$DEMO_RUNTIME/cloudflared.log" 2>&1 &
-export CLOUDFLARED_PID=$!
-
-for attempt in 1 2 3 4 5 6 7 8 9 10; do
-  ENTERPRISE_MCP_URL="$(sed -n 's#.*\(https://[a-z0-9-]*\.trycloudflare\.com\).*#\1#p' \
-    "$DEMO_RUNTIME/cloudflared.log" | head -1)"
-  test -n "$ENTERPRISE_MCP_URL" && break
-  sleep 1
-done
-export ENTERPRISE_MCP_URL
-test -n "$ENTERPRISE_MCP_URL"
-printf '%s\n' "$ENTERPRISE_MCP_URL"
-
-nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
-  --url "$ENTERPRISE_MCP_URL/mcp" \
-  --env PA_STYLE_MOCK_MCP_TOKEN
+mkdir -p .runs/runtime
+python3 scripts/ensure_nemoclaw_mcp.py \
+  --sandbox "$DEMO_SANDBOX" --runtime-dir .runs/runtime
+export ENTERPRISE_MCP_URL="$(cat .runs/runtime/mock-mcp-url)"
 nemoclaw "$DEMO_SANDBOX" mcp list
 nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 ```
 
-A quick tunnel changes each time it restarts; re-run `mcp add` with the new
-URL. For repeatable team use, deploy this image behind stable HTTPS. If an MCP
-probe succeeds on the host but Hermes receives `403`, recreate the tunnel and
-registration so OpenShell pins the endpoint's current IPv4 and IPv6 addresses.
+A quick tunnel can exit or receive a new hostname during a long run. NemoClaw
+0.0.124 does not update an existing URL by repeating `mcp add`: repair requires
+removing the MCP entry, deleting the preserved sandbox-scoped OpenShell
+provider, and adding it again. `ensure_nemoclaw_mcp.py` performs those steps
+only after discovery fails; the matrix runner calls it before every attempt.
+The bearer token remains in the environment and is never passed as a command
+argument. For repeatable team use, deploy the same image behind stable HTTPS.
 
 After the tutorial:
 
 ```bash
-kill "$CLOUDFLARED_PID"
+kill "$(cat .runs/runtime/cloudflared.pid)"
 docker stop enterprise-world-mcp
 ```
 
@@ -221,22 +211,18 @@ python3 scripts/configure_nemoclaw_arm.py \
 ```
 
 Run three development trials. `--reset-demo-sessions` deletes Hermes session
-history, so use it only with this disposable sandbox. Refresh and verify the
-MCP bridge immediately before a batch; quick-tunnel DNS can change while the
-sandbox's egress policy remains pinned.
+history, so use it only with this disposable sandbox. `--ensure-mock-mcp`
+checks discovery before each attempt and repairs a stale quick-tunnel
+registration before Hermes runs.
 
 ```bash
-nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
-  --url "$ENTERPRISE_MCP_URL/mcp" \
-  --env PA_STYLE_MOCK_MCP_TOKEN
-nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
-
 python3 scripts/run_nemoclaw_matrix.py \
   --sandbox "$DEMO_SANDBOX" \
   --gateway "$DEMO_GATEWAY" \
   --matrix experiments/fidelity-matrix-v2.json \
   --arm baseline --trials 3 --delay-seconds 30 \
   --retries 3 --retry-backoff-seconds 180 \
+  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
   --reset-demo-sessions \
   --output .runs/world-v2/baseline-dev/responses
 ```
@@ -458,20 +444,16 @@ python3 scripts/configure_nemoclaw_arm.py \
   --trace-label "$TRACE_LABEL"
 ```
 
-Refresh the MCP bridge, run three candidate trials at a paced cadence, download
-their distinct Relay stream, and convert it:
+Run three candidate trials at a paced cadence, download their distinct Relay
+stream, and convert it:
 
 ```bash
-nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
-  --url "$ENTERPRISE_MCP_URL/mcp" \
-  --env PA_STYLE_MOCK_MCP_TOKEN
-nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
-
 python3 scripts/run_nemoclaw_matrix.py \
   --sandbox "$DEMO_SANDBOX" --gateway "$DEMO_GATEWAY" \
   --matrix experiments/fidelity-matrix-v2.json \
   --arm candidate --trials 3 --delay-seconds 30 \
   --retries 3 --retry-backoff-seconds 180 \
+  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
   --reset-demo-sessions \
   --output .runs/world-v2/candidate-v4-dev/responses
 
@@ -512,28 +494,24 @@ then score:
 python3 scripts/configure_nemoclaw_arm.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --arm baseline --trace-label world-v2-baseline-held-out
-nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
-  --url "$ENTERPRISE_MCP_URL/mcp" --env PA_STYLE_MOCK_MCP_TOKEN
-nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
   --arm baseline --trials 3 --delay-seconds 30 \
   --retries 3 --retry-backoff-seconds 180 \
+  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
   --reset-demo-sessions \
   --output .runs/world-v2/baseline-held-out/responses
 
 python3 scripts/configure_nemoclaw_arm.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --arm candidate-v4 --trace-label world-v2-candidate-v4-held-out
-nemoclaw "$DEMO_SANDBOX" mcp add enterprise-world \
-  --url "$ENTERPRISE_MCP_URL/mcp" --env PA_STYLE_MOCK_MCP_TOKEN
-nemoclaw "$DEMO_SANDBOX" mcp status enterprise-world --tools
 python3 scripts/run_nemoclaw_matrix.py \
   --gateway "$DEMO_GATEWAY" --sandbox "$DEMO_SANDBOX" \
   --matrix experiments/held-out-matrix-v2.json \
   --arm candidate --trials 3 --delay-seconds 30 \
   --retries 3 --retry-backoff-seconds 180 \
+  --ensure-mock-mcp --mcp-runtime-dir .runs/runtime \
   --reset-demo-sessions \
   --output .runs/world-v2/candidate-v4-held-out/responses
 
