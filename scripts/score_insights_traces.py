@@ -80,6 +80,11 @@ def main() -> int:
         action="store_true",
         help="Exclude turns containing any recorded provider error from score aggregates.",
     )
+    parser.add_argument(
+        "--trials-per-case",
+        type=int,
+        help="Use the first N valid trials per observed case and reject incomplete cases.",
+    )
     args = parser.parse_args()
 
     suite = json.loads(args.suite.read_text())
@@ -94,14 +99,35 @@ def main() -> int:
         ]
         results = []
         excluded = []
+        excess_valid = []
+        selected_by_case: Counter[str] = Counter()
+        encountered_cases: set[str] = set()
         for trace in traces:
             case_id = trace.get("attributes", {}).get("logical_case_id")
             if case_id in cases:
+                encountered_cases.add(case_id)
                 result = score_trace(trace, cases[case_id])
                 if args.valid_only and not result["infrastructure_valid"]:
                     excluded.append(result)
+                elif (
+                    args.trials_per_case is not None
+                    and selected_by_case[case_id] >= args.trials_per_case
+                ):
+                    excess_valid.append(result)
                 else:
                     results.append(result)
+                    selected_by_case[case_id] += 1
+        if args.trials_per_case is not None:
+            incomplete = {
+                case_id: selected_by_case[case_id]
+                for case_id in sorted(encountered_cases)
+                if selected_by_case[case_id] < args.trials_per_case
+            }
+            if incomplete:
+                raise SystemExit(
+                    f"arm {name!r} has fewer than {args.trials_per_case} valid trials: "
+                    f"{incomplete}"
+                )
         if not results:
             raise SystemExit(f"arm {name!r} contains no trace matching the suite")
         by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -110,6 +136,7 @@ def main() -> int:
         report["arms"][name] = {
             "trace_count": len(results),
             "excluded_infrastructure_trace_count": len(excluded),
+            "excluded_excess_valid_trace_count": len(excess_valid),
             "pass_rate": sum(result["passed"] for result in results) / len(results),
             "trajectory_pass_rate": sum(result["trajectory_pass"] for result in results)
             / len(results),

@@ -494,6 +494,7 @@ the shared endpoint quota to recover and rerun only the affected scenario with
 
 ```bash
 python3 scripts/score_insights_traces.py --valid-only \
+  --trials-per-case 3 \
   --suite evals/flywheel-eval-set-v2.json \
   --arm baseline=.runs/world-v2/baseline-dev/insights.jsonl \
   --arm candidate-v4=.runs/world-v2/candidate-v4-dev/insights.jsonl \
@@ -555,6 +556,7 @@ python3 scripts/convert_atof_for_insights.py \
   --output .runs/world-v2/candidate-v4-held-out/insights.jsonl
 
 python3 scripts/score_insights_traces.py --valid-only \
+  --trials-per-case 3 \
   --suite evals/flywheel-eval-set-v2.json \
   --arm baseline=.runs/world-v2/baseline-held-out/insights.jsonl \
   --arm candidate-v4=.runs/world-v2/candidate-v4-held-out/insights.jsonl \
@@ -566,8 +568,13 @@ python3 scripts/assemble_insights_corpus.py \
   --input .runs/world-v2/candidate-v4-dev/insights.jsonl \
   --input .runs/world-v2/baseline-held-out/insights.jsonl \
   --input .runs/world-v2/candidate-v4-held-out/insights.jsonl \
-  --output .runs/world-v2/final-60-insights.jsonl
+  --output .runs/world-v2/final-insights.jsonl
 ```
+
+Retries remain in Relay for reliability analysis. Scoring takes the first
+three valid trials per observed case and rejects a case with fewer than three;
+the combined Insights corpus may therefore contain more than 60 valid records
+if a host-timed-out attempt later finished inside Hermes.
 
 Require answer, trajectory, approval state, timeout, and efficiency guardrails
 to improve or remain acceptable. The measured run reached 41.7% → 91.7%

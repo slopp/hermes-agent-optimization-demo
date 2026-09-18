@@ -1,4 +1,9 @@
+import json
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from scripts.score_insights_traces import score_trace
 
@@ -49,6 +54,53 @@ class ScoreInsightsTraceTests(unittest.TestCase):
         case = {"id": "case", "expectations": {"required_tools": ["chat.search"]}}
 
         self.assertTrue(score_trace(trace, case)["trajectory_pass"])
+
+    def test_cli_caps_valid_trials_and_reports_excess(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_temp:
+            root = Path(raw_temp)
+            suite = root / "suite.json"
+            traces = root / "traces.jsonl"
+            output = root / "report.json"
+            suite.write_text(
+                json.dumps({"cases": [{"id": "case", "expectations": {}}]})
+            )
+            records = [
+                {
+                    "id": f"trace-{index}",
+                    "root_spans": [],
+                    "attributes": {
+                        "logical_case_id": "case",
+                        "final_answer": "ok",
+                        "infrastructure_valid": index != 0,
+                    },
+                }
+                for index in range(5)
+            ]
+            traces.write_text("".join(json.dumps(record) + "\n" for record in records))
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/score_insights_traces.py",
+                    "--valid-only",
+                    "--trials-per-case",
+                    "3",
+                    "--suite",
+                    str(suite),
+                    "--arm",
+                    f"test={traces}",
+                    "--output",
+                    str(output),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            arm = json.loads(output.read_text())["arms"]["test"]
+            self.assertEqual(arm["trace_count"], 3)
+            self.assertEqual(arm["excluded_infrastructure_trace_count"], 1)
+            self.assertEqual(arm["excluded_excess_valid_trace_count"], 1)
 
 
 if __name__ == "__main__":
