@@ -1,6 +1,10 @@
 import unittest
 
-from pa_style_mock_mcp.insights import atif_to_insights_trace, atof_events_to_insights_traces
+from pa_style_mock_mcp.insights import (
+    apply_runner_outcomes,
+    atif_to_insights_trace,
+    atof_events_to_insights_traces,
+)
 
 
 class InsightsAdapterTests(unittest.TestCase):
@@ -222,6 +226,43 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertTrue(trace["attributes"]["infrastructure_valid"])
         self.assertEqual(trace["aggregate"]["latency_ms"], 4000)
         self.assertEqual(trace["root_spans"][0]["tool_name"], "terminal")
+
+    def test_runner_timeout_overrides_late_relay_success(self) -> None:
+        traces = [
+            {
+                "id": "turn",
+                "root_spans": [
+                    {"tool_name": "before", "start_time": "2026-09-11T12:00:01+00:00"},
+                    {"tool_name": "after", "start_time": "2026-09-11T12:05:01+00:00"},
+                ],
+                "aggregate": {"latency_ms": 360000},
+                "attributes": {
+                    "logical_case_id": "case",
+                    "turn_outcome": "success",
+                    "final_answer": "late answer",
+                    "infrastructure_valid": True,
+                    "started_at": "2026-09-11T12:00:00+00:00",
+                },
+            }
+        ]
+        records = [
+            {
+                "case_id": "case",
+                "trial": 1,
+                "attempt": 1,
+                "returncode": 124,
+                "completed_at": "2026-09-11T12:05:00+00:00",
+                "workspace": "/sandbox/eval-workspaces/case",
+            }
+        ]
+
+        apply_runner_outcomes(traces, records)
+
+        self.assertEqual(traces[0]["attributes"]["turn_outcome"], "failed")
+        self.assertEqual(traces[0]["attributes"]["termination_reason"], "runner_timeout")
+        self.assertEqual(traces[0]["attributes"]["final_answer"], "")
+        self.assertEqual([span["tool_name"] for span in traces[0]["root_spans"]], ["before"])
+        self.assertEqual(traces[0]["aggregate"]["latency_ms"], 300000)
 
 
 if __name__ == "__main__":

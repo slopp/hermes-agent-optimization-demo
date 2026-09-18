@@ -240,6 +240,7 @@ python3 scripts/convert_atof_to_atif.py \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/baseline-dev/relay/events.jsonl \
   --matrix experiments/fidelity-matrix-v2.json \
+  --responses .runs/world-v2/baseline-dev/responses \
   --include-incomplete \
   --output .runs/world-v2/baseline-dev/insights.jsonl
 ```
@@ -464,6 +465,7 @@ openshell sandbox download "$DEMO_SANDBOX" \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/candidate-v4-dev/relay/events.jsonl \
   --matrix experiments/fidelity-matrix-v2.json \
+  --responses .runs/world-v2/candidate-v4-dev/responses \
   --include-incomplete \
   --output .runs/world-v2/candidate-v4-dev/insights.jsonl
 ```
@@ -531,11 +533,13 @@ openshell sandbox download "$DEMO_SANDBOX" \
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/baseline-held-out/relay/events.jsonl \
   --matrix experiments/held-out-matrix-v2.json \
+  --responses .runs/world-v2/baseline-held-out/responses \
   --include-incomplete \
   --output .runs/world-v2/baseline-held-out/insights.jsonl
 python3 scripts/convert_atof_for_insights.py \
   --atof .runs/world-v2/candidate-v4-held-out/relay/events.jsonl \
   --matrix experiments/held-out-matrix-v2.json \
+  --responses .runs/world-v2/candidate-v4-held-out/responses \
   --include-incomplete \
   --output .runs/world-v2/candidate-v4-held-out/insights.jsonl
 

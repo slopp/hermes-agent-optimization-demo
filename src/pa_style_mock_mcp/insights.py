@@ -260,6 +260,11 @@ def atof_events_to_insights_traces(
                 if case_id is not None:
                     prompt = candidate
                     break
+        if not end and prompt_case_ids is not None and case_id is None:
+            # Session cleanup and interrupted startup can leave empty turn
+            # starts. They are not evaluation attempts and should not enter
+            # an Insights corpus merely because incomplete turns are enabled.
+            continue
         spans: list[dict[str, Any]] = []
         for event in descendants:
             if event.get("category") != "tool" or event.get("scope_category") != "start":
@@ -340,6 +345,8 @@ def atof_events_to_insights_traces(
             "tool_catalog": catalog,
             "model": model,
             "turn_outcome": turn_outcome,
+            "started_at": start.get("timestamp"),
+            "ended_at": end.get("timestamp") if end else None,
             "provider_errors": provider_errors,
             # A transient provider error that Hermes retries successfully does
             # not invalidate the observed behavior. It remains recorded for
@@ -371,6 +378,68 @@ def atof_events_to_insights_traces(
                 attributes["observed_verdict"] = "missing required enterprise evidence"
         traces.append({"id": turn_id, "root_spans": spans, "aggregate": aggregate, "attributes": attributes})
     return traces
+
+
+def apply_runner_outcomes(
+    traces: list[dict[str, Any]], records: list[dict[str, Any]]
+) -> None:
+    """Join one final matrix-runner outcome to each case trial in event order."""
+    traces_by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    records_by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for trace in traces:
+        case_id = trace.get("attributes", {}).get("logical_case_id")
+        if isinstance(case_id, str):
+            traces_by_case[case_id].append(trace)
+    for record in records:
+        case_id = record.get("case_id")
+        if isinstance(case_id, str):
+            records_by_case[case_id].append(record)
+
+    for case_id, case_records in records_by_case.items():
+        case_traces = traces_by_case.get(case_id, [])
+        case_records.sort(
+            key=lambda record: (
+                int(record.get("trial") or 0),
+                int(record.get("attempt") or 0),
+                str(record.get("completed_at") or ""),
+            )
+        )
+        if len(case_traces) != len(case_records):
+            raise ValueError(
+                f"runner/Relay trial mismatch for {case_id}: "
+                f"traces={len(case_traces)}, records={len(case_records)}"
+            )
+        for trace, record in zip(case_traces, case_records):
+            attributes = trace["attributes"]
+            returncode = int(record.get("returncode") or 0)
+            attributes["runner"] = {
+                "trial": record.get("trial"),
+                "attempt": record.get("attempt"),
+                "returncode": returncode,
+                "completed_at": record.get("completed_at"),
+                "workspace": record.get("workspace"),
+            }
+            if returncode == 124:
+                attributes["turn_outcome"] = "failed"
+                attributes["termination_reason"] = "runner_timeout"
+                attributes["final_answer"] = ""
+                attributes["infrastructure_valid"] = True
+                cutoff = _timestamp(record.get("completed_at"))
+                if cutoff:
+                    trace["root_spans"] = [
+                        span
+                        for span in trace["root_spans"]
+                        if not (started := _timestamp(span.get("start_time"))) or started <= cutoff
+                    ]
+                    started = _timestamp(attributes.get("started_at"))
+                    if started:
+                        trace["aggregate"]["latency_ms"] = (
+                            cutoff - started
+                        ).total_seconds() * 1000
+            elif returncode:
+                attributes["turn_outcome"] = "failed"
+                attributes["termination_reason"] = "runner_runtime_failure"
+                attributes["infrastructure_valid"] = False
 
 
 def _canonical_pa_tool_name(value: Any) -> str | None:

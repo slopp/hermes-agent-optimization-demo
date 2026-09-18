@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pa_style_mock_mcp.insights import atof_events_to_insights_traces
+from pa_style_mock_mcp.insights import apply_runner_outcomes, atof_events_to_insights_traces
 from pa_style_mock_mcp.jsonl import read_relay_jsonl
 
 
@@ -20,6 +20,11 @@ def main() -> int:
     parser.add_argument("--atof", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--matrix", type=Path)
+    parser.add_argument(
+        "--responses",
+        type=Path,
+        help="Matrix-runner response directory used to preserve caller-visible timeout outcomes.",
+    )
     parser.add_argument(
         "--include-incomplete",
         action="store_true",
@@ -42,6 +47,21 @@ def main() -> int:
         case_required_signals=case_required_signals,
         include_incomplete=args.include_incomplete,
     )
+    if args.responses:
+        unique_records = {}
+        for path in sorted(args.responses.glob("*.json")):
+            record = json.loads(path.read_text())
+            if not record.get("workspace"):
+                continue
+            key = (
+                record.get("case_id"),
+                record.get("trial"),
+                record.get("attempt"),
+                record.get("completed_at"),
+            )
+            unique_records[key] = record
+        records = list(unique_records.values())
+        apply_runner_outcomes(traces, records)
     if not traces:
         raise SystemExit("no completed hermes.turn scopes found")
     args.output.parent.mkdir(parents=True, exist_ok=True)

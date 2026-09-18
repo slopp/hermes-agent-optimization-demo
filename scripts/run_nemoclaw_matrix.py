@@ -216,6 +216,7 @@ def main() -> int:
                     "response": response,
                     "stderr": completed.stderr.strip(),
                     "terminal_error": terminal_error,
+                    "timeout_seconds": args.timeout,
                     "workspace": run_workspace,
                 }
                 path = args.output / f"{case_id}-trial-{trial:02d}.json"
