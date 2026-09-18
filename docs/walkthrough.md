@@ -31,7 +31,10 @@ Install the host tools on Ubuntu:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y binutils ca-certificates curl gh git jq make openssl docker.io
+sudo apt-get install -y binutils ca-certificates curl gh git jq make openssl
+if ! command -v docker >/dev/null; then
+  sudo apt-get install -y docker.io
+fi
 sudo usermod -aG docker "$USER"
 newgrp docker
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -217,7 +220,8 @@ sed -n '1,220p' evals/harbor-tasks-v2/source-coverage/tests/verify.py
 
 python3 scripts/materialize_harbor_tasks.py \
   --output .runs/reference-task-rebuild
-diff -qr evals/harbor-tasks-v2 .runs/reference-task-rebuild
+diff -qr -x __pycache__ -x '*.pyc' \
+  evals/harbor-tasks-v2 .runs/reference-task-rebuild
 ```
 
 Before trusting a new task, require NOP failure, Oracle success, a relevant

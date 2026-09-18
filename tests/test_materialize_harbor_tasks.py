@@ -31,6 +31,25 @@ class MaterializeHarborTasksTest(unittest.TestCase):
             self.assertIn("hermes-agent", dockerfile)
             self.assertEqual(expected["required_tools"], ["chat.search"])
 
+    def test_task_does_not_copy_python_cache_files(self) -> None:
+        source_cache = (
+            Path(__file__).parents[1]
+            / "src"
+            / "pa_style_mock_mcp"
+            / "__pycache__"
+        )
+        source_cache.mkdir(exist_ok=True)
+        cached_file = source_cache / "materializer-test.pyc"
+        cached_file.write_bytes(b"cache")
+        self.addCleanup(cached_file.unlink, missing_ok=True)
+
+        case = {"id": "example", "input": "Find it.", "expectations": {}}
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            materialize(case, root)
+            copied = root / "example" / "environment" / "pa_style_mock_mcp"
+            self.assertFalse((copied / "__pycache__").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

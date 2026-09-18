@@ -169,7 +169,11 @@ def materialize(case: dict, output_root: Path) -> None:
     (task / "instruction.md").write_text(case["input"].strip() + "\n", encoding="utf-8")
     (task / "task.toml").write_text(task_toml(case["id"]), encoding="utf-8")
     (environment / "Dockerfile").write_text(environment_dockerfile(), encoding="utf-8")
-    shutil.copytree(ROOT / "src" / "pa_style_mock_mcp", environment / "pa_style_mock_mcp")
+    shutil.copytree(
+        ROOT / "src" / "pa_style_mock_mcp",
+        environment / "pa_style_mock_mcp",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
     shutil.copy2(ROOT / "fixtures" / "world-v2.json", environment / "world.json")
 
     expected = dict(case["expectations"])
