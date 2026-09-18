@@ -6,9 +6,22 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+TERMINAL_FAILURE_MARKERS = (
+    "api call failed after",
+    "context length exceeded",
+    "service temporarily overloaded",
+)
+
+
+def terminal_failure(response: str) -> str | None:
+    """Return the recorded terminal error marker Hermes may emit with exit 0."""
+    lowered = response.lower()
+    return next((marker for marker in TERMINAL_FAILURE_MARKERS if marker in lowered), None)
 
 
 def clear_demo_sessions(gateway: str, sandbox: str) -> None:
@@ -40,6 +53,12 @@ def main() -> int:
     parser.add_argument("--arm", choices=["baseline", "candidate"], required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=0,
+        help="Pause between runs to avoid bursting a shared inference endpoint.",
+    )
     parser.add_argument("--model", help="Optional Hermes model override for every invocation.")
     parser.add_argument("--provider", help="Optional Hermes provider override for every invocation.")
     parser.add_argument(
@@ -113,6 +132,8 @@ def main() -> int:
                 timeout=args.timeout + 30,
                 check=False,
             )
+            response = completed.stdout.strip()
+            terminal_error = terminal_failure(response)
             record = {
                 "schema_version": "nemoclaw-matrix-run-v1",
                 "arm": args.arm,
@@ -121,15 +142,19 @@ def main() -> int:
                 "prompt": scenario["prompt"],
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "returncode": completed.returncode,
-                "response": completed.stdout.strip(),
+                "response": response,
                 "stderr": completed.stderr.strip(),
+                "terminal_error": terminal_error,
                 "workspace": run_workspace,
             }
             path = args.output / f"{case_id}-trial-{trial:02d}.json"
             path.write_text(json.dumps(record, indent=2) + "\n")
-            if completed.returncode:
+            if completed.returncode or terminal_error:
                 failures += 1
-                print(f"  failed with exit {completed.returncode}: {completed.stderr.strip()}", flush=True)
+                detail = completed.stderr.strip() or terminal_error or "unknown failure"
+                print(f"  failed with exit {completed.returncode}: {detail}", flush=True)
+            if args.delay_seconds > 0:
+                time.sleep(args.delay_seconds)
     print(f"Completed {len(scenarios) * args.trials} runs; failures={failures}")
     return 1 if failures else 0
 
