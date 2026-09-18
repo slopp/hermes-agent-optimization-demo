@@ -9,7 +9,7 @@ recreate them.
 
 ## 1. Clone and validate
 
-Requirements are Git, Python 3.11+, `uv`, Docker, `curl`, `openssl`, `jq`, and
+Requirements are Git, Make, Python 3.11+, `uv`, Docker, `curl`, `openssl`, `jq`, and
 `cloudflared` (or another HTTPS ingress). Step 6 has one additional constraint:
 Harbor 0.22.0 needs a Docker daemon whose Linux kernel supports nftables
 `CONFIG_NFT_FIB_INET`. Native Linux normally does. Docker Desktop's LinuxKit
@@ -19,7 +19,7 @@ kernel does not; on macOS, use Colima for the Harbor proofs.
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
 
-command -v git python3 uv docker curl openssl jq cloudflared
+command -v git make python3 uv docker curl openssl jq cloudflared
 docker info >/dev/null
 make test
 make validate
@@ -38,7 +38,7 @@ curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | \
 echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | \
   sudo tee /etc/apt/sources.list.d/cloudflared.list
 sudo apt-get update
-sudo apt-get install -y cloudflared
+sudo apt-get install -y make cloudflared
 ```
 
 On macOS:
