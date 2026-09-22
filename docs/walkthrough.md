@@ -85,7 +85,7 @@ uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
 .harbor-venv/bin/harbor --version
 ```
 
-Expected output includes `harbor, version 0.22.0`. The first task image build can
+Expected output is `0.22.0`. The first task image build can
 take 10–20 minutes; later tasks reuse the image layers.
 
 ## 2. Inspect the starting traces

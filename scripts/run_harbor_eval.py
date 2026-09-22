@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -55,7 +56,12 @@ def main() -> int:
     for case_id in case_ids:
         command.extend(("--include-task-name", case_id))
     print(json.dumps({"arm": args.arm, "split": args.split, "cases": case_ids, "job": job_name}))
-    return subprocess.run(command, cwd=ROOT, check=False).returncode
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        f"{ROOT}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else str(ROOT)
+    )
+    return subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
 
 
 if __name__ == "__main__":
