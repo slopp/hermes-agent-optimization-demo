@@ -81,6 +81,8 @@
     }
   },
   "candidate_changes": [
+    "explicit MCP discovery by service, object, and action",
+    "exact discovered-schema use with one enterprise operation per tool_call",
     "claim-to-source evidence routing and completeness stop check",
     "search-then-read before citing record contents",
     "schema-first bounded structured reads",

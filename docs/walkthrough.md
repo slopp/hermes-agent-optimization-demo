@@ -292,10 +292,13 @@ diff -u profiles/baseline-soul.md profiles/candidate-soul.md || true
 sed -n '1,90p' harbor_agents/hermes_flywheel.py
 ```
 
-The candidate adds claim-to-source routing, search-then-read, evidence-completeness
-checking, schema-first bounded JSON reads, one exact retry then one fallback,
-connector-status handling, and prepare-without-send. Tool downsampling removes
-irrelevant local/web/code paths, and the shorter turn cap bounds runaway behavior.
+The candidate treats Hermes' initial catalog as a bootstrap surface, explicitly
+discovers MCP operations by service/object/action, follows the returned schema, and
+uses one enterprise operation per `tool_call`. It also adds claim-to-source routing,
+an immediate search-to-read transition, evidence-completeness checking, bounded
+JSON reads, one exact retry then one fallback, connector-status handling, and
+prepare-without-send. Tool downsampling and the shorter turn cap bound irrelevant
+or runaway behavior.
 
 Nothing is hidden in a configurator. Edit the Markdown profile and the `ARM_CONFIG`
 entry in `harbor_agents/hermes_flywheel.py` to create another arm. Add its name to
