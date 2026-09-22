@@ -59,10 +59,9 @@ structured-read arguments, and irrelevant local or web detours.
 [NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel) turns those
 scored failures into hypotheses. The checked-in candidate
 implements the resulting harness patterns in an ordinary editable `SOUL.md`:
-explicit MCP discovery, exact schema use, claim-to-source routing, an evidence-
-completeness check, immediate search-then-read, bounded JSON inspection, exact retry
-and fallback transitions, connector-status awareness, prepare-without-send, tool
-downsampling, and a 12-turn cap.
+claim-to-source routing, an evidence-completeness check, search-then-read, schema-
+first bounded JSON inspection, exact retry and fallback transitions, connector-
+status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
 
 | Split | Baseline | Candidate | Attempts |
 | --- | ---: | ---: | ---: |

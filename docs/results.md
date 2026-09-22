@@ -33,9 +33,6 @@ The baseline exposes Hermes' broad built-in tool surface, uses a generic policy,
 and permits 60 turns. Candidate changes only the harness:
 
 - route each claim to its natural enterprise source and stop when covered;
-- treat the initial catalog as a bootstrap and discover MCP operations by service,
-  object, and action;
-- follow discovered schemas and issue one enterprise operation per `tool_call`;
 - treat search hits as metadata, then read the selected record;
 - inspect schemas before bounded structured reads;
 - retry the same transient call once, then use one declared fallback;
