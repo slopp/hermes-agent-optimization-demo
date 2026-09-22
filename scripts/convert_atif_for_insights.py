@@ -31,16 +31,24 @@ def _files(inputs: list[Path]) -> list[Path]:
     return found
 
 
-def _harbor_case_id(path: Path) -> str | None:
-    """Resolve the logical case from the enclosing Harbor trial result."""
+def _harbor_context(path: Path) -> tuple[str | None, dict[str, object]]:
+    """Resolve case ID and evaluator results from an enclosing Harbor trial."""
     for parent in path.parents:
         result_path = parent / "result.json"
         if not result_path.is_file():
             continue
-        task_name = json.loads(result_path.read_text(encoding="utf-8")).get("task_name")
-        if isinstance(task_name, str) and task_name:
-            return task_name.rsplit("/", 1)[-1]
-    return None
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        task_name = result.get("task_name")
+        case_id = task_name.rsplit("/", 1)[-1] if isinstance(task_name, str) else None
+        reward = result.get("verifier_result", {}).get("rewards", {}).get("reward")
+        evaluator_results: dict[str, object] = {"harbor.reward": reward}
+        report_path = parent / "verifier" / "report.json"
+        if report_path.is_file():
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            evaluator_results["harbor.passed"] = report.get("passed")
+            evaluator_results["harbor.failures"] = report.get("failures", [])
+        return case_id, evaluator_results
+    return None, {}
 
 
 def main() -> int:
@@ -74,8 +82,15 @@ def main() -> int:
             suffix = ".atif.json"
             case_id = path.name[: -len(suffix)] if path.name.endswith(suffix) else path.stem
         else:
-            case_id = trajectory.get("extra", {}).get("logical_case_id") or _harbor_case_id(path)
-        trace = atif_to_insights_trace(trajectory, logical_case_id=case_id)
+            harbor_case_id, evaluator_results = _harbor_context(path)
+            case_id = trajectory.get("extra", {}).get("logical_case_id") or harbor_case_id
+        if args.case_id_from_parent or args.case_id_from_stem:
+            _, evaluator_results = _harbor_context(path)
+        trace = atif_to_insights_trace(
+            trajectory,
+            logical_case_id=case_id,
+            evaluator_results=evaluator_results,
+        )
         if trace["id"] in seen:
             raise ValueError(f"duplicate trace id: {trace['id']}")
         seen.add(trace["id"])

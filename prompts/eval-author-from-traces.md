@@ -1,39 +1,36 @@
-# Codex prompt: derive Harbor evals from a trace pile
+# Codex prompt: propose Harbor evals from observed traces
 
-Work in this repository as an evaluation author. Read `ETHOS.md` first, then
-read the complete `SKILL.md` files for these NeMo Eval Author skills from the
-adjacent `../nemo-platform` checkout:
+Use the installed `eval-author` skills to help me design evaluations for this
+agent. Read `ETHOS.md` and the complete instructions for every Eval Author skill
+you invoke before taking action.
 
-- `eval-author`
-- `eval-author-audit`
-- `eval-author-inspect-trace`
-- `eval-author-trace-environment`
-- `eval-author-task-create`
+Our starting evidence is `traces/world-v2/corpus/index.json` and every ATIF file
+it references. Inspect the entire indexed corpus. Do not assume how many behaviors
+or tasks it should produce. Report:
 
-Inspect `traces/world-v2/corpus/index.json` and all 36 referenced ATIF traces.
-Use the audit skill to define the finite behavior denominator and measure the
-pile. Cluster repeated failure shapes and select one representative failed
-trace for each meaningful development behavior. Explain the selections before
-authoring tasks.
+1. the finite trace denominator you inspected;
+2. the recurring behaviors and gaps supported by trace IDs;
+3. your selection criteria and representative trace choices; and
+4. behaviors you excluded or deferred, with reasons.
 
-For every selected trace, follow the trace-environment skill end to end. The
-task must exercise the task-local `enterprise-world` MCP server backed by
-`fixtures/world-v2.json`; do not replace the source tools with a frozen query
-shortcut. Record `real` tool access for those calls, prove MCP registration,
-discovery, and invocation, and retain a separate no-network verifier. Run NOP,
-Oracle, and negative controls. Do not claim a human review yourself: stop at
-each privacy, tool-access, generalized-task, and publication review checkpoint,
-show me the exact artifact to inspect, and wait for my decision.
+After I approve the plan, apply the trace-derived environment workflow separately
+to each selected trace. Preserve the behavior under test while generalizing
+identities and data. The task must exercise the task-local `enterprise-world` MCP
+server backed by `fixtures/world-v2.json`; do not substitute a frozen answer lookup.
+Classify those calls according to the skill's access taxonomy and prove MCP
+registration, discovery, and invocation.
 
 Use this repository's existing `.harbor-venv/bin/python` and
-`.harbor-venv/bin/harbor` for Harbor imports, checks, and proof jobs. Do not
-silently install or upgrade Harbor while authoring the eval.
+`.harbor-venv/bin/harbor` for checks and proof jobs. Do not install or upgrade
+Harbor. Require NOP failure, Oracle success, relevant negative controls, and a
+separate no-network verifier.
 
-Treat `evals/harbor-tasks-v2/` as the checked-in reference implementation, not as
-an answer to copy silently. Compare your proposed task contracts with it and
-call out any substantive difference. Keep held-out cases sealed until the
-development task and harness decisions are final.
+Stop at every required human privacy, tool-access, task-meaning, and publication
+review. Show the exact artifact and decision being reviewed; do not attest on my
+behalf or change a review field to bypass a gate.
 
-Do not change application source or harness profiles during task authoring.
-Write Eval Author working state only under `.eval-author/` unless I explicitly
-approve exporting a reviewed artifact.
+Keep working state under `.eval-author/`. Do not inspect
+`evals/harbor-tasks-v2/` until after you have presented an independently derived
+task plan. Once approved, compare your proposed contracts with that reference set
+and explain substantive differences. Do not modify application code, harness
+profiles, or held-out tasks while authoring development evals.

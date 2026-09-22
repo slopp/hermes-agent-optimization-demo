@@ -138,6 +138,7 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 npm install -g @openai/codex
 npx skills add NVIDIA-NeMo/labs-eval-author --skill '*' --agent codex --yes
+npx skills list --agent codex
 codex
 ```
 
@@ -208,7 +209,9 @@ python3 scripts/run_harbor_eval.py \
 python3 scripts/summarize_harbor_job.py \
   .runs/harbor/baseline-development \
   --output .runs/harbor/baseline-development-summary.json
-jq '{passed, trials, pass_rate, tool_calls, exceptions}' \
+jq '{passed: .counts.passed, trials: .counts.total,
+     pass_rate: .mean_reward, tool_calls: .tool_calls.total,
+     exceptions: .counts.exceptions}' \
   .runs/harbor/baseline-development-summary.json
 ```
 
@@ -240,27 +243,31 @@ python3 scripts/convert_atif_for_insights.py \
   --output .runs/baseline-development-insights.jsonl
 ```
 
-Install and run Trace Analyst:
+Install and run Trace Analyst. The repository config enables trajectory patterns,
+tool issues, and evaluation-linked failure patterns; it disables streams that need
+user sentiment or an ethos-specific comparison:
 
 ```bash
 uv tool install \
   'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@3a06bce1298190cd143a96880d6999052086632d'
 
 export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
-insight-agent \
-  --trace.filesystem.path .runs/baseline-development-insights.jsonl \
-  --output-path .runs/baseline-insights.yml \
-  --model openai/nvidia/nemotron-3-ultra-550b-a55b \
-  --api-base https://integrate.api.nvidia.com/v1 \
-  --max-tokens 16384
+insight-agent --config configs/trace-analyst.yaml \
+  --trace.filesystem.path .runs/baseline-development-insights.jsonl
 sed -n '1,220p' .runs/baseline-insights.yml
 ```
 
-The output is a YAML list of problems with supporting trace IDs. On the reference
-rollouts, the actionable cluster was failure to complete required enterprise
-evidence transitions: several trials answered without the necessary MCP calls,
-while another retried excessively. Treat the descriptions as hypotheses and inspect
-every cited trace before changing the agent.
+The output is a YAML list of problems with supporting trace IDs. The reference run
+produced two recurring insights: required chat and domain tools were absent from the
+baseline's directly presented catalog, and the agent did not reliably reach them
+through Hermes' MCP discovery path. Several trials therefore answered without the
+required evidence; another made 29 calls while searching for a support tool.
+
+Inspect every cited trace before adopting the suggested fix literally. In this
+runtime the MCP tools do exist, so adding a second copy of every schema is not the
+only answer. The candidate instead makes the discovery route salient, removes
+irrelevant built-ins, and bounds retries and calls. That interpretation is the
+human engineering step between an insight and an arm.
 
 Trace Analyst can also inspect the 36 unscored source traces for tool anomalies and
 trajectory patterns. Evaluated rollouts are the primary input here because the
@@ -309,7 +316,9 @@ python3 scripts/summarize_harbor_job.py \
   .runs/harbor/candidate-development \
   --output .runs/harbor/candidate-development-summary.json
 
-jq -s 'map({arm: .arm, passed, trials, pass_rate, tool_calls, exceptions})' \
+jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
+  pass_rate: .mean_reward, tool_calls: .tool_calls.total,
+  exceptions: .counts.exceptions})' \
   .runs/harbor/{baseline,candidate}-development-summary.json
 ```
 
@@ -340,7 +349,9 @@ for arm in baseline candidate; do
     ".runs/harbor/$arm-held-out" \
     --output ".runs/harbor/$arm-held-out-summary.json"
 done
-jq -s 'map({arm: .arm, passed, trials, pass_rate, tool_calls, exceptions})' \
+jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
+  pass_rate: .mean_reward, tool_calls: .tool_calls.total,
+  exceptions: .counts.exceptions})' \
   .runs/harbor/{baseline,candidate}-held-out-summary.json
 ```
 

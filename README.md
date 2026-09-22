@@ -43,7 +43,8 @@ register, a disconnected CRM connector, and one transient incident-search failur
 | projects, analytics, support | Jira or Asana; BI platforms; ServiceNow or Zendesk |
 | connectors, actions | integration health; approval-gated draft and send APIs |
 
-Codex and Eval Author selected recurring behaviors from the starting traces and
+Codex and [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author)
+selected recurring behaviors from the starting traces and
 encoded them as six development tasks. Four separately worded tasks were held back
 until the candidate was frozen. Harbor runs Hermes against the fixture-backed MCP
 server and scores the answer, actual tool calls, call budget, and mutation state.
@@ -55,7 +56,8 @@ and a 60-turn cap. Its evaluated rollouts showed incomplete source coverage,
 searches cited without reading the selected record, loose retry behavior, guessed
 structured-read arguments, and irrelevant local or web detours.
 
-Trace Analyst turns those scored failures into hypotheses. The checked-in candidate
+[NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel) turns those
+scored failures into hypotheses. The checked-in candidate
 implements the resulting harness patterns in an ordinary editable `SOUL.md`:
 claim-to-source routing, an evidence-completeness check, search-then-read, schema-
 first bounded JSON inspection, exact retry and fallback transitions, connector-
@@ -74,6 +76,6 @@ portable issue/fix ideas.
 ## Start here
 
 Use the [end-to-end walkthrough](docs/walkthrough.md). It offers a quick path using
-the checked-in artifacts, an Insights-only path, and an authoring path that uses
+the checked-in artifacts, a Trace-Analyst-only path, and an authoring path that uses
 Codex with Eval Author. The [Gym extension](docs/gym-extension.md) explains when to
 turn the same environment into a rollout or training environment.

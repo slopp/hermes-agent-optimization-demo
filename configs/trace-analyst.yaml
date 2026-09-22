@@ -1,0 +1,14 @@
+# Override the trace path and output path on the CLI when needed.
+trace:
+  filesystem:
+    path: traces/world-v2/baseline-eval/insights.jsonl
+output_path: .runs/baseline-insights.yml
+model: openai/nvidia/nemotron-3-ultra-550b-a55b
+api_base: https://integrate.api.nvidia.com/v1
+max_tokens: 16384
+evidence_streams:
+  anomaly_and_patterns: true
+  tool_issues: true
+  eval_failure_patterns: true
+  ethos_divergence: false
+  user_sentiment: false

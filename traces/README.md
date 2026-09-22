@@ -1,27 +1,33 @@
-# Checked-in trace corpus
+# Checked-in traces
 
-`world-v2/corpus/` contains 36 ATIF-v1.7 baseline traces: six trials for each
-of six enterprise-assistant behavior families, collected across two clean
-Hermes runs against `fixtures/world-v2.json`.
+`world-v2/corpus/` contains 36 Relay-compatible ATIF-v1.7 trajectories from
+repeated baseline Hermes runs against the synthetic enterprise world. The index
+records provenance and six observable behavior groups. Fixture-backed MCP calls
+retain their schemas, arguments, and results; unrelated payloads use explicit
+redaction markers.
 
-Relay ATOF was normalized to ATIF because the tested deployment did not emit
-the session-close event needed for Relay's native snapshot. Every trace records
-that transformation. Fixture-backed MCP calls retain their arguments and
-results; unrelated local or web tool payloads use explicit redaction markers.
-All people, systems, and records belong to the fictional Northstar world.
-
-Validate the index, paths, IDs, schema, and six-per-family distribution:
+These are the source traces used for Eval Author task design. They do not contain
+Harbor scores:
 
 ```bash
 python3 scripts/validate_trace_corpus.py traces/world-v2/corpus/index.json
 ```
 
-To feed the pile to standalone Insights:
+`world-v2/baseline-eval/insights.jsonl` is a separate six-trace canonical JSONL
+bundle from the measured baseline development run. Each record joins a Relay
+trajectory with its Harbor reward and verifier findings in `evaluator_results`.
+It lets the Insights-only path analyze real scored failures without rerunning the
+agent. The bundle contains one trial for each development task: one passed and five
+failed.
+
+For a fresh Harbor job, produce the same contract with:
 
 ```bash
 python3 scripts/convert_atif_for_insights.py \
-  traces/world-v2/corpus --output .runs/insights/starting-corpus.jsonl
+  .runs/harbor/baseline-development \
+  --output .runs/baseline-development-insights.jsonl
 ```
 
-For a new corpus, collect Relay output through the optional NemoClaw path in
-`docs/walkthrough.md`, then retain the same provenance and redaction review.
+For your own agent, export Relay-compatible ATIF with stable IDs, task text, tool
+calls/results, and reviewed provenance. The converter automatically joins Harbor
+`result.json` and `verifier/report.json` files when they enclose each trajectory.

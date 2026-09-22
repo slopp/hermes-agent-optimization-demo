@@ -35,11 +35,10 @@ connector succeeded, or sends an action that the user only asked it to draft.
 
 ## Evaluation scope
 
-This repository evaluates six development behavior families: multi-source
-coverage, search-then-read, bounded retry and fallback, connector authentication,
-prepare-without-send, and bounded structured inspection. Four paraphrased cases
-are held out until the final comparison. The deterministic fixture world and
-verifiers define demo truth; the ethos does not claim production completeness.
+Evaluation design should be grounded in observed traces and should cover the
+mission, boundaries, and failure conditions above. Keep development evidence
+separate from a final held-out comparison. The deterministic fixture world and
+verifiers define tutorial truth; this ethos does not claim production completeness.
 
 ## What may change
 

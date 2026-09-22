@@ -44,14 +44,22 @@ The development result is a smoke run, not a statistical estimate. The held-out
 result tests four new wordings three times each, which is enough to expose model
 variance but remains a small, targeted suite.
 
-## Upstream evidence
+## Trace and task evidence
 
-The checked-in starting corpus contains 36 baseline traces, 525 recorded calls,
-and six logical behavior families. Standalone Insights produced seven trajectory
-clusters and one anomaly; 25 of 36 traces received the explicit verdict
-`missing required enterprise evidence`. Four baseline traces contain no tool
-trajectory because the agent answered or asked for clarification without using
-the enterprise MCP. Those are valid agent failures, not missing trace data.
+The checked-in source corpus contains 36 baseline traces and 525 recorded calls.
+Four traces contain no tool trajectory because the agent answered or asked for
+clarification without using enterprise MCP. Those are valid agent behaviors, not
+missing trace data. Eval Author task design selected recurring problems from this
+corpus; it did not score these source traces.
+
+The checked-in scored development bundle contains the six baseline Harbor
+rollouts: one passed and five failed. Every record carries the Harbor reward and
+verifier findings used by Trace Analyst's evaluation-failure stream.
+Trace Analyst produced two recurring insights from this bundle: required chat and
+domain tools were missing from the directly presented catalog, and the baseline did
+not reliably reach them through MCP discovery. The candidate tests a harness-level
+response—tool downsampling, explicit source routing, and bounded calls—rather than
+changing the task or verifier.
 
 The ten Harbor tasks also passed their environment controls: all ten NOP runs
 failed and all ten Oracle runs passed under separate no-network verifiers. The

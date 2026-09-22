@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert standalone Insights trace JSONL into a compact public ATIF corpus."""
+"""Convert Trace Analyst canonical JSONL into a compact public ATIF corpus."""
 
 from __future__ import annotations
 

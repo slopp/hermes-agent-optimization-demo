@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert a real Relay ATOF stream into standalone Insights Trace JSONL."""
+"""Convert a Relay ATOF stream into Trace Analyst canonical JSONL."""
 
 from __future__ import annotations
 

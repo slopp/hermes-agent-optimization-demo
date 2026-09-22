@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.convert_atif_for_insights import _files, _harbor_case_id
+from scripts.convert_atif_for_insights import _files, _harbor_context
 
 
 class ConvertAtifForInsightsTest(unittest.TestCase):
@@ -19,8 +19,24 @@ class ConvertAtifForInsightsTest(unittest.TestCase):
 
             self.assertEqual(_files([root]), [corpus, relay])
 
-            unrelated.write_text('{"task_name": "hermes-flywheel/source-coverage"}')
-            self.assertEqual(_harbor_case_id(relay), "source-coverage")
+            unrelated.write_text(
+                '{"task_name": "hermes-flywheel/source-coverage", '
+                '"verifier_result": {"rewards": {"reward": 0.0}}}'
+            )
+            report = root / "trial" / "verifier" / "report.json"
+            report.parent.mkdir()
+            report.write_text('{"passed": false, "failures": ["missing evidence"]}')
+            self.assertEqual(
+                _harbor_context(relay),
+                (
+                    "source-coverage",
+                    {
+                        "harbor.reward": 0.0,
+                        "harbor.passed": False,
+                        "harbor.failures": ["missing evidence"],
+                    },
+                ),
+            )
 
 
 if __name__ == "__main__":

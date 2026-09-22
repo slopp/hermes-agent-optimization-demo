@@ -59,7 +59,10 @@ def _tool_catalog(steps: Iterable[dict[str, Any]]) -> dict[str, Any]:
 
 
 def atif_to_insights_trace(
-    trajectory: dict[str, Any], *, logical_case_id: str | None = None
+    trajectory: dict[str, Any],
+    *,
+    logical_case_id: str | None = None,
+    evaluator_results: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Convert one Relay ATIF-v1 trajectory to canonical Insights Trace JSON."""
     schema_version = str(trajectory.get("schema_version", ""))
@@ -161,6 +164,8 @@ def atif_to_insights_trace(
         "final_answer": final_answer,
         "final_metrics": trajectory.get("final_metrics", {}),
     }
+    if latest_user_text:
+        attributes["task_text"] = latest_user_text
     infrastructure_errors = _mcp_transport_errors(spans)
     if infrastructure_errors:
         attributes["infrastructure_errors"] = infrastructure_errors
@@ -173,7 +178,13 @@ def atif_to_insights_trace(
         if extra.get(name):
             attributes[name] = extra[name]
 
-    return {"id": trace_id, "root_spans": spans, "aggregate": {}, "attributes": attributes}
+    return {
+        "id": trace_id,
+        "root_spans": spans,
+        "aggregate": {},
+        "attributes": attributes,
+        "evaluator_results": evaluator_results or {},
+    }
 
 
 def _scope_pairs(events: Iterable[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:

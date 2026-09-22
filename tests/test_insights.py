@@ -59,6 +59,8 @@ class InsightsAdapterTests(unittest.TestCase):
 
         self.assertEqual(trace["id"], "trace-1")
         self.assertEqual(trace["attributes"]["logical_case_id"], "packet-case")
+        self.assertEqual(trace["attributes"]["task_text"], "Find the packet")
+        self.assertEqual(trace["evaluator_results"], {})
         self.assertEqual(trace["attributes"]["final_answer"], "Found it.")
         self.assertEqual(trace["attributes"]["tool_catalog"], {"files_search": {"type": "object"}})
         span = trace["root_spans"][0]
