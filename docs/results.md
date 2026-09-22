@@ -55,11 +55,12 @@ corpus; it did not score these source traces.
 The checked-in scored development bundle contains the six baseline Harbor
 rollouts: one passed and five failed. Every record carries the Harbor reward and
 verifier findings used by Trace Analyst's evaluation-failure stream.
-Trace Analyst produced two recurring insights from this bundle: required chat and
-domain tools were missing from the directly presented catalog, and the baseline did
-not reliably reach them through MCP discovery. The candidate tests a harness-level
-response—tool downsampling, explicit source routing, and bounded calls—rather than
-changing the task or verifier.
+After the converter preserved Hermes' dynamically brokered MCP calls and schemas,
+Trace Analyst produced one recurring insight backed by the `read-after-search` and
+`source-coverage` failures: the agent did not invoke `chat.search` and
+`chat.read_thread`, causing required chat facts to be absent. The candidate tests a
+direct harness response—explicit chat-source routing, mandatory search-then-read,
+and irrelevant-tool downsampling—without changing the task or verifier.
 
 The ten Harbor tasks also passed their environment controls: all ten NOP runs
 failed and all ten Oracle runs passed under separate no-network verifiers. The

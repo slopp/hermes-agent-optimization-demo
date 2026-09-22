@@ -58,6 +58,46 @@ def _tool_catalog(steps: Iterable[dict[str, Any]]) -> dict[str, Any]:
     return catalog
 
 
+def _json_object(value: Any) -> dict[str, Any] | None:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _discovered_tool_catalog(spans: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Recover schemas Hermes learned dynamically through its tool broker."""
+    catalog: dict[str, Any] = {}
+    for span in spans:
+        if span.get("attributes", {}).get("broker_tool_name") == "tool_call":
+            name = span.get("tool_name")
+            if isinstance(name, str):
+                catalog.setdefault(name, {})
+        if span.get("tool_name") not in {"tool_search", "tool_describe"}:
+            continue
+        payload = _json_object(span.get("output"))
+        if not payload or not isinstance(payload.get("tools"), dict):
+            continue
+        for name, descriptor in payload["tools"].items():
+            if not isinstance(name, str) or not isinstance(descriptor, dict):
+                continue
+            parameters = descriptor.get("parameters")
+            if isinstance(parameters, dict):
+                catalog[name] = parameters
+            else:
+                schema: dict[str, Any] = {"type": "object"}
+                required = descriptor.get("required")
+                if isinstance(required, list):
+                    schema["required"] = required
+                catalog.setdefault(name, schema)
+    return catalog
+
+
 def atif_to_insights_trace(
     trajectory: dict[str, Any],
     *,
@@ -110,6 +150,17 @@ def atif_to_insights_trace(
             if not isinstance(name, str) or not name:
                 raise ValueError(f"ATIF tool call {call_id!r} is missing function_name")
             arguments = call.get("arguments", {})
+            broker_tool_name: str | None = None
+            if name == "tool_call" and isinstance(arguments, dict):
+                broker_calls = arguments.get("calls")
+                if isinstance(broker_calls, list) and len(broker_calls) == 1:
+                    broker_call = broker_calls[0]
+                    if isinstance(broker_call, dict) and isinstance(
+                        broker_call.get("name"), str
+                    ):
+                        broker_tool_name = name
+                        name = broker_call["name"]
+                        arguments = broker_call.get("arguments", {})
             matches = results_by_call.get(call_id, [])
             output: Any
             if len(matches) == 1:
@@ -140,6 +191,8 @@ def atif_to_insights_trace(
                     "call_extra": call.get("extra", {}),
                 },
             }
+            if broker_tool_name:
+                span["attributes"]["broker_tool_name"] = broker_tool_name
             timestamp = step.get("timestamp")
             if isinstance(timestamp, str):
                 span["start_time"] = timestamp
@@ -151,6 +204,8 @@ def atif_to_insights_trace(
             spans.append(span)
             tool_index += 1
 
+    catalog = _tool_catalog(steps)
+    catalog.update(_discovered_tool_catalog(spans))
     attributes: dict[str, Any] = {
         "complete_provenance_context": False,
         "source_pointer": {
@@ -159,8 +214,7 @@ def atif_to_insights_trace(
             "trajectory_id": trajectory.get("trajectory_id"),
         },
         "agent": trajectory.get("agent", {}),
-        "tool_catalog": _tool_catalog(steps)
-        or trajectory.get("extra", {}).get("tool_catalog", {}),
+        "tool_catalog": catalog or trajectory.get("extra", {}).get("tool_catalog", {}),
         "final_answer": final_answer,
         "final_metrics": trajectory.get("final_metrics", {}),
     }

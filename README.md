@@ -63,6 +63,12 @@ claim-to-source routing, an evidence-completeness check, search-then-read, schem
 first bounded JSON inspection, exact retry and fallback transitions, connector-
 status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
 
+The clearest trace-to-change link is chat retrieval: Trace Analyst found two failed
+cases that never invoked `chat.search`/`chat.read_thread`; the candidate explicitly
+routes chat claims to those operations and requires a read after search. Across the
+complete checked-in candidate, the measured development score rose from 1/6 to 6/6
+and the held-out score from 2/12 to 11/12.
+
 | Split | Baseline | Candidate | Attempts |
 | --- | ---: | ---: | ---: |
 | Development | 1/6 | 6/6 | one per task |

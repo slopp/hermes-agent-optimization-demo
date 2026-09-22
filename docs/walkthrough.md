@@ -258,16 +258,16 @@ sed -n '1,220p' .runs/baseline-insights.yml
 ```
 
 The output is a YAML list of problems with supporting trace IDs. The reference run
-produced two recurring insights: required chat and domain tools were absent from the
-baseline's directly presented catalog, and the agent did not reliably reach them
-through Hermes' MCP discovery path. Several trials therefore answered without the
-required evidence; another made 29 calls while searching for a support tool.
+produced one recurring insight backed by two failed cases: the agent did not invoke
+`chat.search` and `chat.read_thread`, so its answers omitted required chat-derived
+facts such as `security evidence packet`. Trace Analyst suggested emphasizing chat
+tool use, improving selection logic, or adding explicit search/read instructions.
 
-Inspect every cited trace before adopting the suggested fix literally. In this
-runtime the MCP tools do exist, so adding a second copy of every schema is not the
-only answer. The candidate instead makes the discovery route salient, removes
-irrelevant built-ins, and bounds retries and calls. That interpretation is the
-human engineering step between an insight and an arm.
+Inspect every cited trace before selecting a fix. The candidate responds directly:
+its SOUL routes chat claims to chat, declares search results to be locators rather
+than evidence, and requires reading the selected thread before answering. It also
+downsamples irrelevant built-ins so that route competes with fewer alternatives.
+That interpretation is the human engineering step between an insight and an arm.
 
 Trace Analyst can also inspect the 36 unscored source traces for tool anomalies and
 trajectory patterns. Evaluated rollouts are the primary input here because the

@@ -18,7 +18,9 @@ bundle from the measured baseline development run. Each record joins a Relay
 trajectory with its Harbor reward and verifier findings in `evaluator_results`.
 It lets the Insights-only path analyze real scored failures without rerunning the
 agent. The bundle contains one trial for each development task: one passed and five
-failed.
+failed. The conversion unwraps Hermes' generic `tool_call` broker spans into the
+actual MCP operation and retains schemas learned through `tool_search` and
+`tool_describe`, so Trace Analyst sees capabilities that were dynamically exposed.
 
 For a fresh Harbor job, produce the same contract with:
 
