@@ -10,6 +10,7 @@ validate:
 	python3 scripts/validate_trace_corpus.py traces/world-v2/corpus/index.json
 	python3 scripts/validate_scored_trace_bundle.py traces/world-v2/baseline-eval/insights.jsonl
 	python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v2.json
+	python3 scripts/validate_artifact_chain.py
 	python3 scripts/materialize_harbor_tasks.py --output .runs/reference-task-rebuild
 	diff -qr -x __pycache__ -x '*.pyc' evals/harbor-tasks-v2 .runs/reference-task-rebuild
 

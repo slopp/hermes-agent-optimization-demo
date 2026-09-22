@@ -1,16 +1,11 @@
 {
   "suite_version": "2.0",
   "generation": {
-    "method": "codex-guided-nemo-eval-author",
+    "method": "codex-with-nemo-eval-author",
     "review_status": "reference_tasks_checked_in",
-    "insight_refs": [
-      "insights://standalone/world-v2-baseline/missing-required-enterprise-evidence",
-      "insights://standalone/world-v2-baseline/modified-retry-same-failure",
-      "insights://standalone/world-v2-baseline/trajectory-clusters"
-    ],
     "source_corpus": "traces/world-v2/corpus/index.json",
     "source_trace_count": 36,
-    "note": "Codex audits the trace corpus with Eval Author skills. One representative failure from each of six recurring behavior families anchors a development task; four cases stay held out until the final A/B gate."
+    "selection_rationale": "Codex audits the indexed source traces with Eval Author skills. One representative trace from each of six recurring behavior families anchors a development task; four separately worded cases stay held out until the final A/B gate."
   },
   "cases": [
     {

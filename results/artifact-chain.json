@@ -1,0 +1,124 @@
+{
+  "schema_version": "hermes-flywheel-artifact-chain-v1",
+  "stages": [
+    {
+      "id": "source-traces",
+      "path": "traces/world-v2/corpus/index.json",
+      "sha256": "9c15ad6c161d56c6e43daf9e1cd33d8996c1739f58488ea4b66311779acdf82f",
+      "produces": "36 indexed baseline trajectories"
+    },
+    {
+      "id": "authored-eval-set",
+      "consumes": ["source-traces"],
+      "path": "evals/flywheel-eval-set-v2.json",
+      "sha256": "464902c98b48085becb915f9f5b56f470a833bf6a1d3dccba4d7baefd2e4e7c3",
+      "produces": "six development cases and four held-out cases"
+    },
+    {
+      "id": "scored-baseline",
+      "consumes": ["authored-eval-set"],
+      "path": "traces/world-v2/baseline-eval/insights.jsonl",
+      "sha256": "70e3967268b98063ea8902433cf7f0d35417a71f89448055bacf4493174f0eaf",
+      "produces": "six baseline trajectories with Harbor rewards and verifier findings"
+    },
+    {
+      "id": "trace-analysis",
+      "consumes": ["scored-baseline"],
+      "path": "results/trace-analysis.yml",
+      "sha256": "0132f4b2ce5ce8577d4643202c64cca29ce4c0cca74cee88f45b07b634d44655",
+      "produces": "TA-001 with two cited failed traces"
+    },
+    {
+      "id": "candidate-proposal",
+      "consumes": ["trace-analysis", "scored-baseline"],
+      "path": "results/candidate-proposal.md",
+      "sha256": "d2a058ab659805437a36a58b4581f867786027daeee03dcfcb1206269f44c0a3",
+      "produces": "H-01 through H-08 and a frozen acceptance gate"
+    },
+    {
+      "id": "candidate-profile",
+      "consumes": ["candidate-proposal"],
+      "path": "profiles/candidate-soul.md",
+      "sha256": "87da254ba3ef03dcc988f8b20914f1131154ef5744a5f136bae6a4ee2e080e4d",
+      "produces": "the exact candidate policy used in the measured run"
+    },
+    {
+      "id": "harness-adapter",
+      "consumes": ["candidate-proposal"],
+      "path": "harbor_agents/hermes_flywheel.py",
+      "sha256": "a7574e6bc9b02f9e920903f69140d3dfd1beb56d2275f14c7161db7b7a7893b3",
+      "produces": "baseline and candidate toolset and turn-limit controls"
+    },
+    {
+      "id": "measured-result",
+      "consumes": ["authored-eval-set", "candidate-profile", "harness-adapter"],
+      "path": "results/measured-ab-v2.json",
+      "sha256": "2cc277ea163f5f3b1fcaa4d29cac74641fafcf1aa1d9e3231847fbc9d02e092f",
+      "produces": "development and held-out baseline-versus-candidate measurements"
+    }
+  ],
+  "relationships": [
+    {
+      "finding": "TA-001",
+      "trace_refs": [
+        "01a0b678-9751-77e3-b130-369a60e447f3",
+        "01a0b67b-c2b2-73e1-ad28-ec7205bb1177"
+      ],
+      "candidate_changes": ["H-01", "H-02", "H-07"]
+    }
+  ],
+  "implementation_checks": [
+    {
+      "id": "H-01",
+      "measured_change": "claim-to-source evidence routing and completeness stop check",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["route each requested claim", "verify coverage"]
+    },
+    {
+      "id": "H-02",
+      "measured_change": "search-then-read before citing record contents",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["Search hits", "read that thread"]
+    },
+    {
+      "id": "H-03",
+      "measured_change": "schema-first bounded structured reads",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["files.read_json", "json_pointer"]
+    },
+    {
+      "id": "H-04",
+      "measured_change": "one identical retry followed by one declared fallback",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["TEMPORARY_UNAVAILABLE", "support.search_tickets"]
+    },
+    {
+      "id": "H-05",
+      "measured_change": "connector-status awareness",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["connectors.get_status"]
+    },
+    {
+      "id": "H-06",
+      "measured_change": "prepare-without-send approval boundary",
+      "artifact": "profiles/candidate-soul.md",
+      "contains": ["actions.prepare_message", "remains unsent"]
+    },
+    {
+      "id": "H-07",
+      "measured_change": "irrelevant local, web, code, and session toolset removal",
+      "artifact": "harbor_agents/hermes_flywheel.py",
+      "contains": ["\"toolsets\": [\"skills\"]"]
+    },
+    {
+      "id": "H-08",
+      "measured_change": "12-turn runtime cap and eight-MCP-call policy budget",
+      "artifact": "harbor_agents/hermes_flywheel.py",
+      "contains": ["\"max_turns\": 12"]
+    }
+  ],
+  "required_outcome": {
+    "development": {"baseline": 1, "candidate": 6, "trials_per_arm": 6},
+    "held_out": {"baseline": 2, "candidate": 11, "trials_per_arm": 12}
+  }
+}

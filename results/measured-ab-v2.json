@@ -8,6 +8,17 @@
     "model": "nvidia/nemotron-3-ultra-550b-a55b",
     "provider": "nvidia"
   },
+  "harness": {
+    "baseline_profile": "profiles/baseline-soul.md",
+    "baseline_profile_sha256": "b4ea8ea3f628c02a83e30583b58e974c4af210a407f51edd6a39d58093d73597",
+    "baseline_toolsets": ["hermes-cli"],
+    "baseline_max_turns": 60,
+    "candidate_profile": "profiles/candidate-soul.md",
+    "candidate_profile_sha256": "87da254ba3ef03dcc988f8b20914f1131154ef5744a5f136bae6a4ee2e080e4d",
+    "candidate_toolsets": ["skills"],
+    "candidate_max_turns": 12,
+    "proposal": "results/candidate-proposal.md"
+  },
   "fixture": {
     "world_version": "v2",
     "records": 504,

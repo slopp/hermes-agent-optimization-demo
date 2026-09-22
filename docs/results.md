@@ -62,6 +62,12 @@ Trace Analyst produced one recurring insight backed by the `read-after-search` a
 direct harness response—explicit chat-source routing, mandatory search-then-read,
 and irrelevant-tool downsampling—without changing the task or verifier.
 
+The saved [Trace Analyst output](../results/trace-analysis.yml) cites the exact
+failed rollout IDs. The [candidate proposal](../results/candidate-proposal.md)
+maps that recurring finding—and separately labeled individual verifier failures—to
+the concrete profile and runtime changes. This distinction avoids implying that
+Trace Analyst prescribed every harness rule.
+
 The ten Harbor tasks also passed their environment controls: all ten NOP runs
 failed and all ten Oracle runs passed under separate no-network verifiers. The
 six development tasks remain publication candidates until a person completes
@@ -80,3 +86,6 @@ arguments, and results.
 
 The exact machine-readable record is
 [`results/measured-ab-v2.json`](../results/measured-ab-v2.json).
+The [artifact-chain manifest](../results/artifact-chain.json) pins the inputs,
+analysis, proposal, candidate, and measurement by hash; `make validate` checks the
+chain and requires candidate performance to exceed baseline on both splits.

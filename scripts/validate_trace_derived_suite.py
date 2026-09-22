@@ -17,13 +17,12 @@ def validate(suite: dict[str, Any]) -> list[str]:
     generation = suite.get("generation", {})
     local_trace_workflow = version == "2.0"
     if local_trace_workflow:
-        if generation.get("method") != "codex-guided-nemo-eval-author":
-            errors.append("generation.method must record the Codex-guided Eval Author workflow")
-        insight_refs = generation.get("insight_refs")
-        if not isinstance(insight_refs, list) or not insight_refs or not all(
-            str(ref).startswith("insights://") for ref in insight_refs
-        ):
-            errors.append("generation.insight_refs must contain insights:// references")
+        if generation.get("method") != "codex-with-nemo-eval-author":
+            errors.append("generation.method must record Codex using Eval Author")
+        if not generation.get("selection_rationale"):
+            errors.append("generation.selection_rationale is required")
+        if "insight_refs" in generation:
+            errors.append("eval authoring must not depend on later Trace Analyst output")
         if generation.get("review_status") != "reference_tasks_checked_in":
             errors.append("v2 suite must identify checked-in reference tasks")
         if generation.get("source_corpus") != "traces/world-v2/corpus/index.json":

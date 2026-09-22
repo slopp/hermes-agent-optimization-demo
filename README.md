@@ -57,8 +57,11 @@ searches cited without reading the selected record, loose retry behavior, guesse
 structured-read arguments, and irrelevant local or web detours.
 
 [NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel) turns those
-scored failures into hypotheses. The checked-in candidate
-implements the resulting harness patterns in an ordinary editable `SOUL.md`:
+scored failures into hypotheses. A checked-in
+[analysis](results/trace-analysis.yml) cites the failed traces, and the
+[candidate proposal](results/candidate-proposal.md) separates its recurring
+Trace Analyst finding from human review of the other verifier failures. The
+candidate implements that proposal in an ordinary editable `SOUL.md`:
 claim-to-source routing, an evidence-completeness check, search-then-read, schema-
 first bounded JSON inspection, exact retry and fallback transitions, connector-
 status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
@@ -76,6 +79,14 @@ These are measured results on a small synthetic benchmark, not a claim that the
 candidate policy is universal. See [results](docs/results.md) for runtime details,
 variance, and limitations, and [harness patterns](docs/harness-patterns.md) for the
 portable issue/fix ideas.
+
+The complete saved evidence chain is machine checked:
+
+`source traces → authored eval set → scored baseline → trace analysis → candidate proposal → candidate profile → measured A/B`
+
+See [`results/artifact-chain.json`](results/artifact-chain.json), or run
+`python3 scripts/validate_artifact_chain.py`. It verifies artifact hashes,
+cross-references, exact harness controls, denominators, and candidate improvement.
 
 ## Start here
 

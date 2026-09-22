@@ -40,6 +40,31 @@ verify the later A/B. Trace Analyst-only readers can skip Docker and Harbor.
 8. [Run the A/B](#8-run-the-development-ab)
 9. [Open the held-out set](#9-freeze-the-candidate-and-open-the-held-out-set)
 
+## Read the saved flywheel
+
+You can review the complete argument without installing Docker or calling a model.
+Read these artifacts in order; each is the input to the next:
+
+1. [`corpus/index.json`](../traces/world-v2/corpus/index.json) indexes the 36
+   observed baseline traces.
+2. [`flywheel-eval-set-v2.json`](../evals/flywheel-eval-set-v2.json) records the
+   six trace-derived development cases, their source traces, and four held-out
+   cases.
+3. [`baseline-eval/insights.jsonl`](../traces/world-v2/baseline-eval/insights.jsonl)
+   contains the six baseline development rollouts joined with Harbor scores.
+4. [`trace-analysis.yml`](../results/trace-analysis.yml) is the saved Trace Analyst
+   output, with repository-relative links to two failed rollouts.
+5. [`candidate-proposal.md`](../results/candidate-proposal.md) turns that recurring
+   finding and the remaining individual verifier failures into a frozen proposal.
+6. [`candidate-soul.md`](../profiles/candidate-soul.md) and
+   [`hermes_flywheel.py`](../harbor_agents/hermes_flywheel.py) implement it.
+7. [`measured-ab-v2.json`](../results/measured-ab-v2.json) reports the development
+   and held-out A/B.
+
+[`artifact-chain.json`](../results/artifact-chain.json) records this provenance and
+the exact hashes. `make validate` checks that the artifacts still agree and that
+the candidate beats the baseline on both reported splits.
+
 ## 1. Set up the host
 
 For the full path, use a fresh Ubuntu 24.04 host with native Docker, at least 4
@@ -131,6 +156,10 @@ Oracle, negative controls, verifier, and provenance receipts.
 
 **Skip:** reuse `evals/harbor-tasks-v2/` and continue to step 4.
 
+The saved selection and trace provenance are in
+[`evals/flywheel-eval-set-v2.json`](../evals/flywheel-eval-set-v2.json). This is
+the authoring output consumed by the checked-in Harbor tasks.
+
 Install Node.js 22+, Codex, and the Eval Author skills:
 
 ```bash
@@ -201,6 +230,11 @@ run the unchanged agent on the development tasks, then analyze what failed.
 
 **Output:** Harbor rewards and Relay ATIF for six evaluated Hermes rollouts.
 
+**Saved reference output:**
+[`traces/world-v2/baseline-eval/insights.jsonl`](../traces/world-v2/baseline-eval/insights.jsonl)
+contains those six trajectories already joined with their scores and verifier
+findings. Step 6 consumes this form.
+
 ```bash
 python3 scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 1 --concurrency 2 \
@@ -263,6 +297,11 @@ produced one recurring insight backed by two failed cases: the agent did not inv
 facts such as `security evidence packet`. Trace Analyst suggested emphasizing chat
 tool use, improving selection logic, or adding explicit search/read instructions.
 
+The saved output is
+[`results/trace-analysis.yml`](../results/trace-analysis.yml). Its generated
+absolute file links were normalized to repository-relative links and the stable ID
+`TA-001` was added; its finding text and trace references are unchanged.
+
 Inspect every cited trace before selecting a fix. The candidate responds directly:
 its SOUL routes chat claims to chat, declares search results to be locators rather
 than evidence, and requires reading the selected thread before answering. It also
@@ -274,6 +313,16 @@ trajectory patterns. Evaluated rollouts are the primary input here because the
 `eval_failure_patterns` stream can use the Harbor rewards.
 
 ## 7. Turn the findings into a candidate arm
+
+**Why:** an analyzer identifies correlated behavior, not a complete implementation.
+The engineering proposal must say which changes follow from the recurring finding,
+which come from individual verifier failures, and exactly where each change lives.
+
+**Input:** the saved Trace Analyst output and the six scored baseline rollouts.
+
+**Output:** the frozen
+[`candidate proposal`](../results/candidate-proposal.md), then the profile and
+runtime controls that implement it.
 
 An *arm* is one version of the agent harness under test. Both arms use the same
 model, task prompt, MCP server, fixture, and verifier. Only these Hermes controls
@@ -288,6 +337,7 @@ change:
 Read the actual intervention:
 
 ```bash
+sed -n '1,240p' results/candidate-proposal.md
 diff -u profiles/baseline-soul.md profiles/candidate-soul.md || true
 sed -n '1,90p' harbor_agents/hermes_flywheel.py
 ```
@@ -331,6 +381,11 @@ The Harbor reward is the authoritative score. Relay trajectories and Trace Analy
 explain behavior; they are not a second scorer. Confirm the summary's model,
 provider, Hermes version, attempts, and exception policy match between arms.
 
+The exact saved measurement is
+[`results/measured-ab-v2.json`](../results/measured-ab-v2.json). It includes the
+profile hashes and runtime controls used in the run, preventing a later profile
+edit from being presented with these scores.
+
 ## 9. Freeze the candidate and open the held-out set
 
 Held-out tasks test whether the harness generalizes beyond the six development
@@ -359,6 +414,10 @@ The measured reference result is baseline `2/12` and candidate `11/12`. One
 candidate miss still failed search-then-read, a useful reminder that a profile is a
 probabilistic intervention rather than a guarantee. Keep timeouts and clean
 zero-reward trials in the denominator and report the small sample size.
+
+Run `python3 scripts/validate_artifact_chain.py` as the final gate. It confirms
+that the held-out result belongs to the frozen candidate and that the reported
+candidate is better than baseline on development and held-out tasks.
 
 ## Bring this workflow to your agent
 
