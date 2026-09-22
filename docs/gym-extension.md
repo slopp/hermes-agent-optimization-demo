@@ -46,4 +46,4 @@ separable from harness changes and environment drift.
 
 Data Designer may propose additional fictional fixture rows and task
 candidates. Review and freeze them before use; it should not fabricate the
-starting trace pile or verifier judgments.
+starting trace corpus or verifier judgments.

@@ -45,7 +45,7 @@
       "exceptions": 0,
       "relay_complete": 6
     },
-    "candidate_v4": {
+    "candidate": {
       "passed": 6,
       "trials": 6,
       "pass_rate": 1.0,
@@ -69,7 +69,7 @@
       "relay_complete": 11,
       "exception_types": {"AgentTimeoutError": 1}
     },
-    "candidate_v4": {
+    "candidate": {
       "passed": 11,
       "trials": 12,
       "pass_rate": 0.9166666666666666,
@@ -80,7 +80,7 @@
       "observed_failure": "One security-timing trial made 12 search/fan-out calls without reading the selected chat thread."
     }
   },
-  "candidate_v4_changes": [
+  "candidate_changes": [
     "claim-to-source evidence routing and completeness stop check",
     "search-then-read before citing record contents",
     "schema-first bounded structured reads",

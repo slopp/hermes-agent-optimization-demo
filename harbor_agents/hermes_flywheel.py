@@ -24,12 +24,12 @@ harbor_hermes._NATIVE_PROVIDERS["nvidia"] = ("nvidia", ["NVIDIA_API_KEY"])
 
 ARM_CONFIG = {
     "baseline": {
-        "profile": ROOT / "profiles" / "nemoclaw-baseline-soul.md",
+        "profile": ROOT / "profiles" / "baseline-soul.md",
         "max_turns": 60,
         "toolsets": ["hermes-cli"],
     },
-    "candidate-v4": {
-        "profile": ROOT / "profiles" / "nemoclaw-candidate-v4-soul.md",
+    "candidate": {
+        "profile": ROOT / "profiles" / "candidate-soul.md",
         "max_turns": 12,
         "toolsets": ["skills"],
     },

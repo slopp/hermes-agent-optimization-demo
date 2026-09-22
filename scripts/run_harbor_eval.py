@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--arm", choices=("baseline", "candidate-v4"), required=True)
+    parser.add_argument("--arm", choices=("baseline", "candidate"), required=True)
     parser.add_argument("--split", choices=("development", "held-out"), required=True)
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=2)

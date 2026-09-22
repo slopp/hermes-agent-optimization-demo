@@ -1,92 +1,79 @@
 # Optimize a Hermes enterprise-agent harness with NVIDIA NeMo
 
-This repository is a runnable tutorial for turning production-like agent traces
-into a reproducible harness optimization:
+This runnable tutorial starts where many agent teams do: an agent and a collection
+of production-like traces. It shows how to turn those traces into executable evals,
+find recurring failures, change the agent harness, and measure whether the change
+generalizes.
 
 ```text
-36 checked-in baseline traces
-        │
-        ├─ NeMo Insights → failure patterns and harness hypotheses
-        │
-        └─ Codex + Eval Author → 6 development Harbor tasks
-                                      │
-                         baseline Hermes ── candidate Hermes
-                                      │
-                              4 held-out tasks
+Relay traces → Codex + Eval Author → Harbor development tasks
+                                           │
+                               baseline Hermes rollouts
+                                           │
+                                     Trace Analyst
+                                           │
+                             harness hypothesis + candidate
+                                           │
+                          development A/B → held-out A/B
 ```
 
-Harbor runs both arms against the same task-local MCP server and fixture world.
-The verifier scores the answer, actual MCP calls, retry budget, and mutation
-state; those Harbor rewards—not a separate mock runner—are the A/B result.
-NeMo Relay records every Hermes run for the next Insights pass.
-
-You do not have to generate traces to start. The trace corpus, fictional world,
-Eval Author-derived reference tasks, Hermes profiles, and controls are checked
-in. Recollecting traces through NemoClaw is an optional deployment exercise.
-NeMo Platform is not required.
+Everything needed for the fast path is checked in: 36 starting traces, a
+deterministic 504-record fixture, ten trace-derived Harbor tasks, a task-local MCP
+server, two Hermes profiles, and measured reference results. You can reproduce the
+A/B without regenerating either traces or evals; the walkthrough also shows how to
+replace each checked-in input with your own.
 
 ## Production grounding
 
-The problem shapes come from NVIDIA's optimization of Personal Assistant, an
-internal production agent that helps employees research and act across email,
-calendar, chat, files, enterprise knowledge, directories, and task systems.
-The tutorial recreates those engineering challenges in a deterministic fictional
-company called Northstar. NVIDIA's public
+The fictional agent is inspired by NVIDIA's work optimizing an internal production
+assistant that helps employees research and act across email, calendars, chat,
+files, enterprise knowledge, directories, and task systems. The tutorial distills
+those problem shapes into synthetic data and deterministic tools. NVIDIA's public
 [Nemotron 3 Ultra harness-profile case study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
-describes the related methodology.
+describes the related optimization methodology.
 
-Northstar is preparing a product launch. Its 504-record world includes current
+The fictional world is a company preparing a product launch. It contains current
 and stale projects, ambiguous people, paginated results, a large JSON evidence
-register, a disconnected CRM, and a transient incident-search failure.
+register, a disconnected CRM connector, and one transient incident-search failure.
 
 | Fictional MCP surface | Typical enterprise equivalent |
 | --- | --- |
-| people, mail, calendar | Workday/Entra ID, Outlook/Gmail, enterprise calendars |
-| chat, knowledge, files | Teams/Slack, Confluence/Glean, SharePoint/Drive |
-| projects, analytics, support | Jira/Asana, BI platforms, ServiceNow/Zendesk |
-| connectors, actions | integration health plus approval-gated draft/send APIs |
+| people, mail, calendar | Workday or Entra ID; Outlook or Gmail; enterprise calendars |
+| chat, knowledge, files | Teams or Slack; Confluence or Glean; SharePoint or Drive |
+| projects, analytics, support | Jira or Asana; BI platforms; ServiceNow or Zendesk |
+| connectors, actions | integration health; approval-gated draft and send APIs |
 
-## What the evals exercise
+Codex and Eval Author selected recurring behaviors from the starting traces and
+encoded them as six development tasks. Four separately worded tasks were held back
+until the candidate was frozen. Harbor runs Hermes against the fixture-backed MCP
+server and scores the answer, actual tool calls, call budget, and mutation state.
 
-The 36 starting traces are six trials from each of six behavior families.
-Guided by Eval Author skills, Codex audits the pile and turns one reviewed
-representative from each family into a development task; four paraphrases
-remain held out until the final gate.
+## What changed
 
-- Multi-source coverage: retrieve both a chat blocker and calendar review time.
-- Search then read: open a selected thread before citing its messages.
-- Bounded retry: repeat one transient call exactly, then use one declared fallback.
-- Authentication awareness: report an unavailable connector instead of guessing.
-- Approval boundary: prepare a message without sending it.
-- Structured inspection: search for a large JSON record and read only `/evidence`.
+The baseline uses a generic one-line policy, Hermes' broad built-in tool surface,
+and a 60-turn cap. Its evaluated rollouts showed incomplete source coverage,
+searches cited without reading the selected record, loose retry behavior, guessed
+structured-read arguments, and irrelevant local or web detours.
 
-The baseline has a broad built-in tool surface, a generic system policy, and a
-60-turn budget. Its traces show source omissions, local/web detours, search hits
-used without reads, guessed structured arguments, and loose retries. The
-candidate applies the patterns those traces motivate: claim-to-source routing,
-search-then-read, schema-first calls, exact retry transitions, bounded JSON
-inspection, prepare-without-send, tool downsampling, and a 12-turn budget.
+Trace Analyst turns those scored failures into hypotheses. The checked-in candidate
+implements the resulting harness patterns in an ordinary editable `SOUL.md`:
+claim-to-source routing, an evidence-completeness check, search-then-read, schema-
+first bounded JSON inspection, exact retry and fallback transitions, connector-
+status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
 
-These are hypotheses to test, not universal defaults. The tutorial keeps the
-model, task environment, fixtures, prompts, and verifiers fixed between arms.
-On the clean reference run, the baseline passed 2/12 held-out trials and the
-candidate passed 11/12; the [measured result](docs/results.md) includes the
-variance, timeout, tool-call counts, and limitations behind those totals.
+| Split | Baseline | Candidate | Attempts |
+| --- | ---: | ---: | ---: |
+| Development | 1/6 | 6/6 | one per task |
+| Held out | 2/12 | 11/12 | three per task |
+
+These are measured results on a small synthetic benchmark, not a claim that the
+candidate policy is universal. See [results](docs/results.md) for runtime details,
+variance, and limitations, and [harness patterns](docs/harness-patterns.md) for the
+portable issue/fix ideas.
 
 ## Start here
 
-For the shortest path, use the checked-in tasks and run the Harbor A/B. To learn
-how the tasks were produced, use the Codex-guided Eval Author section. To test
-only Insights, skip Harbor and NemoClaw entirely.
-
-```bash
-git clone https://github.com/slopp/hermes-agent-optimization-demo.git
-cd hermes-agent-optimization-demo
-make test
-make validate
-```
-
-Follow the [single end-to-end walkthrough](docs/walkthrough.md). Supporting
-references cover the [reusable harness patterns](docs/harness-patterns.md),
-[measured results](docs/results.md), and the point at which this environment
-should become a [NeMo Gym](docs/gym-extension.md).
+Use the [end-to-end walkthrough](docs/walkthrough.md). It offers a quick path using
+the checked-in artifacts, an Insights-only path, and an authoring path that uses
+Codex with Eval Author. The [Gym extension](docs/gym-extension.md) explains when to
+turn the same environment into a rollout or training environment.

@@ -10,9 +10,9 @@ tasks, 504-record fixture, MCP server, prompts, and isolated verifiers.
 | Split | Arm | Pass | MCP calls | Mean calls | Exceptions | Relay complete |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | Development, one attempt | Baseline | 1/6 (16.7%) | 30 | 5.00 | 0 | 6/6 |
-| Development, one attempt | Candidate v4 | 6/6 (100%) | 13 | 2.17 | 0 | 6/6 |
+| Development, one attempt | Candidate | 6/6 (100%) | 13 | 2.17 | 0 | 6/6 |
 | Held out, three attempts | Baseline | 2/12 (16.7%) | 3 | 0.25 | 1 | 11/12 |
-| Held out, three attempts | Candidate v4 | 11/12 (91.7%) | 42 | 3.50 | 0 | 12/12 |
+| Held out, three attempts | Candidate | 11/12 (91.7%) | 42 | 3.50 | 0 | 12/12 |
 
 The held-out measurement began with one attempt on every task and arm. Because
 the candidate missed one trial, two more attempts were then added for **every**
@@ -30,7 +30,7 @@ snapshot is reported rather than silently replenished.
 ## What was tested
 
 The baseline exposes Hermes' broad built-in tool surface, uses a generic policy,
-and permits 60 turns. Candidate v4 changes only the harness:
+and permits 60 turns. Candidate changes only the harness:
 
 - route each claim to its natural enterprise source and stop when covered;
 - treat search hits as metadata, then read the selected record;
@@ -62,7 +62,7 @@ Eval Author's privacy, access, task-meaning, and publication reviews.
 
 The run supports the tutorial's central claim: trace-derived, explicit harness
 policies can materially improve the same model on the same enterprise tasks.
-It does not establish that candidate v4 is universal or production-ready.
+It does not establish that the candidate is universal or production-ready.
 The fixture and identities are synthetic, the eval targets six selected failure
 families, and the profile deliberately encodes knowledge of this tool contract.
 Non-fixture payloads in the public starting corpus are redacted and are excluded
