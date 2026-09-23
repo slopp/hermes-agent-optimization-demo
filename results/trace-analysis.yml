@@ -1,0 +1,22 @@
+# Portable copy of Trace Analyst output from the scored baseline bundle.
+# A stable ID was added and absolute file links were made repository-relative;
+# the generated finding text and trace references are unchanged.
+- id: TA-001
+  name: Agent fails to invoke required chat tools (chat.read_thread, chat.search), leading to missing chat-derived facts
+  description: >-
+    The agent consistently fails to call chat.read_thread and chat.search tools
+    when tasks require reading chat threads or searching chat history. This
+    failure is observed across two distinct test cases (read-after-search and
+    source-coverage), both resulting in harbor.reward=0.0 and
+    harbor.passed=False. The non-invocation of these chat tools correlates with
+    missing critical facts in the final answer, notably "security evidence
+    packet," which is absent in both cases. The developer can fix this by
+    updating the system prompt to emphasize chat tool usage, improving tool
+    selection logic, or adding explicit instructions for when to use
+    chat.search and chat.read_thread.
+  trace_refs:
+    - 01a0b678-9751-77e3-b130-369a60e447f3
+    - 01a0b67b-c2b2-73e1-ad28-ec7205bb1177
+  trace_links:
+    - traces/world-v2/baseline-eval/insights.jsonl#L5
+    - traces/world-v2/baseline-eval/insights.jsonl#L6

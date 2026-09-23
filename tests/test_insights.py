@@ -59,6 +59,8 @@ class InsightsAdapterTests(unittest.TestCase):
 
         self.assertEqual(trace["id"], "trace-1")
         self.assertEqual(trace["attributes"]["logical_case_id"], "packet-case")
+        self.assertEqual(trace["attributes"]["task_text"], "Find the packet")
+        self.assertEqual(trace["evaluator_results"], {})
         self.assertEqual(trace["attributes"]["final_answer"], "Found it.")
         self.assertEqual(trace["attributes"]["tool_catalog"], {"files_search": {"type": "object"}})
         span = trace["root_spans"][0]
@@ -85,6 +87,66 @@ class InsightsAdapterTests(unittest.TestCase):
 
         self.assertEqual(span["tool_call"]["result_count"], 0)
         self.assertNotIn("output", span)
+
+    def test_unwraps_broker_calls_and_recovers_discovered_schema(self) -> None:
+        atif = {
+            "schema_version": "ATIF-v1.7",
+            "session_id": "session-broker",
+            "steps": [
+                {
+                    "source": "agent",
+                    "tool_calls": [
+                        {
+                            "tool_call_id": "discover",
+                            "function_name": "tool_describe",
+                            "arguments": {"names": ["mcp__enterprise__chat_search"]},
+                        }
+                    ],
+                    "observation": {
+                        "results": [
+                            {
+                                "source_call_id": "discover",
+                                "content": '{"tools":{"mcp__enterprise__chat_search":'
+                                '{"parameters":{"type":"object","required":["query"]}}}}',
+                            }
+                        ]
+                    },
+                },
+                {
+                    "source": "agent",
+                    "tool_calls": [
+                        {
+                            "tool_call_id": "invoke",
+                            "function_name": "tool_call",
+                            "arguments": {
+                                "calls": [
+                                    {
+                                        "name": "mcp__enterprise__chat_search",
+                                        "arguments": {"query": "launch"},
+                                    }
+                                ]
+                            },
+                        }
+                    ],
+                    "observation": {
+                        "results": [
+                            {"source_call_id": "invoke", "content": '{"result":"ok"}'}
+                        ]
+                    },
+                },
+            ],
+        }
+
+        trace = atif_to_insights_trace(atif)
+
+        invoked = trace["root_spans"][1]
+        self.assertEqual(invoked["tool_name"], "mcp__enterprise__chat_search")
+        self.assertEqual(invoked["input"], {"query": "launch"})
+        self.assertEqual(invoked["attributes"]["broker_tool_name"], "tool_call")
+        self.assertEqual(
+            trace["attributes"]["tool_catalog"]["mcp__enterprise__chat_search"],
+            {"type": "object", "required": ["query"]},
+        )
 
     def test_groups_completed_atof_turn_and_joins_tool_scope(self) -> None:
         events = [

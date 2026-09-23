@@ -13,7 +13,8 @@ small JSON Pointer such as `/evidence`. Return value, type, truncation, and
 available child keys. Never silently truncate.
 
 **Test:** Put the target below a large appendix and verify correct retrieval
-with bounded bytes and calls. Candidate v4 reduced this path to four calls.
+with bounded bytes and calls. The Harbor verifier requires the search and
+bounded read while enforcing the overall call budget.
 
 ## Tool downsampling with discovery
 
@@ -23,7 +24,7 @@ session history, or code tools instead of the authoritative enterprise source.
 **Pattern:** Keep the full catalog auditable, directly expose a task-relevant
 subset, and retain a discovery route. Do not hide safety or approval controls.
 
-**Test:** Include held-outs that need a non-obvious tool. Candidate v4 disables
+**Test:** Include held-outs that need a non-obvious tool. Candidate disables
 irrelevant Hermes CLI toolsets while leaving MCP discovery available.
 
 ## Evidence-state transitions
@@ -76,6 +77,6 @@ retry decisions, and approval state. Diagnose provider, gateway, transport,
 tool, and model failures separately.
 
 The measured profiles are
-[`nemoclaw-baseline-soul.md`](../profiles/nemoclaw-baseline-soul.md) and
-[`nemoclaw-candidate-v4-soul.md`](../profiles/nemoclaw-candidate-v4-soul.md).
+[`baseline-soul.md`](../profiles/baseline-soul.md) and
+[`candidate-soul.md`](../profiles/candidate-soul.md).
 The [walkthrough](walkthrough.md) shows every Hermes configuration change.

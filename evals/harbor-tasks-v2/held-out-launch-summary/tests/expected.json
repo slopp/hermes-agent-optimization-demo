@@ -1,0 +1,18 @@
+{
+  "max_tool_calls": 12,
+  "required_fact_groups": [
+    [
+      "2026-09-02",
+      "September 2, 2026",
+      "Sep 2, 2026"
+    ]
+  ],
+  "required_facts": [
+    "security evidence packet"
+  ],
+  "required_tools": [
+    "chat.search",
+    "chat.read_thread",
+    "calendar.list_events"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "max_tool_calls": 12,
+  "required_facts": [
+    "security evidence packet",
+    "one business day"
+  ],
+  "required_tools": [
+    "chat.search",
+    "chat.read_thread"
+  ]
+}

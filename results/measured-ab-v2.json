@@ -1,87 +1,104 @@
 {
   "schema_version": "enterprise-flywheel-measured-result-v2",
   "measured_at_utc": "2026-09-18",
+  "environment": {
+    "host": "fresh Ubuntu 24.04 Brev CPU instance with native Docker",
+    "harbor": "0.22.0",
+    "agent": "Hermes Agent 0.21.3 (2026.9.14), upstream c1e9dce8",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "provider": "nvidia"
+  },
+  "harness": {
+    "baseline_profile": "profiles/baseline-soul.md",
+    "baseline_profile_sha256": "b4ea8ea3f628c02a83e30583b58e974c4af210a407f51edd6a39d58093d73597",
+    "baseline_toolsets": ["hermes-cli"],
+    "baseline_max_turns": 60,
+    "candidate_profile": "profiles/candidate-soul.md",
+    "candidate_profile_sha256": "87da254ba3ef03dcc988f8b20914f1131154ef5744a5f136bae6a4ee2e080e4d",
+    "candidate_toolsets": ["skills"],
+    "candidate_max_turns": 12,
+    "proposal": "results/candidate-proposal.md"
+  },
   "fixture": {
     "world_version": "v2",
     "records": 504,
     "fixture_sha256": "0f25cfd13aca9adfca5ab0846c9ada5de0236d358d514d718316a65b381f06ce"
   },
-  "runtime": {
-    "agent": "Hermes 0.20.6 in a NemoClaw/OpenShell sandbox",
-    "nemoclaw": "0.0.124",
-    "actual_response_model": "nvidia/nvidia/nemotron-3-ultra",
-    "requested_model_alias": "nvidia/nvidia/nemotron-3-ultra",
-    "host": "Ubuntu CPU instance with native Docker",
-    "note": "Relay response metadata identifies the returned model; every arm used the same NVIDIA OpenAI-compatible route. The public walkthrough provisions NVIDIA Build."
+  "starting_corpus": {
+    "traces": 36,
+    "recorded_calls": 525,
+    "logical_cases": 6,
+    "trials_per_case": 6,
+    "empty_tool_trajectories": 4,
+    "insights": {
+      "trajectory_clusters": 7,
+      "anomalies": 1,
+      "missing_required_enterprise_evidence": 25
+    }
   },
-  "insights": {
-    "traces": 60,
-    "tool_calls": 521,
-    "logical_cases": 10,
-    "evaluable_rules": 14,
-    "total_rules": 19,
-    "missing_enterprise_evidence_verdicts": 19,
-    "trajectory_clusters": 8,
-    "anomalies": 2,
-    "analyst_model": "nvidia/nvidia/nemotron-3-ultra",
-    "analyst_input_traces": 18,
-    "analyst_insights": 3,
-    "excluded_and_replenished_infrastructure_attempts": 3
-  },
-  "eval_author": {
-    "members": 6,
-    "candidate_status": "candidate_unproven",
-    "technical_status": "passed",
+  "eval_author_controls": {
+    "tasks": 10,
+    "nop": {"passed": 0, "total": 10},
+    "oracle": {"passed": 10, "total": 10},
     "verifier_environment_mode": "separate",
-    "agent_network_mode": "no-network",
-    "runs_per_member": {"nop": 2, "oracle": 2, "negative": 1},
-    "rewards_per_member": {"nop": [0.0, 0.0], "oracle": [1.0, 1.0], "negative": [0.0]},
-    "human_review_complete": false
+    "verifier_network_mode": "no-network",
+    "development_publication_review_complete": false
   },
-  "development": {
+  "development_smoke": {
+    "tasks": 6,
+    "attempts_per_task": 1,
     "baseline": {
-      "traces": 18,
-      "pass_rate": 0.2222222222222222,
-      "trajectory_pass_rate": 0.2777777777777778,
-      "answer_pass_rate": 0.5,
-      "mean_tool_calls": 14.444444444444445,
-      "command_timeouts": 1
+      "passed": 1,
+      "trials": 6,
+      "pass_rate": 0.16666666666666666,
+      "tool_calls": 30,
+      "mean_tool_calls": 5.0,
+      "exceptions": 0,
+      "relay_complete": 6
     },
-    "candidate_v4": {
-      "traces": 18,
-      "pass_rate": 0.9444444444444444,
-      "trajectory_pass_rate": 0.9444444444444444,
-      "answer_pass_rate": 1.0,
-      "mean_tool_calls": 3.111111111111111,
-      "command_timeouts": 0
+    "candidate": {
+      "passed": 6,
+      "trials": 6,
+      "pass_rate": 1.0,
+      "tool_calls": 13,
+      "mean_tool_calls": 2.1666666666666665,
+      "exceptions": 0,
+      "relay_complete": 6
     }
   },
   "held_out": {
+    "tasks": 4,
+    "attempts_per_task": 3,
+    "measurement_note": "One attempt was run first, then two additional attempts were run for every task in both arms. All trials remain in the denominator.",
     "baseline": {
-      "traces": 12,
-      "pass_rate": 0.5,
-      "trajectory_pass_rate": 0.5,
-      "answer_pass_rate": 0.5,
-      "mean_tool_calls": 12.75,
-      "command_timeouts": 0
+      "passed": 2,
+      "trials": 12,
+      "pass_rate": 0.16666666666666666,
+      "tool_calls": 3,
+      "mean_tool_calls": 0.25,
+      "exceptions": 1,
+      "relay_complete": 11,
+      "exception_types": {"AgentTimeoutError": 1}
     },
-    "candidate_v4": {
-      "traces": 12,
-      "pass_rate": 1.0,
-      "trajectory_pass_rate": 1.0,
-      "answer_pass_rate": 1.0,
-      "mean_tool_calls": 4.333333333333333,
-      "command_timeouts": 0
+    "candidate": {
+      "passed": 11,
+      "trials": 12,
+      "pass_rate": 0.9166666666666666,
+      "tool_calls": 42,
+      "mean_tool_calls": 3.5,
+      "exceptions": 0,
+      "relay_complete": 12,
+      "observed_failure": "One security-timing trial made 12 search/fan-out calls without reading the selected chat thread."
     }
   },
-  "candidate_v4_changes": [
-    "current-record disambiguation and early stopping instead of collection enumeration",
-    "claim-to-source evidence routing for compound questions",
-    "search-then-read and schema-first optional arguments",
-    "bounded JSON Pointer inspection for large structured records",
-    "one identical retry followed by one explicit incident-system fallback",
+  "candidate_changes": [
+    "claim-to-source evidence routing and completeness stop check",
+    "search-then-read before citing record contents",
+    "schema-first bounded structured reads",
+    "one identical retry followed by one declared fallback",
+    "connector-status awareness",
     "prepare-without-send approval boundary",
-    "irrelevant local, web, code, session, and runtime toolset removal",
-    "12-turn runtime cap and eight-tool policy budget"
+    "irrelevant local, web, code, and session toolset removal",
+    "12-turn runtime cap and eight-MCP-call policy budget"
   ]
 }

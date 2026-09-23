@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the reviewed Eval Author output retained for reproducible A/B runs."""
+"""Validate the trace-derived development and held-out suite contract."""
 
 from __future__ import annotations
 
@@ -17,21 +17,18 @@ def validate(suite: dict[str, Any]) -> list[str]:
     generation = suite.get("generation", {})
     local_trace_workflow = version == "2.0"
     if local_trace_workflow:
-        if generation.get("method") != "nemo-eval-author-trace-environment":
-            errors.append("generation.method must record the Eval Author trace environment")
-        insight_refs = generation.get("insight_refs")
-        if not isinstance(insight_refs, list) or not insight_refs or not all(
-            str(ref).startswith("insights://") for ref in insight_refs
-        ):
-            errors.append("generation.insight_refs must contain insights:// references")
-        if generation.get("review_status") not in {
-            "agent_contextual_privacy_review_complete",
-            "agent_publication_review_complete",
-            "human_publication_review_complete",
-        }:
-            errors.append("v2 suite requires completed contextual privacy review")
-        if not generation.get("source_batch"):
-            errors.append("v2 suite requires generation.source_batch")
+        if generation.get("method") != "codex-with-nemo-eval-author":
+            errors.append("generation.method must record Codex using Eval Author")
+        if not generation.get("selection_rationale"):
+            errors.append("generation.selection_rationale is required")
+        if "insight_refs" in generation:
+            errors.append("eval authoring must not depend on later Trace Analyst output")
+        if generation.get("review_status") != "reference_tasks_checked_in":
+            errors.append("v2 suite must identify checked-in reference tasks")
+        if generation.get("source_corpus") != "traces/world-v2/corpus/index.json":
+            errors.append("v2 suite requires the checked-in source corpus")
+        if generation.get("source_trace_count") != 36:
+            errors.append("v2 suite requires all 36 source traces")
 
     cases = suite.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -62,15 +59,10 @@ def validate(suite: dict[str, Any]) -> list[str]:
                 for parent in parents
             ):
                 errors.append(f"held-out case {case_id} needs existing held_out_from_case_ids")
-        if case_kind == "trace_derived" and not provenance.get("eval_author_case_ref"):
-            errors.append(f"case {case_id} needs eval_author_case_ref")
-        if (
-            local_trace_workflow
-            and generation.get("review_status") == "agent_publication_review_complete"
-            and case_kind == "trace_derived"
-            and not str(provenance.get("eval_author_product_ref", "")).endswith("/result.json")
+        if case_kind == "trace_derived" and provenance.get("harbor_task_ref") != (
+            f"evals/harbor-tasks-v2/{case_id}"
         ):
-            errors.append(f"trace-derived case {case_id} needs an exported Eval Author product")
+            errors.append(f"case {case_id} needs its checked-in Harbor task reference")
     return errors
 
 
