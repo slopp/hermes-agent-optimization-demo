@@ -129,11 +129,10 @@ names = [call.get("name") for call in calls]
 required = Counter(expected.get("required_tools", []))
 actual = Counter(names)
 failures = []
-checks = []
 
 
 def record(check_id, passed, failure):
-    checks.append((check_id, passed))
+    del check_id
     if not passed:
         failures.append(failure)
 
@@ -199,8 +198,7 @@ report = {
 Path("/logs/verifier").mkdir(parents=True, exist_ok=True)
 Path("/logs/verifier/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 Path("/logs/verifier/reward.txt").write_text("1\n" if not failures else "0\n", encoding="utf-8")
-for check_id, passed in checks:
-    print(f"{check_id}\t{'PASS' if passed else 'FAIL'}")
+print(f"task-success\t{'PASS' if not failures else 'FAIL'}")
 '''
 
 
@@ -241,9 +239,9 @@ def task_readme(case: dict) -> str:
         ## Verification explanation
 
         The verifier checks required and forbidden tool calls, answer facts, the
-        total call budget, and mutation state when applicable. It emits one stable
-        PASS/FAIL row per scored check and awards a binary reward only when every
-        check passes.
+        total call budget, and mutation state when applicable. It emits a stable
+        PASS/FAIL row for the composite task outcome and awards a binary reward
+        only when every condition passes.
 
         ## Relevant experience
 

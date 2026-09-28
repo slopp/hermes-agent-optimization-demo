@@ -28,9 +28,9 @@ and writes a grounded final answer.
 ## Verification explanation
 
 The verifier checks required and forbidden tool calls, answer facts, the
-total call budget, and mutation state when applicable. It emits one stable
-PASS/FAIL row per scored check and awards a binary reward only when every
-check passes.
+total call budget, and mutation state when applicable. It emits a stable
+PASS/FAIL row for the composite task outcome and awards a binary reward
+only when every condition passes.
 
 ## Relevant experience
 
