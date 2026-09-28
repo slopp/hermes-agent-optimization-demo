@@ -6,12 +6,14 @@ Agent 0.21.3 with `nvidia/nemotron-3-ultra-550b-a55b` using the legacy
 `--runtime direct` adapter. Both arms used the same model, tasks, 504-record
 fixture, MCP server, prompts, and isolated verifiers.
 
-The walkthrough now defaults to `--runtime openshell`, which keeps Hermes, its MCP
-process, Relay, network policy, and model credential in an OpenShell sandbox while
-Harbor orchestrates and verifies the task. A clean-host acceptance run reproduced
-the development result (baseline 1/6, candidate 6/6) and improved a one-attempt
-held-out smoke from 1/4 to 3/4. Those four held-out trials per arm check runtime
-integration; they do not replace the more repeated reference measurement below.
+The walkthrough now defaults to `--runtime openshell`. Hermes and Relay run in an
+OpenShell sandbox; the authenticated mock MCP runs as a separate host service and
+is reachable only through the reviewed OpenShell network policy. OpenShell owns
+the model-credential boundary while Harbor orchestrates and verifies the task. A
+clean-host acceptance run reproduced the development result (baseline 1/6,
+candidate 6/6) and improved a one-attempt held-out smoke from 1/4 to 3/4. Those
+four held-out trials per arm check runtime integration; they do not replace the
+more repeated reference measurement below.
 
 ## Results
 
