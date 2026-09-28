@@ -243,15 +243,30 @@ Install Node.js 22+, Codex, and the Eval Author skills:
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 npm install -g @openai/codex
+git clone --filter=blob:none --no-checkout \
+  https://github.com/NVIDIA-NeMo/nemo-platform.git \
+  "$HOME/nemo-platform-eval-author"
+git -C "$HOME/nemo-platform-eval-author" sparse-checkout init --cone
+git -C "$HOME/nemo-platform-eval-author" sparse-checkout set \
+  plugins/nemo-eval-author
+git -C "$HOME/nemo-platform-eval-author" checkout \
+  9eb4fc7ca3e8dada9cfd66c72989ee735616c71f
 npx skills add \
-  https://github.com/NVIDIA-NeMo/nemo-platform/tree/9eb4fc7ca3e8dada9cfd66c72989ee735616c71f/plugins/nemo-eval-author/skills \
+  "$HOME/nemo-platform-eval-author/plugins/nemo-eval-author" \
+  --full-depth \
   --skill '*' --agent codex --yes
+ln -sfn \
+  "$HOME/nemo-platform-eval-author/plugins/nemo-eval-author/docs" \
+  .agents/docs
 npx skills list --agent codex
 codex
 ```
 
 The commit pin is intentional: it is the public standalone Eval Author skill set
 used by this tutorial. Current `nemo-platform` main no longer contains that plugin.
+The sparse checkout also retains the plugin-level fixture reference used by the
+trace-environment skill; installing only the `skills/` URL omits that required
+document.
 
 At the Codex prompt, paste `prompts/eval-author-from-traces.md`. The prompt tells
 Codex to read the installed skills, inspect every indexed trace, report its coverage
