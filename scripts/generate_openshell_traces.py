@@ -16,7 +16,9 @@ sys.path.insert(0, str(ROOT))
 from harbor_agents.openshell_hermes import OpenShellHermesFlywheel
 
 
-async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
+async def collect(
+    args: argparse.Namespace,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     matrix = json.loads(args.matrix.read_text(encoding="utf-8"))
     scenarios = matrix["scenarios"]
     if args.case:
@@ -32,40 +34,67 @@ async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
     output.mkdir(parents=True, exist_ok=True)
     semaphore = asyncio.Semaphore(args.concurrency)
     records: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
 
     async def run_one(scenario: dict[str, Any], attempt: int) -> None:
         case_id = scenario["id"]
         run_id = f"{case_id}-{attempt:02d}"
         run_dir = output / run_id
-        agent = OpenShellHermesFlywheel(
-            logs_dir=run_dir / "agent",
-            model_name=args.model,
-            arm="baseline",
-            openshell_bin=args.openshell_bin,
-            openshell_image=args.openshell_image,
-            openshell_provider=args.openshell_provider,
-        )
-        agent.session_id = f"source-{run_id}"
-        async with semaphore:
-            await agent._host_command([args.openshell_bin, "status"], timeout=30)
-            await agent.execute_openshell(scenario["prompt"], run_dir / "artifacts")
-        relay_paths = sorted(
-            str(path.relative_to(output))
-            for path in (run_dir / "artifacts" / "relay").rglob("*.json")
-        )
-        if not relay_paths:
-            raise RuntimeError(f"OpenShell run produced no Relay ATIF: {run_id}")
-        call_log = run_dir / "artifacts" / "tool-calls.jsonl"
-        records.append(
+        errors: list[str] = []
+        for retry in range(args.retries + 1):
+            try_dir = run_dir if retry == 0 else run_dir / f"retry-{retry:02d}"
+            agent = OpenShellHermesFlywheel(
+                logs_dir=try_dir / "agent",
+                model_name=args.model,
+                arm="baseline",
+                openshell_bin=args.openshell_bin,
+                openshell_image=args.openshell_image,
+                openshell_provider=args.openshell_provider,
+            )
+            agent.session_id = f"source-{run_id}-try-{retry + 1}"
+            try:
+                async with semaphore:
+                    await agent._host_command([args.openshell_bin, "status"], timeout=30)
+                    await agent.execute_openshell(
+                        scenario["prompt"], try_dir / "artifacts"
+                    )
+                relay_paths = sorted(
+                    str(path.relative_to(output))
+                    for path in (try_dir / "artifacts" / "relay").rglob("*.json")
+                )
+                if not relay_paths:
+                    raise RuntimeError(
+                        f"OpenShell run produced no Relay ATIF: {run_id}"
+                    )
+            except (OSError, RuntimeError, TimeoutError) as exc:
+                errors.append(f"{type(exc).__name__}: {str(exc)[-1000:]}")
+                continue
+
+            call_log = try_dir / "artifacts" / "tool-calls.jsonl"
+            records.append(
+                {
+                    "run_id": run_id,
+                    "logical_case_id": case_id,
+                    "attempt": attempt,
+                    "runtime_attempts": retry + 1,
+                    "prompt": scenario["prompt"],
+                    "relay_atif": relay_paths,
+                    "mcp_call_log": (
+                        str(call_log.relative_to(output))
+                        if call_log.is_file()
+                        else None
+                    ),
+                }
+            )
+            return
+
+        failures.append(
             {
                 "run_id": run_id,
                 "logical_case_id": case_id,
                 "attempt": attempt,
-                "prompt": scenario["prompt"],
-                "relay_atif": relay_paths,
-                "mcp_call_log": (
-                    str(call_log.relative_to(output)) if call_log.is_file() else None
-                ),
+                "runtime_attempts": args.retries + 1,
+                "errors": errors,
             }
         )
 
@@ -76,7 +105,10 @@ async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
             for attempt in range(1, args.attempts + 1)
         )
     )
-    return sorted(records, key=lambda item: item["run_id"])
+    return (
+        sorted(records, key=lambda item: item["run_id"]),
+        sorted(failures, key=lambda item: item["run_id"]),
+    )
 
 
 def main() -> int:
@@ -86,6 +118,12 @@ def main() -> int:
     )
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=1,
+        help="Retry each logical run after an infrastructure/model timeout",
+    )
     parser.add_argument("--case", action="append", help="Run only this matrix case (repeatable).")
     parser.add_argument("--output", type=Path, default=ROOT / ".runs" / "source-traces")
     parser.add_argument(
@@ -95,12 +133,12 @@ def main() -> int:
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
     args = parser.parse_args()
-    if args.attempts < 1 or args.concurrency < 1:
-        parser.error("--attempts and --concurrency must be positive")
+    if args.attempts < 1 or args.concurrency < 1 or args.retries < 0:
+        parser.error("--attempts/concurrency must be positive and --retries nonnegative")
     if not args.matrix.is_file():
         parser.error(f"matrix not found: {args.matrix}")
 
-    records = asyncio.run(collect(args))
+    records, failures = asyncio.run(collect(args))
     matrix_path = args.matrix.resolve()
     try:
         matrix_label = str(matrix_path.relative_to(ROOT))
@@ -115,13 +153,22 @@ def main() -> int:
         "model": args.model,
         "matrix": matrix_label,
         "runs": records,
+        "failures": failures,
     }
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
-    print(json.dumps({"output": str(args.output), "runs": len(records)}))
-    return 0
+    print(
+        json.dumps(
+            {
+                "output": str(args.output),
+                "runs": len(records),
+                "failures": len(failures),
+            }
+        )
+    )
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
