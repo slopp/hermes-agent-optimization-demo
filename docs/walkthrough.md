@@ -154,6 +154,9 @@ Each trial starts an authenticated Streamable HTTP server on one of two fixed ho
 ports, gives that trial a fresh bearer token and tool state, and stops the server
 after collecting its call log. `openshell/policy.yaml` permits Hermes to reach only
 `host.openshell.internal:8765` or `:8766`; arbitrary host services remain denied.
+The host bridge keeps the demo self-contained while making MCP a real network
+dependency from the sandbox's perspective. In a deployment, replace that host and
+port with the test service's DNS name and update the same allowlist boundary.
 
 Install the pinned Harbor runtime only if you will run evals:
 
