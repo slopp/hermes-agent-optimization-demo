@@ -209,7 +209,10 @@ does not invoke a verifier or use an authored eval: it runs the matrix prompts,
 starts an authenticated fixture-backed MCP service outside OpenShell, and saves its
 call log, Relay output, and a manifest. The sandbox image does not contain the MCP
 package or fixture, so a successful call proves the reviewed network path was used.
-Trace generation is optional because it is not the lesson's entry cost.
+Each logical run is retried once after a runtime or model timeout. Exhausted runs
+remain in the manifest's `failures` denominator and make the command exit nonzero;
+do not treat a partial corpus as complete. Trace generation is optional because it
+is not the lesson's entry cost.
 
 To author from this fresh bundle, change the corpus path in
 `prompts/eval-author-from-traces.md` to `.runs/source-traces/manifest.json`; do not
