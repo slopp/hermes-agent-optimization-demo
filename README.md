@@ -43,7 +43,7 @@ register, a disconnected CRM connector, and one transient incident-search failur
 | projects, analytics, support | Jira or Asana; BI platforms; ServiceNow or Zendesk |
 | connectors, actions | integration health; approval-gated draft and send APIs |
 
-Codex and [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author)
+Codex and [NeMo Eval Author](https://github.com/NVIDIA-NeMo/nemo-platform/tree/9eb4fc7ca3e8dada9cfd66c72989ee735616c71f/plugins/nemo-eval-author/skills)
 selected recurring behaviors from the starting traces and
 encoded them as six development tasks. Four separately worded tasks were held back
 until the candidate was frozen. Harbor runs Hermes against the fixture-backed MCP

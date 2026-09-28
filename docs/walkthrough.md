@@ -78,9 +78,11 @@ Install the host dependencies and clone the repository:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git jq make docker.io
+sudo apt-get install -y ca-certificates curl git jq make
+if ! command -v docker >/dev/null; then
+  curl -fsSL https://get.docker.com | sudo sh
+fi
 sudo usermod -aG docker "$USER"
-newgrp docker
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -90,6 +92,11 @@ docker info >/dev/null
 make test
 make validate
 ```
+
+If `docker` was installed or the `docker` group was newly added, exit the host and
+reconnect before continuing. This refreshes both the shell and the systemd user
+manager; `newgrp docker` alone is not enough for the OpenShell gateway service.
+Then confirm `docker info` works without `sudo`.
 
 `make test` runs the repository's unit tests. `make validate` separately checks the
 fixture digest, tool/eval contract, trace index, task metadata, and a clean rebuild
@@ -236,10 +243,15 @@ Install Node.js 22+, Codex, and the Eval Author skills:
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 npm install -g @openai/codex
-npx skills add NVIDIA-NeMo/labs-eval-author --skill '*' --agent codex --yes
+npx skills add \
+  https://github.com/NVIDIA-NeMo/nemo-platform/tree/9eb4fc7ca3e8dada9cfd66c72989ee735616c71f/plugins/nemo-eval-author/skills \
+  --skill '*' --agent codex --yes
 npx skills list --agent codex
 codex
 ```
+
+The commit pin is intentional: it is the public standalone Eval Author skill set
+used by this tutorial. Current `nemo-platform` main no longer contains that plugin.
 
 At the Codex prompt, paste `prompts/eval-author-from-traces.md`. The prompt tells
 Codex to read the installed skills, inspect every indexed trace, report its coverage
