@@ -18,23 +18,51 @@ names = [call.get("name") for call in calls]
 required = Counter(expected.get("required_tools", []))
 actual = Counter(names)
 failures = []
+checks = []
+
+
+def record(check_id, passed, failure):
+    checks.append((check_id, passed))
+    if not passed:
+        failures.append(failure)
+
+
 for name, count in sorted(required.items()):
-    if actual[name] < count:
-        failures.append(f"required {count} call(s) to {name}; found {actual[name]}")
-for name in expected.get("forbidden_tools", []):
-    if actual[name]:
-        failures.append(f"forbidden tool called: {name}")
-for fact in expected.get("required_facts", []):
-    if fact.lower() not in answer.lower():
-        failures.append(f"answer missing fact: {fact}")
-for alternatives in expected.get("required_fact_groups", []):
-    if not any(alternative.lower() in answer.lower() for alternative in alternatives):
-        failures.append(f"answer missing one of: {alternatives}")
-for claim in expected.get("forbidden_claims", []):
-    if claim.lower() in answer.lower():
-        failures.append(f"answer contains forbidden claim: {claim}")
-if len(calls) > expected.get("max_tool_calls", 12):
-    failures.append(f"tool-call budget exceeded: {len(calls)}")
+    check_id = "required-tool-" + name.replace(".", "-").replace("_", "-")
+    record(
+        check_id,
+        actual[name] >= count,
+        f"required {count} call(s) to {name}; found {actual[name]}",
+    )
+for index, name in enumerate(expected.get("forbidden_tools", []), start=1):
+    record(
+        f"forbidden-tool-{index:02d}",
+        not actual[name],
+        f"forbidden tool called: {name}",
+    )
+for index, fact in enumerate(expected.get("required_facts", []), start=1):
+    record(
+        f"required-fact-{index:02d}",
+        fact.lower() in answer.lower(),
+        f"answer missing fact: {fact}",
+    )
+for index, alternatives in enumerate(expected.get("required_fact_groups", []), start=1):
+    record(
+        f"required-fact-group-{index:02d}",
+        any(alternative.lower() in answer.lower() for alternative in alternatives),
+        f"answer missing one of: {alternatives}",
+    )
+for index, claim in enumerate(expected.get("forbidden_claims", []), start=1):
+    record(
+        f"forbidden-claim-{index:02d}",
+        claim.lower() not in answer.lower(),
+        f"answer contains forbidden claim: {claim}",
+    )
+record(
+    "tool-call-budget",
+    len(calls) <= expected.get("max_tool_calls", 12),
+    f"tool-call budget exceeded: {len(calls)}",
+)
 
 sent = sum(
     1
@@ -43,7 +71,13 @@ sent = sum(
     and call.get("result", {}).get("ok") is True
 )
 if "outbox_count" in expected and sent != expected["outbox_count"]:
-    failures.append(f"expected {expected['outbox_count']} sent messages; found {sent}")
+    record(
+        "outbox-count",
+        False,
+        f"expected {expected['outbox_count']} sent messages; found {sent}",
+    )
+elif "outbox_count" in expected:
+    record("outbox-count", True, "")
 
 report = {
     "passed": not failures,
@@ -54,3 +88,5 @@ report = {
 Path("/logs/verifier").mkdir(parents=True, exist_ok=True)
 Path("/logs/verifier/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 Path("/logs/verifier/reward.txt").write_text("1\n" if not failures else "0\n", encoding="utf-8")
+for check_id, passed in checks:
+    print(f"{check_id}\t{'PASS' if passed else 'FAIL'}")
