@@ -6,9 +6,9 @@ find recurring failures, change the agent harness, and measure whether the chang
 generalizes.
 
 ```text
-Relay traces → Codex + Eval Author → Harbor development tasks
+OpenShell-hosted Hermes + Relay traces → Codex + Eval Author → Harbor tasks
                                            │
-                               baseline Hermes rollouts
+                            OpenShell baseline rollouts
                                            │
                                      Trace Analyst
                                            │
@@ -17,8 +17,9 @@ Relay traces → Codex + Eval Author → Harbor development tasks
                           development A/B → held-out A/B
 ```
 
-Everything needed for the fast path is checked in: 36 starting traces, a
-deterministic 504-record fixture, ten trace-derived Harbor tasks, a task-local MCP
+Everything needed for the fast path is checked in: 36 starting traces from the
+OpenShell-hosted baseline, a deterministic 504-record fixture, ten trace-derived
+Harbor tasks, a task-local MCP
 server, two Hermes profiles, and measured reference results. You can reproduce the
 A/B without regenerating either traces or evals; the walkthrough also shows how to
 replace each checked-in input with your own.
@@ -48,6 +49,9 @@ selected recurring behaviors from the starting traces and
 encoded them as six development tasks. Four separately worded tasks were held back
 until the candidate was frozen. Harbor runs Hermes against the fixture-backed MCP
 server and scores the answer, actual tool calls, call budget, and mutation state.
+Each model-backed trial runs in a short-lived [OpenShell](https://github.com/NVIDIA/OpenShell)
+sandbox with default-deny network access and an endpoint-scoped NVIDIA credential;
+Harbor remains the task orchestrator and isolated verifier.
 
 ## What changed
 

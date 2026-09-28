@@ -1,7 +1,8 @@
 # Checked-in traces
 
 `world-v2/corpus/` contains 36 Relay-compatible ATIF-v1.7 trajectories from
-repeated baseline Hermes runs against the synthetic enterprise world. The index
+repeated baseline Hermes runs in an OpenShell sandbox against the synthetic
+enterprise world. The index
 records provenance and six observable behavior groups. Fixture-backed MCP calls
 retain their schemas, arguments, and results; unrelated payloads use explicit
 redaction markers.
@@ -12,6 +13,11 @@ Harbor scores:
 ```bash
 python3 scripts/validate_trace_corpus.py traces/world-v2/corpus/index.json
 ```
+
+To collect a fresh unscored bundle with the same OpenShell-hosted agent and mock
+MCP world, follow walkthrough step 2 and run
+`scripts/generate_openshell_traces.py`. The checked-in corpus remains the stable
+authoring input; fresh model output is expected to vary.
 
 `world-v2/baseline-eval/insights.jsonl` is a separate six-trace canonical JSONL
 bundle from the measured baseline development run. Each record joins a Relay

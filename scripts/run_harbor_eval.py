@@ -16,6 +16,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arm", choices=("baseline", "candidate"), required=True)
     parser.add_argument("--split", choices=("development", "held-out"), required=True)
+    parser.add_argument(
+        "--runtime",
+        choices=("openshell", "direct"),
+        default="openshell",
+        help="Run Hermes in OpenShell (default) or directly in the Harbor task image.",
+    )
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--harbor", default="harbor")
@@ -24,6 +30,9 @@ def main() -> int:
     parser.add_argument(
         "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
     )
+    parser.add_argument("--openshell-bin", default="openshell")
+    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.1")
+    parser.add_argument("--openshell-provider", default="hermes-nvidia")
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1:
         parser.error("--attempts and --concurrency must be positive")
@@ -32,13 +41,18 @@ def main() -> int:
     case_kind = "held_out" if args.split == "held-out" else "trace_derived"
     case_ids = [case["id"] for case in suite["cases"] if case["case_kind"] == case_kind]
     job_name = args.job_name or f"{args.arm}-{args.split}"
+    agent = (
+        "harbor_agents.openshell_hermes:OpenShellHermesFlywheel"
+        if args.runtime == "openshell"
+        else "harbor_agents.hermes_flywheel:HermesFlywheel"
+    )
     command = [
         args.harbor,
         "run",
         "-p",
         str(ROOT / "evals" / "harbor-tasks-v2"),
         "-a",
-        "harbor_agents.hermes_flywheel:HermesFlywheel",
+        agent,
         "--ak",
         f"arm={args.arm}",
         "-m",
@@ -53,9 +67,23 @@ def main() -> int:
         str(args.concurrency),
         "--yes",
     ]
+    if args.runtime == "openshell":
+        command.extend(("--ak", f"openshell_bin={args.openshell_bin}"))
+        command.extend(("--ak", f"openshell_image={args.openshell_image}"))
+        command.extend(("--ak", f"openshell_provider={args.openshell_provider}"))
     for case_id in case_ids:
         command.extend(("--include-task-name", case_id))
-    print(json.dumps({"arm": args.arm, "split": args.split, "cases": case_ids, "job": job_name}))
+    print(
+        json.dumps(
+            {
+                "arm": args.arm,
+                "split": args.split,
+                "runtime": args.runtime,
+                "cases": case_ids,
+                "job": job_name,
+            }
+        )
+    )
     env = os.environ.copy()
     existing_pythonpath = env.get("PYTHONPATH")
     env["PYTHONPATH"] = (

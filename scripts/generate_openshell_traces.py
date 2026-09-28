@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Collect fresh, unscored baseline traces from the OpenShell deployment."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from harbor_agents.openshell_hermes import OpenShellHermesFlywheel
+
+
+async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
+    matrix = json.loads(args.matrix.read_text(encoding="utf-8"))
+    scenarios = matrix["scenarios"]
+    if args.case:
+        requested = set(args.case)
+        known = {scenario["id"] for scenario in scenarios}
+        unknown = sorted(requested - known)
+        if unknown:
+            raise ValueError(f"unknown matrix case(s): {', '.join(unknown)}")
+        scenarios = [scenario for scenario in scenarios if scenario["id"] in requested]
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    semaphore = asyncio.Semaphore(args.concurrency)
+    records: list[dict[str, Any]] = []
+
+    async def run_one(scenario: dict[str, Any], attempt: int) -> None:
+        case_id = scenario["id"]
+        run_id = f"{case_id}-{attempt:02d}"
+        run_dir = output / run_id
+        agent = OpenShellHermesFlywheel(
+            logs_dir=run_dir / "agent",
+            model_name=args.model,
+            arm="baseline",
+            openshell_bin=args.openshell_bin,
+            openshell_image=args.openshell_image,
+            openshell_provider=args.openshell_provider,
+        )
+        agent.session_id = f"source-{run_id}"
+        async with semaphore:
+            await agent._host_command([args.openshell_bin, "status"], timeout=30)
+            await agent.execute_openshell(scenario["prompt"], run_dir / "artifacts")
+        relay_paths = sorted(
+            str(path.relative_to(output))
+            for path in (run_dir / "artifacts" / "relay").rglob("*.json")
+        )
+        records.append(
+            {
+                "run_id": run_id,
+                "logical_case_id": case_id,
+                "attempt": attempt,
+                "prompt": scenario["prompt"],
+                "relay_atif": relay_paths,
+            }
+        )
+
+    await asyncio.gather(
+        *(
+            run_one(scenario, attempt)
+            for scenario in scenarios
+            for attempt in range(1, args.attempts + 1)
+        )
+    )
+    return sorted(records, key=lambda item: item["run_id"])
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--matrix", type=Path, default=ROOT / "experiments" / "fidelity-matrix-v2.json"
+    )
+    parser.add_argument("--attempts", type=int, default=1)
+    parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--case", action="append", help="Run only this matrix case (repeatable).")
+    parser.add_argument("--output", type=Path, default=ROOT / ".runs" / "source-traces")
+    parser.add_argument(
+        "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
+    )
+    parser.add_argument("--openshell-bin", default="openshell")
+    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.1")
+    parser.add_argument("--openshell-provider", default="hermes-nvidia")
+    args = parser.parse_args()
+    if args.attempts < 1 or args.concurrency < 1:
+        parser.error("--attempts and --concurrency must be positive")
+    if not args.matrix.is_file():
+        parser.error(f"matrix not found: {args.matrix}")
+
+    records = asyncio.run(collect(args))
+    manifest = {
+        "schema": "openshell-source-traces-v1",
+        "runtime": "openshell",
+        "arm": "baseline",
+        "model": args.model,
+        "matrix": str(args.matrix),
+        "runs": records,
+    }
+    args.output.mkdir(parents=True, exist_ok=True)
+    (args.output / "manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps({"output": str(args.output), "runs": len(records)}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
