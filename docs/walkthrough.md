@@ -59,7 +59,9 @@ Read these artifacts in order; each is the input to the next:
 6. [`candidate-soul.md`](../profiles/candidate-soul.md) and
    [`hermes_flywheel.py`](../harbor_agents/hermes_flywheel.py) implement it.
 7. [`measured-ab-v2.json`](../results/measured-ab-v2.json) reports the development
-   and held-out A/B.
+   and held-out A/B from the saved `--runtime direct` reference. The current
+   commands default to OpenShell; the runtime acceptance result is documented in
+   [`docs/results.md`](results.md).
 
 [`artifact-chain.json`](../results/artifact-chain.json) records this provenance and
 the exact hashes. `make validate` checks that the artifacts still agree and that
@@ -186,11 +188,15 @@ starts the real fixture-backed MCP server inside each OpenShell sandbox, and sav
 Relay output plus a manifest. It is optional because trace generation is not the
 lesson's entry cost.
 
+To author from this fresh bundle, change the corpus path in
+`prompts/eval-author-from-traces.md` to `.runs/source-traces/manifest.json`; do not
+mix fresh and checked-in traces in one claimed denominator.
+
 In your own deployment, host the agent in OpenShell, instrument it with NeMo Relay,
 and export ATIF. Keep task text, tool calls/results, stable trace IDs, and enough
-model context to explain
-the behavior. Replace `traces/world-v2/corpus/` and its index with that export. You
-do not need to generate traces before trying this repository.
+model context to explain the behavior. Replace `traces/world-v2/corpus/` and its
+index with that export. You do not need to generate traces before trying this
+repository.
 
 ## 3. Optionally re-author the eval with Codex
 
@@ -346,9 +352,13 @@ user sentiment or an ethos-specific comparison:
 uv tool install \
   'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@3a06bce1298190cd143a96880d6999052086632d'
 
-export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
+printf 'NVIDIA API key for Trace Analyst: '
+read -rs INSIGHT_AGENT_API_KEY
+printf '\n'
+export INSIGHT_AGENT_API_KEY
 insight-agent --config configs/trace-analyst.yaml \
   --trace.filesystem.path .runs/baseline-development-insights.jsonl
+unset INSIGHT_AGENT_API_KEY
 sed -n '1,220p' .runs/baseline-insights.yml
 ```
 

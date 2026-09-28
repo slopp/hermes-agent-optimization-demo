@@ -5,6 +5,7 @@
     "host": "fresh Ubuntu 24.04 Brev CPU instance with native Docker",
     "harbor": "0.22.0",
     "agent": "Hermes Agent 0.21.3 (2026.9.14), upstream c1e9dce8",
+    "agent_runtime": "Harbor task container (--runtime direct)",
     "model": "nvidia/nemotron-3-ultra-550b-a55b",
     "provider": "nvidia"
   },

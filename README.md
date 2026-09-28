@@ -74,15 +74,17 @@ status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
 | --- | --- | --- |
 | Two failed cases never invoked `chat.search`/`chat.read_thread`, so required chat facts were absent | Route chat claims to chat; treat search hits as locators; require a read before answering; downsample distracting tools | Development: 1/6 → 6/6; held out: 2/12 → 11/12 |
 
-| Split | Baseline | Candidate | Attempts |
+| Split (saved `--runtime direct` reference) | Baseline | Candidate | Attempts |
 | --- | ---: | ---: | ---: |
 | Development | 1/6 | 6/6 | one per task |
 | Held out | 2/12 | 11/12 | three per task |
 
 These are measured results on a small synthetic benchmark, not a claim that the
-candidate policy is universal. See [results](docs/results.md) for runtime details,
-variance, and limitations, and [harness patterns](docs/harness-patterns.md) for the
-portable issue/fix ideas.
+candidate policy is universal. A clean-host acceptance run with the default
+OpenShell adapter also improved development from 1/6 to 6/6 and held out from 1/4
+to 3/4. See [results](docs/results.md) for runtime details, variance, and
+limitations, and [harness patterns](docs/harness-patterns.md) for the portable
+issue/fix ideas.
 
 The complete saved evidence chain is machine checked:
 

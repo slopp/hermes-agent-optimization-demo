@@ -9,60 +9,22 @@ artifacts back into the Harbor task environment.
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
-import re
 import shlex
 import tempfile
 from pathlib import Path
 from typing import Any, override
 
-import yaml
 from harbor.agents.installed.base import with_prompt_template
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
 from harbor_agents.hermes_flywheel import ARM_CONFIG, HermesFlywheel
+from harbor_agents.openshell_utils import final_answer, sandbox_name
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE = "hermes-flywheel-openshell:0.1"
 DEFAULT_PROVIDER = "hermes-nvidia"
-
-
-def _sandbox_name(session_id: str | None, arm: str) -> str:
-    raw = session_id or "trial"
-    slug = re.sub(r"[^a-z0-9-]+", "-", raw.lower()).strip("-")[:4]
-    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:10]
-    # The local Docker gateway currently caps names at 19 characters even
-    # though the portable DNS label limit is larger.
-    return f"hf-{arm[0]}-{slug or 'run'}-{digest}"[:19].rstrip("-")
-
-
-def _final_answer(session_text: str) -> str:
-    messages: list[dict[str, Any]] = []
-    for line in session_text.splitlines():
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(item, dict) and isinstance(item.get("messages"), list):
-            messages.extend(item["messages"])
-        elif isinstance(item, dict):
-            messages.append(item)
-
-    for message in reversed(messages):
-        if message.get("role") != "assistant" or message.get("tool_calls"):
-            continue
-        content = message.get("content", "")
-        if isinstance(content, list):
-            content = " ".join(
-                part.get("text", "")
-                for part in content
-                if isinstance(part, dict) and part.get("type") == "text"
-            )
-        if content:
-            return str(content)
-    return ""
+HERMES_VERSION = "0.21.3"
 
 
 class OpenShellHermesFlywheel(HermesFlywheel):
@@ -87,6 +49,10 @@ class OpenShellHermesFlywheel(HermesFlywheel):
     @override
     def name() -> str:
         return "openshell-hermes-flywheel"
+
+    @override
+    def version(self) -> str:
+        return HERMES_VERSION
 
     @override
     async def setup(self, environment: BaseEnvironment) -> None:
@@ -148,26 +114,23 @@ class OpenShellHermesFlywheel(HermesFlywheel):
                 f"received provider {provider!r}"
             )
 
-        config = yaml.safe_load(self._build_config_yaml(model))
-        config["mcp_servers"] = {
-            "enterprise-world": {
-                "command": "/usr/bin/env",
-                "args": [
-                    "PYTHONPATH=/opt/enterprise",
-                    "python",
-                    "-m",
-                    "pa_style_mock_mcp.mcp_sdk_stdio",
-                    "--world",
-                    "/workspace/run/world.json",
-                    "--call-log",
-                    "/workspace/run/artifacts/tool-calls.jsonl",
-                    "--catalog",
-                    "extended",
-                ],
-            }
-        }
+        config = self._build_config_yaml(model) + '''mcp_servers:
+  enterprise-world:
+    command: /usr/bin/env
+    args:
+      - PYTHONPATH=/opt/enterprise
+      - python
+      - -m
+      - pa_style_mock_mcp.mcp_sdk_stdio
+      - --world
+      - /workspace/run/world.json
+      - --call-log
+      - /workspace/run/artifacts/tool-calls.jsonl
+      - --catalog
+      - extended
+'''
         (hermes_home / "config.yaml").write_text(
-            yaml.safe_dump(config, default_flow_style=False), encoding="utf-8"
+            config, encoding="utf-8"
         )
         (hermes_home / "SOUL.md").write_text(
             ARM_CONFIG[self.arm]["profile"].read_text(encoding="utf-8"),
@@ -251,8 +214,8 @@ exit "$hermes_rc"
 
     async def execute_openshell(self, instruction: str, artifact_dir: Path) -> None:
         """Run one unscored agent turn and retain its deployment artifacts."""
-        sandbox = _sandbox_name(self.session_id, self.arm)
-        run_error: Exception | None = None
+        sandbox = sandbox_name(self.session_id, self.arm)
+        run_error: RuntimeError | None = None
         artifact_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="hermes-openshell-") as temp:
             runtime_dir = Path(temp) / "run"
@@ -315,7 +278,7 @@ exit "$hermes_rc"
                 )
 
                 session_path = artifact_dir / "hermes-session.jsonl"
-                answer = _final_answer(
+                answer = final_answer(
                     session_path.read_text(encoding="utf-8")
                     if session_path.is_file()
                     else ""
@@ -343,7 +306,11 @@ exit "$hermes_rc"
         environment: BaseEnvironment,
         context: AgentContext,
     ) -> None:
-        del context
+        context.metadata = {
+            "runtime": "openshell",
+            "image": self.openshell_image,
+            "provider": self.openshell_provider,
+        }
         with tempfile.TemporaryDirectory(prefix="hermes-openshell-") as temp:
             artifact_dir = Path(temp) / "artifacts"
             await self.execute_openshell(instruction, artifact_dir)

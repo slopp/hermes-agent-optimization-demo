@@ -3,22 +3,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
+from harbor_agents.openshell_utils import final_answer, sandbox_name
 
 try:
-    from harbor_agents.openshell_hermes import (
-        OpenShellHermesFlywheel,
-        _final_answer,
-        _sandbox_name,
-    )
-except ModuleNotFoundError:  # Harbor is an optional dependency for unit tests.
+    from harbor_agents.openshell_hermes import OpenShellHermesFlywheel
+except (ImportError, ModuleNotFoundError):  # Harbor/Python 3.12 are optional here.
     OpenShellHermesFlywheel = None
 
 
 class OpenShellHelpersTest(unittest.TestCase):
     def test_sandbox_name_is_dns_safe_bounded_and_stable(self) -> None:
-        first = _sandbox_name("Source_Coverage__LONG/unsafe value" * 3, "candidate")
-        second = _sandbox_name("Source_Coverage__LONG/unsafe value" * 3, "candidate")
+        first = sandbox_name("Source_Coverage__LONG/unsafe value" * 3, "candidate")
+        second = sandbox_name("Source_Coverage__LONG/unsafe value" * 3, "candidate")
         self.assertEqual(first, second)
         self.assertLessEqual(len(first), 19)
         self.assertRegex(first, r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
@@ -33,12 +29,14 @@ class OpenShellHelpersTest(unittest.TestCase):
                 ]
             }
         )
-        self.assertEqual(_final_answer(session), "grounded answer")
+        self.assertEqual(final_answer(session), "grounded answer")
 
 
 @unittest.skipIf(OpenShellHermesFlywheel is None, "Harbor is not installed")
 class OpenShellRuntimeTest(unittest.TestCase):
     def test_runtime_contains_arm_mcp_relay_and_no_api_key(self) -> None:
+        import yaml
+
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
@@ -46,19 +44,17 @@ class OpenShellRuntimeTest(unittest.TestCase):
                 model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
                 arm="candidate",
             )
+            self.assertEqual(agent.version(), "0.21.3")
             runtime = root / "run"
             agent._write_runtime(runtime, 'Summarize the "launch" evidence.')
 
-            config = yaml.safe_load((runtime / "hermes" / "config.yaml").read_text())
+            config_text = (runtime / "hermes" / "config.yaml").read_text()
+            config = yaml.safe_load(config_text)
             self.assertEqual(config["agent"]["max_turns"], 12)
             self.assertEqual(config["toolsets"], ["skills"])
-            self.assertEqual(
-                config["mcp_servers"]["enterprise-world"]["command"],
-                "/usr/bin/env",
-            )
-            self.assertIn("tool-calls.jsonl", " ".join(
-                config["mcp_servers"]["enterprise-world"]["args"]
-            ))
+            enterprise = config["mcp_servers"]["enterprise-world"]
+            self.assertEqual(enterprise["command"], "/usr/bin/env")
+            self.assertIn("tool-calls.jsonl", " ".join(enterprise["args"]))
             self.assertEqual(
                 (runtime / "instruction.txt").read_text(),
                 'Summarize the "launch" evidence.',

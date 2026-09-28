@@ -27,6 +27,8 @@ async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
             raise ValueError(f"unknown matrix case(s): {', '.join(unknown)}")
         scenarios = [scenario for scenario in scenarios if scenario["id"] in requested]
     output = args.output.resolve()
+    if output.exists() and any(output.iterdir()):
+        raise ValueError(f"output directory is not empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
     semaphore = asyncio.Semaphore(args.concurrency)
     records: list[dict[str, Any]] = []
@@ -51,6 +53,8 @@ async def collect(args: argparse.Namespace) -> list[dict[str, Any]]:
             str(path.relative_to(output))
             for path in (run_dir / "artifacts" / "relay").rglob("*.json")
         )
+        if not relay_paths:
+            raise RuntimeError(f"OpenShell run produced no Relay ATIF: {run_id}")
         records.append(
             {
                 "run_id": run_id,
@@ -93,12 +97,17 @@ def main() -> int:
         parser.error(f"matrix not found: {args.matrix}")
 
     records = asyncio.run(collect(args))
+    matrix_path = args.matrix.resolve()
+    try:
+        matrix_label = str(matrix_path.relative_to(ROOT))
+    except ValueError:
+        matrix_label = str(matrix_path)
     manifest = {
         "schema": "openshell-source-traces-v1",
         "runtime": "openshell",
         "arm": "baseline",
         "model": args.model,
-        "matrix": str(args.matrix),
+        "matrix": matrix_label,
         "runs": records,
     }
     args.output.mkdir(parents=True, exist_ok=True)

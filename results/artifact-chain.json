@@ -53,7 +53,7 @@
       "id": "measured-result",
       "consumes": ["authored-eval-set", "candidate-profile", "harness-adapter"],
       "path": "results/measured-ab-v2.json",
-      "sha256": "2cc277ea163f5f3b1fcaa4d29cac74641fafcf1aa1d9e3231847fbc9d02e092f",
+      "sha256": "b4da45097a46f4bd8a28ac81eb047c5f60ce8c127e70f6823656c784ddfe406e",
       "produces": "development and held-out baseline-versus-candidate measurements"
     }
   ],
