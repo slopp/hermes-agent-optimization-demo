@@ -22,16 +22,24 @@ from .world import EnterpriseWorld
 class SessionRegistries:
     """Create one fixture world per live MCP session without retaining it forever."""
 
-    def __init__(self, catalog: str = "extended", fixture: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        catalog: str = "extended",
+        fixture: str | Path | None = None,
+        call_log: str | Path | None = None,
+    ) -> None:
         self.catalog = catalog
         self.fixture = fixture
+        self.call_log = call_log
         self._registries: weakref.WeakKeyDictionary[Any, ToolRegistry] = weakref.WeakKeyDictionary()
 
     def for_session(self, session: Any) -> ToolRegistry:
         registry = self._registries.get(session)
         if registry is None:
             registry = ToolRegistry(
-                world=EnterpriseWorld.default(self.fixture), catalog=self.catalog
+                world=EnterpriseWorld.default(self.fixture),
+                catalog=self.catalog,
+                call_log_path=self.call_log,
             )
             self._registries[session] = registry
         return registry
@@ -46,6 +54,7 @@ def build_server(
     issuer_url: str = "https://mock-mcp.example.test",
     resource_server_url: str = "https://mock-mcp.example.test/mcp",
     fixture: str | Path | None = None,
+    call_log: str | Path | None = None,
 ) -> Any:
     """Build, but do not start, a FastMCP Streamable HTTP server.
 
@@ -65,7 +74,7 @@ def build_server(
     # package still requires no MCP dependency.
     globals()["Context"] = Context
 
-    registries = SessionRegistries(catalog, fixture)
+    registries = SessionRegistries(catalog, fixture, call_log)
     fastmcp_options: dict[str, Any] = {}
     if bearer_token:
         class StaticDemoTokenVerifier:
@@ -167,6 +176,7 @@ def main() -> int:
         default=os.environ.get("PA_STYLE_WORLD_FIXTURE"),
         help="Path to a frozen world fixture; defaults to PA_STYLE_WORLD_FIXTURE or world-v1.json.",
     )
+    parser.add_argument("--call-log", help="Append MCP calls and results to this JSONL file.")
     args = parser.parse_args()
     bearer_token = os.environ.get("PA_STYLE_MOCK_MCP_TOKEN") if args.require_bearer_token else None
     if args.require_bearer_token and not bearer_token:
@@ -179,6 +189,7 @@ def main() -> int:
         issuer_url=args.issuer_url,
         resource_server_url=args.resource_server_url,
         fixture=args.fixture,
+        call_log=args.call_log,
     ).run(transport="streamable-http")
     return 0
 

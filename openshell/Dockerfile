@@ -9,9 +9,6 @@ RUN git clone --filter=blob:none https://github.com/NousResearch/hermes-agent.gi
     && git checkout 345cd2b057a452236de401d3534b8502a7465e8d \
     && python -m pip install --no-cache-dir -e '.[mcp]'
 
-COPY src/pa_style_mock_mcp /opt/enterprise/pa_style_mock_mcp
-ENV PYTHONPATH=/opt/enterprise
-
 RUN useradd --create-home --uid 1000 agent \
     && mkdir -p /workspace \
     && chown agent:agent /workspace
@@ -20,5 +17,4 @@ ENV HOME=/home/agent
 WORKDIR /workspace
 
 RUN command -v hermes \
-    && hermes --version \
-    && python -c "import pa_style_mock_mcp"
+    && hermes --version

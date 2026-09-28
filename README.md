@@ -6,23 +6,22 @@ find recurring failures, change the agent harness, and measure whether the chang
 generalizes.
 
 ```text
-OpenShell-hosted Hermes + Relay traces → Codex + Eval Author → Harbor tasks
-                                           │
-                            OpenShell baseline rollouts
-                                           │
-                                     Trace Analyst
-                                           │
-                             harness hypothesis + candidate
-                                           │
-                          development A/B → held-out A/B
+remote mock MCP ← OpenShell-hosted Hermes + Relay traces → Codex + Eval Author
+                              │                              │
+                       network policy                  Harbor tasks
+                              │                              │
+                        baseline rollouts → Trace Analyst → candidate
+                                                             │
+                                              development A/B → held-out A/B
 ```
 
 Everything needed for the fast path is checked in: 36 starting traces from the
 OpenShell-hosted baseline, a deterministic 504-record fixture, ten trace-derived
-Harbor tasks, a task-local MCP
-server, two Hermes profiles, and measured reference results. You can reproduce the
-A/B without regenerating either traces or evals; the walkthrough also shows how to
-replace each checked-in input with your own.
+Harbor tasks, a separately hosted Streamable HTTP MCP service, two Hermes profiles,
+and measured reference results. You can reproduce the A/B without regenerating
+either traces or evals; the walkthrough also shows how to replace each checked-in
+input with your own. Eval Author proofs retain a task-local stdio adapter backed by
+the exact same fixture and tool registry.
 
 ## Production grounding
 
@@ -51,7 +50,8 @@ until the candidate was frozen. Harbor runs Hermes against the fixture-backed MC
 server and scores the answer, actual tool calls, call budget, and mutation state.
 Each model-backed trial runs in a short-lived [OpenShell](https://github.com/NVIDIA/OpenShell)
 sandbox with default-deny network access and an endpoint-scoped NVIDIA credential;
-Harbor remains the task orchestrator and isolated verifier.
+the policy separately allows only the tutorial's authenticated MCP endpoint. Harbor
+remains the task orchestrator and isolated verifier.
 
 ## What changed
 

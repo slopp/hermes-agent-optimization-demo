@@ -1,5 +1,6 @@
 .venv/
 .harbor-venv/
+.mcp-venv/
 .eval-author/
 .nemo-relay/
 .runs/

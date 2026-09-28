@@ -53,8 +53,13 @@ class OpenShellRuntimeTest(unittest.TestCase):
             self.assertEqual(config["agent"]["max_turns"], 12)
             self.assertEqual(config["toolsets"], ["skills"])
             enterprise = config["mcp_servers"]["enterprise-world"]
-            self.assertEqual(enterprise["command"], "/usr/bin/env")
-            self.assertIn("tool-calls.jsonl", " ".join(enterprise["args"]))
+            self.assertEqual(
+                enterprise["url"], "http://host.openshell.internal:8765/mcp"
+            )
+            self.assertEqual(
+                enterprise["headers"]["Authorization"], "Bearer test-token"
+            )
+            self.assertFalse((runtime / "world.json").exists())
             self.assertEqual(
                 (runtime / "instruction.txt").read_text(),
                 'Summarize the "launch" evidence.',

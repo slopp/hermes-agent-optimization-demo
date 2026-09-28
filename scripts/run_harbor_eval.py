@@ -31,7 +31,7 @@ def main() -> int:
         "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
     )
     parser.add_argument("--openshell-bin", default="openshell")
-    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.1")
+    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1:

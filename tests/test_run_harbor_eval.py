@@ -30,7 +30,7 @@ class RunHarborEvalTest(unittest.TestCase):
         self.assertIn(
             "harbor_agents.openshell_hermes:OpenShellHermesFlywheel", command
         )
-        self.assertIn("openshell_image=hermes-flywheel-openshell:0.1", command)
+        self.assertIn("openshell_image=hermes-flywheel-openshell:0.2", command)
 
     @patch("scripts.run_harbor_eval.subprocess.run")
     def test_direct_runtime_remains_available(self, run) -> None:

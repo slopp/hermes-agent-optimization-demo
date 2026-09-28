@@ -127,14 +127,26 @@ unset NVIDIA_API_KEY
 
 The profile permits the pinned Hermes/Python executables to send the credential
 only to `integrate.api.nvidia.com:443`. The sandbox receives a credential reference,
-not the stored key. Build the image containing Hermes, Relay integration, and the
-synthetic MCP package:
+not the stored key. Build the image containing Hermes and Relay integration:
 
 ```bash
 docker build \
   -f openshell/Dockerfile \
-  -t hermes-flywheel-openshell:0.1 .
+  -t hermes-flywheel-openshell:0.2 .
 ```
+
+Install the separately hosted mock MCP service. This process runs on the host, not
+inside the OpenShell image:
+
+```bash
+uv venv .mcp-venv --python 3.12
+uv pip install --python .mcp-venv/bin/python -e '.[remote-mcp]'
+```
+
+Each trial starts an authenticated Streamable HTTP server on one of two fixed host
+ports, gives that trial a fresh bearer token and tool state, and stops the server
+after collecting its call log. `openshell/policy.yaml` permits Hermes to reach only
+`host.openshell.internal:8765` or `:8766`; arbitrary host services remain denied.
 
 Install the pinned Harbor runtime only if you will run evals:
 
@@ -184,9 +196,10 @@ find .runs/source-traces -name 'trajectory-*.json' | wc -l
 
 Increase `--attempts` to six to reproduce the checked-in corpus size. This command
 does not invoke a verifier or use an authored eval: it runs the matrix prompts,
-starts the real fixture-backed MCP server inside each OpenShell sandbox, and saves
-Relay output plus a manifest. It is optional because trace generation is not the
-lesson's entry cost.
+starts an authenticated fixture-backed MCP service outside OpenShell, and saves its
+call log, Relay output, and a manifest. The sandbox image does not contain the MCP
+package or fixture, so a successful call proves the reviewed network path was used.
+Trace generation is optional because it is not the lesson's entry cost.
 
 To author from this fresh bundle, change the corpus path in
 `prompts/eval-author-from-traces.md` to `.runs/source-traces/manifest.json`; do not
@@ -236,9 +249,10 @@ The reviews are deliberate. A person must decide whether a trace is safe to use,
 which source tools a candidate task may access, whether the generalized task still
 tests the intended behavior, and whether the final artifact can be published. In
 this example, MCP calls are classified as `real`: the service is synthetic, but the
-agent truly discovers and invokes the same task-local server used by the verifier.
-Calling it `mock` would mean exact replay or a substituted response mechanism,
-which would not test the harness behavior.
+agent truly discovers and invokes it over Streamable HTTP. Eval Author's
+task-contained stdio adapter uses the same fixture and `ToolRegistry`; it is not a
+replay or substituted response mechanism. The verifier separately scores the
+recorded calls and final answer.
 
 For your agent, replace the fixture server with a safely isolated test version of
 your actual tool contract. Do not give a Harbor task production credentials.
@@ -246,16 +260,20 @@ your actual tool contract. Do not give a Harbor task production credentials.
 ## 4. Understand and validate the Harbor tasks
 
 Harbor is the eval orchestrator. For a model trial, its custom adapter creates a
-short-lived OpenShell sandbox, uploads the selected arm, prompt, fixture, MCP and
-Relay configuration, and runs Hermes there. It then copies the final answer, actual
-MCP call log, Hermes session, and Relay traces into Harbor's artifact boundary.
+short-lived authenticated MCP service and an OpenShell sandbox, then uploads the
+selected arm, prompt, and Relay configuration and runs Hermes. OpenShell permits
+Hermes to reach the MCP service over one reviewed host endpoint. The adapter copies
+the final answer, actual MCP call log, Hermes session, and Relay traces into
+Harbor's artifact boundary.
 Harbor runs the verifier in a separate no-network container; it checks answer facts,
 actual calls and arguments, call budgets, retries, and mutation state.
 
-This split is intentional: OpenShell represents the deployed agent runtime, while
-Harbor owns repeatable trials and scoring. Eval Author's Oracle/NOP proofs still
-exercise the task-local fixture implementation directly; baseline and candidate
-scores come from Hermes making the same tool calls inside OpenShell.
+This split is intentional: OpenShell represents the deployed agent runtime, the
+HTTP MCP process represents a remote enterprise service, and Harbor owns repeatable
+trials and scoring. Eval Author's Oracle/NOP proofs exercise the same tool registry
+through a task-local stdio adapter so the proof remains self-contained and
+no-network. Baseline and candidate scores come from Hermes making remote HTTP calls
+from OpenShell; the verifier remains a separate no-network container.
 
 The checked-in suite contains six development tasks chosen from the source corpus
 and four separately worded held-out tasks. This means:
