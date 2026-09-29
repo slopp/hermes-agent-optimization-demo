@@ -28,6 +28,7 @@ def arguments(root: Path, *, retries: int) -> argparse.Namespace:
         openshell_bin="openshell",
         openshell_image="test-image",
         openshell_provider="test-provider",
+        provider_base_url="",
     )
 
 

@@ -63,6 +63,7 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         openshell_policy: str = str(ROOT / "openshell" / "policy.yaml"),
         mcp_python: str = str(ROOT / ".mcp-venv" / "bin" / "python"),
         mcp_host: str = DEFAULT_MCP_HOST,
+        provider_base_url: str = "",
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -74,6 +75,7 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         # shared base interpreter drops the venv's installed MCP dependency.
         self.mcp_python = Path(os.path.abspath(Path(mcp_python).expanduser()))
         self.mcp_host = mcp_host
+        self.provider_base_url = provider_base_url.rstrip("/")
 
     @staticmethod
     @override
@@ -203,6 +205,7 @@ mkdir -p artifacts/relay
 export HERMES_HOME=/workspace/run/hermes
 export TERMINAL_ENV=local
 export HERMES_NEMO_RELAY_PLUGINS_TOML=/workspace/run/hermes/nemo-relay/relay-plugins.toml
+{f'export NVIDIA_BASE_URL={shlex.quote(self.provider_base_url)}' if self.provider_base_url else ''}
 hermes --yolo chat \
   -q "$(cat /workspace/run/instruction.txt)" \
   -Q \

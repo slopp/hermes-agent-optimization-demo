@@ -33,6 +33,7 @@ def main() -> int:
     parser.add_argument("--openshell-bin", default="openshell")
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
+    parser.add_argument("--provider-base-url", default="")
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1:
         parser.error("--attempts and --concurrency must be positive")
@@ -71,6 +72,8 @@ def main() -> int:
         command.extend(("--ak", f"openshell_bin={args.openshell_bin}"))
         command.extend(("--ak", f"openshell_image={args.openshell_image}"))
         command.extend(("--ak", f"openshell_provider={args.openshell_provider}"))
+        if args.provider_base_url:
+            command.extend(("--ak", f"provider_base_url={args.provider_base_url}"))
     for case_id in case_ids:
         command.extend(("--include-task-name", case_id))
     print(

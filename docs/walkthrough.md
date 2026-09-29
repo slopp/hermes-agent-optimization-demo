@@ -53,15 +53,13 @@ Read these artifacts in order; each is the input to the next:
 3. [`baseline-eval/insights.jsonl`](../traces/world-v2/baseline-eval/insights.jsonl)
    contains the six baseline development rollouts joined with Harbor scores.
 4. [`trace-analysis.yml`](../results/trace-analysis.yml) is the saved Trace Analyst
-   output, with repository-relative links to two failed rollouts.
+   output, with repository-relative links to five failed rollouts.
 5. [`candidate-proposal.md`](../results/candidate-proposal.md) turns that recurring
    finding and the remaining individual verifier failures into a frozen proposal.
 6. [`candidate-soul.md`](../profiles/candidate-soul.md) and
    [`hermes_flywheel.py`](../harbor_agents/hermes_flywheel.py) implement it.
 7. [`measured-ab-v2.json`](../results/measured-ab-v2.json) reports the development
-   and held-out A/B from the saved `--runtime direct` reference. The current
-   commands default to OpenShell; the runtime acceptance result is documented in
-   [`docs/results.md`](results.md).
+   and held-out A/B from the saved OpenShell reference.
 
 [`artifact-chain.json`](../results/artifact-chain.json) records this provenance and
 the exact hashes. `make validate` checks that the artifacts still agree and that
@@ -367,7 +365,7 @@ jq '{passed: .counts.passed, trials: .counts.total,
   .runs/harbor/baseline-development-summary.json
 ```
 
-The reference smoke run reports `1/6` passing, 30 tool calls, and no infrastructure
+The reference smoke run reports `0/6` passing, 57 tool calls, and no infrastructure
 exceptions. Model outputs vary, so your exact score can differ. A zero verifier
 reward is an agent failure; keep it in the denominator. An environment or provider
 exception is infrastructure and should be diagnosed separately.
@@ -395,6 +393,12 @@ python3 scripts/convert_atif_for_insights.py \
   --output .runs/baseline-development-insights.jsonl
 ```
 
+The converter also maps Hermes MCP identifiers such as
+`mcp__enterprise_world__chat_search` to the evaluator-facing `chat.search` name in
+both the tool catalog and executed spans. That normalization lives in
+`scripts/convert_atif_for_insights.py`; without it, an analyzer can mistake an
+available-but-unused tool for an unprovisioned tool.
+
 Install and run Trace Analyst. The repository config enables trajectory patterns,
 tool issues, and evaluation-linked failure patterns; it disables streams that need
 user sentiment or an ethos-specific comparison:
@@ -414,10 +418,9 @@ sed -n '1,220p' .runs/baseline-insights.yml
 ```
 
 The output is a YAML list of problems with supporting trace IDs. The reference run
-produced one recurring insight backed by two failed cases: the agent did not invoke
-`chat.search` and `chat.read_thread`, so its answers omitted required chat-derived
-facts such as `security evidence packet`. Trace Analyst suggested emphasizing chat
-tool use, improving selection logic, or adding explicit search/read instructions.
+produced one recurring insight backed by five failed cases: required enterprise
+tools were available, but the agent chose local/session paths, clarification, or
+unsupported answers. Missing calls correlated with missing answer facts.
 
 The saved output is
 [`results/trace-analysis.yml`](../results/trace-analysis.yml). Its generated
@@ -425,9 +428,9 @@ absolute file links were normalized to repository-relative links and the stable 
 `TA-001` was added; its finding text and trace references are unchanged.
 
 Inspect every cited trace before selecting a fix. The candidate responds directly:
-its SOUL routes chat claims to chat, declares search results to be locators rather
-than evidence, and requires reading the selected thread before answering. It also
-downsamples irrelevant built-ins so that route competes with fewer alternatives.
+its SOUL routes claims to authoritative enterprise sources, declares search results
+to be locators rather than evidence, and requires reading selected records before
+answering. It also downsamples irrelevant built-ins behind tool discovery.
 That interpretation is the human engineering step between an insight and an arm.
 
 Trace Analyst can also inspect the 36 unscored source traces for tool anomalies and
@@ -454,6 +457,7 @@ change:
 | --- | --- | --- |
 | System policy | `profiles/baseline-soul.md` | `profiles/candidate-soul.md` |
 | Built-in toolsets | broad `hermes-cli` surface | `skills` only; task MCP remains available |
+| Enterprise-tool exposure | eager catalog | brokered discovery (`auto`) |
 | Maximum turns | 60 | 12 |
 
 Read the actual intervention:
@@ -497,8 +501,8 @@ jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
   .runs/harbor/{baseline,candidate}-development-summary.json
 ```
 
-The reference smoke comparison is baseline `1/6` versus candidate `6/6`, with mean
-tool calls falling from 5.00 to 2.17. For a stronger development estimate, rerun
+The reference smoke comparison is baseline `0/6` versus candidate `3/6`, with mean
+tool calls falling from 9.50 to 1.00. For a stronger development estimate, rerun
 *both* arms with fresh job names and `--attempts 3`; never add attempts only to the
 arm or task that missed.
 
@@ -518,10 +522,10 @@ cases. Do not inspect or tune against them until the candidate is frozen.
 
 ```bash
 python3 scripts/run_harbor_eval.py \
-  --arm baseline --split held-out --attempts 3 --concurrency 2 \
+  --arm baseline --split held-out --attempts 1 --concurrency 2 \
   --harbor .harbor-venv/bin/harbor --job-name baseline-held-out
 python3 scripts/run_harbor_eval.py \
-  --arm candidate --split held-out --attempts 3 --concurrency 2 \
+  --arm candidate --split held-out --attempts 1 --concurrency 2 \
   --harbor .harbor-venv/bin/harbor --job-name candidate-held-out
 
 for arm in baseline candidate; do
@@ -535,9 +539,10 @@ jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
   .runs/harbor/{baseline,candidate}-held-out-summary.json
 ```
 
-The measured reference result is baseline `2/12` and candidate `11/12`. One
-candidate miss still failed search-then-read, a useful reminder that a profile is a
-probabilistic intervention rather than a guarantee. Keep timeouts and clean
+The measured reference result is baseline `1/4` and candidate `2/4`. The candidate
+still missed security timing and owner tasks, a useful reminder that a profile is
+a probabilistic intervention rather than a guarantee. For a variance estimate,
+rerun both arms with fresh job names and `--attempts 3`. Keep timeouts and clean
 zero-reward trials in the denominator and report the small sample size.
 
 Run `python3 scripts/validate_artifact_chain.py` as the final gate. It confirms

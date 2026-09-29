@@ -52,6 +52,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             config = yaml.safe_load(config_text)
             self.assertEqual(config["agent"]["max_turns"], 12)
             self.assertEqual(config["toolsets"], ["skills"])
+            self.assertEqual(config["tools"]["tool_search"]["enabled"], "auto")
             enterprise = config["mcp_servers"]["enterprise-world"]
             self.assertEqual(
                 enterprise["url"], "http://host.openshell.internal:8765/mcp"
@@ -75,6 +76,39 @@ class OpenShellRuntimeTest(unittest.TestCase):
             # Hermes 0.21.3. Keep arm toolsets in config so enterprise-world
             # remains discoverable.
             self.assertNotIn("--toolsets", (runtime / "run.sh").read_text())
+
+    def test_provider_base_url_is_an_optional_runtime_override(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            agent = OpenShellHermesFlywheel(
+                logs_dir=root / "logs",
+                model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+                arm="baseline",
+                provider_base_url="https://inference.example.test/v1/",
+            )
+            runtime = root / "run"
+            agent._write_runtime(runtime, "Find launch evidence.")
+            script = (runtime / "run.sh").read_text()
+            self.assertIn(
+                "export NVIDIA_BASE_URL=https://inference.example.test/v1", script
+            )
+
+    def test_baseline_eagerly_exposes_mcp_tools(self) -> None:
+        import yaml
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            agent = OpenShellHermesFlywheel(
+                logs_dir=root / "logs",
+                model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+                arm="baseline",
+            )
+            runtime = root / "run"
+            agent._write_runtime(runtime, "Find launch evidence.")
+            config = yaml.safe_load(
+                (runtime / "hermes" / "config.yaml").read_text()
+            )
+            self.assertEqual(config["tools"]["tool_search"]["enabled"], "off")
 
 
 if __name__ == "__main__":

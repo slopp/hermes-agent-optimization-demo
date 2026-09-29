@@ -19,6 +19,8 @@ class RunHarborEvalTest(unittest.TestCase):
             "development",
             "--harbor",
             "/tmp/harbor",
+            "--provider-base-url",
+            "https://inference.example.test/v1",
         ]
         with patch.object(sys, "argv", argv), patch.dict(os.environ, {"PYTHONPATH": "prior"}):
             self.assertEqual(main(), 0)
@@ -31,6 +33,9 @@ class RunHarborEvalTest(unittest.TestCase):
             "harbor_agents.openshell_hermes:OpenShellHermesFlywheel", command
         )
         self.assertIn("openshell_image=hermes-flywheel-openshell:0.2", command)
+        self.assertIn(
+            "provider_base_url=https://inference.example.test/v1", command
+        )
 
     @patch("scripts.run_harbor_eval.subprocess.run")
     def test_direct_runtime_remains_available(self, run) -> None:

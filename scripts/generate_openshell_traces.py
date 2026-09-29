@@ -50,6 +50,7 @@ async def collect(
                 openshell_bin=args.openshell_bin,
                 openshell_image=args.openshell_image,
                 openshell_provider=args.openshell_provider,
+                provider_base_url=args.provider_base_url,
             )
             agent.session_id = f"source-{run_id}-try-{retry + 1}"
             try:
@@ -132,6 +133,7 @@ def main() -> int:
     parser.add_argument("--openshell-bin", default="openshell")
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
+    parser.add_argument("--provider-base-url", default="")
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1 or args.retries < 0:
         parser.error("--attempts/concurrency must be positive and --retries nonnegative")

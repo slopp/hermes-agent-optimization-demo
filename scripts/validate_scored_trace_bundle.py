@@ -22,8 +22,8 @@ def validate(path: Path) -> list[str]:
         errors.append("expected six distinct logical case IDs")
     if any(value not in {0, 1} for value in rewards):
         errors.append("every trace needs a binary harbor.reward")
-    if rewards.count(1.0) != 1:
-        errors.append(f"expected one passing baseline trace, found {rewards.count(1.0)}")
+    if rewards.count(1.0) != 0:
+        errors.append(f"expected zero passing baseline traces, found {rewards.count(1.0)}")
     return errors
 
 
@@ -37,7 +37,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("Scored trace bundle validation passed: 6 traces, 1 pass, 5 failures")
+    print("Scored trace bundle validation passed: 6 traces, 0 passes, 6 failures")
     return 0
 
 

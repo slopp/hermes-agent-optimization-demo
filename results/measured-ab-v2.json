@@ -1,12 +1,12 @@
 {
   "schema_version": "enterprise-flywheel-measured-result-v2",
-  "measured_at_utc": "2026-09-18",
+  "measured_at_utc": "2026-09-28",
   "environment": {
     "host": "fresh Ubuntu 24.04 Brev CPU instance with native Docker",
     "harbor": "0.22.0",
     "agent": "Hermes Agent 0.21.3 (2026.9.14), upstream c1e9dce8",
-    "agent_runtime": "Harbor task container (--runtime direct)",
-    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "agent_runtime": "OpenShell sandbox orchestrated by Harbor (--runtime openshell)",
+    "model": "nvidia/nvidia/nemotron-3-ultra",
     "provider": "nvidia"
   },
   "harness": {
@@ -14,10 +14,12 @@
     "baseline_profile_sha256": "b4ea8ea3f628c02a83e30583b58e974c4af210a407f51edd6a39d58093d73597",
     "baseline_toolsets": ["hermes-cli"],
     "baseline_max_turns": 60,
+    "baseline_tool_search": "off",
     "candidate_profile": "profiles/candidate-soul.md",
     "candidate_profile_sha256": "87da254ba3ef03dcc988f8b20914f1131154ef5744a5f136bae6a4ee2e080e4d",
     "candidate_toolsets": ["skills"],
     "candidate_max_turns": 12,
+    "candidate_tool_search": "auto",
     "proposal": "results/candidate-proposal.md"
   },
   "fixture": {
@@ -49,47 +51,46 @@
     "tasks": 6,
     "attempts_per_task": 1,
     "baseline": {
-      "passed": 1,
+      "passed": 0,
       "trials": 6,
-      "pass_rate": 0.16666666666666666,
-      "tool_calls": 30,
-      "mean_tool_calls": 5.0,
+      "pass_rate": 0.0,
+      "tool_calls": 57,
+      "mean_tool_calls": 9.5,
       "exceptions": 0,
       "relay_complete": 6
     },
     "candidate": {
-      "passed": 6,
+      "passed": 3,
       "trials": 6,
-      "pass_rate": 1.0,
-      "tool_calls": 13,
-      "mean_tool_calls": 2.1666666666666665,
+      "pass_rate": 0.5,
+      "tool_calls": 6,
+      "mean_tool_calls": 1.0,
       "exceptions": 0,
       "relay_complete": 6
     }
   },
   "held_out": {
     "tasks": 4,
-    "attempts_per_task": 3,
-    "measurement_note": "One attempt was run first, then two additional attempts were run for every task in both arms. All trials remain in the denominator.",
+    "attempts_per_task": 1,
+    "measurement_note": "One frozen held-out attempt was run for every task in both arms. Repeat both arms symmetrically for a variance estimate.",
     "baseline": {
-      "passed": 2,
-      "trials": 12,
-      "pass_rate": 0.16666666666666666,
-      "tool_calls": 3,
-      "mean_tool_calls": 0.25,
-      "exceptions": 1,
-      "relay_complete": 11,
-      "exception_types": {"AgentTimeoutError": 1}
+      "passed": 1,
+      "trials": 4,
+      "pass_rate": 0.25,
+      "tool_calls": 9,
+      "mean_tool_calls": 2.25,
+      "exceptions": 0,
+      "relay_complete": 4
     },
     "candidate": {
-      "passed": 11,
-      "trials": 12,
-      "pass_rate": 0.9166666666666666,
-      "tool_calls": 42,
-      "mean_tool_calls": 3.5,
+      "passed": 2,
+      "trials": 4,
+      "pass_rate": 0.5,
+      "tool_calls": 4,
+      "mean_tool_calls": 1.0,
       "exceptions": 0,
-      "relay_complete": 12,
-      "observed_failure": "One security-timing trial made 12 search/fan-out calls without reading the selected chat thread."
+      "relay_complete": 4,
+      "observed_failures": ["held-out-security-timing", "held-out-security-owner"]
     }
   },
   "candidate_changes": [

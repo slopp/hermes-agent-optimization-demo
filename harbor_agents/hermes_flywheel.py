@@ -27,11 +27,13 @@ ARM_CONFIG = {
         "profile": ROOT / "profiles" / "baseline-soul.md",
         "max_turns": 60,
         "toolsets": ["hermes-cli"],
+        "tool_search": "off",
     },
     "candidate": {
         "profile": ROOT / "profiles" / "candidate-soul.md",
         "max_turns": 12,
         "toolsets": ["skills"],
+        "tool_search": "auto",
     },
 }
 
@@ -75,6 +77,7 @@ class HermesFlywheel(Hermes):
             "model": model,
             "provider": "auto",
             "toolsets": arm["toolsets"],
+            "tools": {"tool_search": {"enabled": arm["tool_search"]}},
             "agent": {"max_turns": arm["max_turns"]},
             "memory": {"memory_enabled": False, "user_profile_enabled": False},
             "compression": {"enabled": True, "threshold": 0.85},
