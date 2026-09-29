@@ -111,7 +111,7 @@ openshell doctor check
 ```
 
 Expected version is `0.1.2`. OpenShell is the runtime and credential boundary for
-Hermes; this tutorial does not require the NeMoClaw installer.
+Hermes.
 
 For model-backed steps, enter an NVIDIA API key without echoing it, import the
 repository's reviewed provider profile, and let OpenShell store the credential:
