@@ -1,9 +1,13 @@
 .venv/
 .harbor-venv/
+.mcp-venv/
 .eval-author/
+.agents/
 .nemo-relay/
 .runs/
 .env
+skills-lock.json
+*.egg-info/
 .ruff_cache/
 .DS_Store
 __pycache__/

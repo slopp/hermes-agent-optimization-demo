@@ -50,8 +50,8 @@ def main() -> int:
     bundle = [json.loads(line) for line in bundle_path.read_text(encoding="utf-8").splitlines() if line]
     require(len(bundle) == 6, "scored baseline bundle must contain six traces")
     by_id = {trace["id"]: trace for trace in bundle}
-    require(sum(bool(t["evaluator_results"]["harbor.passed"]) for t in bundle) == 1,
-            "scored baseline bundle must preserve the measured 1/6 result")
+    require(sum(bool(t["evaluator_results"]["harbor.passed"]) for t in bundle) == 0,
+            "scored baseline bundle must preserve the measured 0/6 result")
 
     analysis = (ROOT / "results/trace-analysis.yml").read_text(encoding="utf-8")
     proposal = (ROOT / "results/candidate-proposal.md").read_text(encoding="utf-8")
@@ -81,6 +81,8 @@ def main() -> int:
             "measured candidate controls do not match the adapter")
     require(harness["baseline_toolsets"] == ["hermes-cli"] and harness["baseline_max_turns"] == 60,
             "measured baseline controls do not match the adapter")
+    require(harness["baseline_tool_search"] == "off" and harness["candidate_tool_search"] == "auto",
+            "measured tool-search controls do not match the adapter")
 
     implementation_ids: set[str] = set()
     for check in chain["implementation_checks"]:

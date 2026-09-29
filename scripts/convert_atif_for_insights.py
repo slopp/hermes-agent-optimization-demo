@@ -13,6 +13,35 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from pa_style_mock_mcp.insights import atif_to_insights_trace
 
+MCP_PREFIXES = ("mcp__pa_style_enterprise__", "mcp__enterprise_world__")
+
+
+def _canonical_tool_name(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    for prefix in MCP_PREFIXES:
+        if value.startswith(prefix):
+            short = value[len(prefix) :]
+            domain, separator, operation = short.partition("_")
+            return f"{domain}.{operation}" if separator else short
+    return value
+
+
+def _canonicalize_tool_names(trace: dict[str, Any]) -> None:
+    """Align Relay's Hermes MCP identifiers with evaluator-facing tool names."""
+    attributes = trace.get("attributes", {})
+    catalog = attributes.get("tool_catalog", {})
+    if isinstance(catalog, dict):
+        normalized: dict[str, Any] = {}
+        for name, schema in catalog.items():
+            canonical = _canonical_tool_name(name)
+            if isinstance(canonical, str):
+                normalized.setdefault(canonical, schema)
+        attributes["tool_catalog"] = normalized
+    for span in trace.get("root_spans", []):
+        if isinstance(span, dict):
+            span["tool_name"] = _canonical_tool_name(span.get("tool_name"))
+
 
 def _files(inputs: list[Path]) -> list[Path]:
     found: list[Path] = []
@@ -91,6 +120,7 @@ def main() -> int:
             logical_case_id=case_id,
             evaluator_results=evaluator_results,
         )
+        _canonicalize_tool_names(trace)
         if trace["id"] in seen:
             raise ValueError(f"duplicate trace id: {trace['id']}")
         seen.add(trace["id"])

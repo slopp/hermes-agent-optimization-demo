@@ -1,3 +1,4 @@
 #!/bin/sh
 set -eu
-python /tests/verify.py
+mkdir -p /logs/verifier
+python /tests/verify.py > /logs/verifier/results

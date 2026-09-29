@@ -20,7 +20,7 @@ You will learn how to:
 | --- | --- | --- | ---: |
 | Read the example | Inspect artifacts and measured results | Git | 15 minutes |
 | Analyze scored traces | Reuse the checked-in baseline rollouts; run Trace Analyst | Git, `uv`, NVIDIA API key | 15–30 minutes |
-| Reproduce the flywheel | Reuse source traces and tasks; run baseline, analysis, candidate, and held-out evals | Linux, Docker, `uv`, NVIDIA API key | 1–2 hours |
+| Reproduce the flywheel | Reuse source traces and tasks; run baseline, analysis, candidate, and held-out evals | Linux, Docker, OpenShell, `uv`, NVIDIA API key | 1–2 hours |
 | Re-author the eval | Have Codex apply Eval Author to the source traces before running the flywheel | Full path plus Node.js and Codex | add 1–2 hours and reviews |
 | Bring your agent | Replace the trace corpus, task tools, and Harbor adapter | Relay-compatible ATIF plus your test environment | project dependent |
 
@@ -53,13 +53,13 @@ Read these artifacts in order; each is the input to the next:
 3. [`baseline-eval/insights.jsonl`](../traces/world-v2/baseline-eval/insights.jsonl)
    contains the six baseline development rollouts joined with Harbor scores.
 4. [`trace-analysis.yml`](../results/trace-analysis.yml) is the saved Trace Analyst
-   output, with repository-relative links to two failed rollouts.
+   output, with repository-relative links to five failed rollouts.
 5. [`candidate-proposal.md`](../results/candidate-proposal.md) turns that recurring
    finding and the remaining individual verifier failures into a frozen proposal.
 6. [`candidate-soul.md`](../profiles/candidate-soul.md) and
    [`hermes_flywheel.py`](../harbor_agents/hermes_flywheel.py) implement it.
 7. [`measured-ab-v2.json`](../results/measured-ab-v2.json) reports the development
-   and held-out A/B.
+   and held-out A/B from the saved OpenShell reference.
 
 [`artifact-chain.json`](../results/artifact-chain.json) records this provenance and
 the exact hashes. `make validate` checks that the artifacts still agree and that
@@ -76,9 +76,11 @@ Install the host dependencies and clone the repository:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git jq make docker.io
+sudo apt-get install -y ca-certificates curl git jq make
+if ! command -v docker >/dev/null; then
+  curl -fsSL https://get.docker.com | sudo sh
+fi
 sudo usermod -aG docker "$USER"
-newgrp docker
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -89,18 +91,70 @@ make test
 make validate
 ```
 
+If `docker` was installed or the `docker` group was newly added, exit the host and
+reconnect before continuing. This refreshes both the shell and the systemd user
+manager; `newgrp docker` alone is not enough for the OpenShell gateway service.
+Then confirm `docker info` works without `sudo`.
+
 `make test` runs the repository's unit tests. `make validate` separately checks the
 fixture digest, tool/eval contract, trace index, task metadata, and a clean rebuild
 of all Harbor tasks. A successful final line has no `diff` output.
 
-For model-backed steps, enter an NVIDIA API key without echoing it:
+Install the pinned OpenShell release and confirm its local gateway is healthy:
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | \
+  OPENSHELL_VERSION=v0.1.2 sh
+openshell --version
+openshell status
+openshell doctor check
+```
+
+Expected version is `0.1.2`. OpenShell is the runtime and credential boundary for
+Hermes.
+
+For model-backed steps, enter an NVIDIA API key without echoing it, import the
+repository's reviewed provider profile, and let OpenShell store the credential:
 
 ```bash
 printf 'NVIDIA API key: '
 read -rs NVIDIA_API_KEY
 printf '\n'
 export NVIDIA_API_KEY
+openshell profile lint -f openshell/provider-nvidia.yaml
+openshell profile import -f openshell/provider-nvidia.yaml
+openshell provider create \
+  --name hermes-nvidia \
+  --type hermes-nvidia \
+  --credential NVIDIA_API_KEY
+unset NVIDIA_API_KEY
 ```
+
+The profile permits the pinned Hermes/Python executables to send the credential
+only to `integrate.api.nvidia.com:443`. The sandbox receives a credential reference,
+not the stored key. Build the image containing Hermes and Relay integration:
+
+```bash
+docker build \
+  -f openshell/Dockerfile \
+  -t hermes-flywheel-openshell:0.2 .
+```
+
+Install the separately hosted mock MCP service. This process runs on the host, not
+inside the OpenShell image:
+
+```bash
+uv venv .mcp-venv --python 3.12
+uv pip install --python .mcp-venv/bin/python -e '.[remote-mcp]'
+```
+
+Each trial starts an authenticated Streamable HTTP server on one of two fixed host
+ports, gives that trial a fresh bearer token and tool state, and stops the server
+after collecting its call log. `openshell/policy.yaml` permits Hermes to reach only
+`host.openshell.internal:8765` or `:8766`; arbitrary host services remain denied.
+The host bridge keeps the demo self-contained while making MCP a real network
+dependency from the sandbox's perspective. In a deployment, replace that host and
+port with the test service's DNS name and update the same allowlist boundary.
 
 Install the pinned Harbor runtime only if you will run evals:
 
@@ -110,8 +164,8 @@ uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
 .harbor-venv/bin/harbor --version
 ```
 
-Expected output is `0.22.0`. The first task image build can
-take 10–20 minutes; later tasks reuse the image layers.
+Expected output is `0.22.0`. The first Harbor task image build can take 10–20
+minutes; later tasks reuse the image layers.
 
 ## 2. Inspect the starting traces
 
@@ -119,8 +173,9 @@ take 10–20 minutes; later tasks reuse the image layers.
 of presumed failures.
 
 **Input:** 36 Relay-compatible ATIF trajectories in
-`traces/world-v2/corpus/`. They represent repeated Hermes runs against the same
-fixture-backed enterprise tools. They are source evidence, not eval results.
+`traces/world-v2/corpus/`. They represent repeated Hermes runs in OpenShell against
+the same fixture-backed enterprise tools. They are source evidence, not eval
+results.
 
 **Output:** a bounded, reviewable corpus that Eval Author can inspect.
 
@@ -136,10 +191,36 @@ Expected counts are 36 traces and six indexed groups with six traces each. Those
 labels make the example auditable; an authoring agent must still inspect the traces
 and justify which recurring behaviors deserve tasks.
 
-In your own deployment, instrument Hermes with NeMo Relay and export ATIF. Keep
-task text, tool calls/results, stable trace IDs, and enough model context to explain
-the behavior. Replace `traces/world-v2/corpus/` and its index with that export. You
-do not need to generate traces before trying this repository.
+The checked-in corpus is the default starting point. To create a fresh, unscored
+source bundle from this synthetic deployment before using Eval Author, run:
+
+```bash
+.harbor-venv/bin/python scripts/generate_openshell_traces.py \
+  --matrix experiments/fidelity-matrix-v2.json \
+  --attempts 1 \
+  --output .runs/source-traces
+find .runs/source-traces -name 'trajectory-*.json' | wc -l
+```
+
+Increase `--attempts` to six to reproduce the checked-in corpus size. This command
+does not invoke a verifier or use an authored eval: it runs the matrix prompts,
+starts an authenticated fixture-backed MCP service outside OpenShell, and saves its
+call log, Relay output, and a manifest. The sandbox image does not contain the MCP
+package or fixture, so a successful call proves the reviewed network path was used.
+Each logical run is retried once after a runtime or model timeout. Exhausted runs
+remain in the manifest's `failures` denominator and make the command exit nonzero;
+do not treat a partial corpus as complete. Trace generation is optional because it
+is not the lesson's entry cost.
+
+To author from this fresh bundle, change the corpus path in
+`prompts/eval-author-from-traces.md` to `.runs/source-traces/manifest.json`; do not
+mix fresh and checked-in traces in one claimed denominator.
+
+In your own deployment, host the agent in OpenShell, instrument it with NeMo Relay,
+and export ATIF. Keep task text, tool calls/results, stable trace IDs, and enough
+model context to explain the behavior. Replace `traces/world-v2/corpus/` and its
+index with that export. You do not need to generate traces before trying this
+repository.
 
 ## 3. Optionally re-author the eval with Codex
 
@@ -166,10 +247,30 @@ Install Node.js 22+, Codex, and the Eval Author skills:
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 npm install -g @openai/codex
-npx skills add NVIDIA-NeMo/labs-eval-author --skill '*' --agent codex --yes
+git clone --filter=blob:none --no-checkout \
+  https://github.com/NVIDIA-NeMo/nemo-platform.git \
+  "$HOME/nemo-platform-eval-author"
+git -C "$HOME/nemo-platform-eval-author" sparse-checkout init --cone
+git -C "$HOME/nemo-platform-eval-author" sparse-checkout set \
+  plugins/nemo-eval-author
+git -C "$HOME/nemo-platform-eval-author" checkout \
+  9eb4fc7ca3e8dada9cfd66c72989ee735616c71f
+npx skills add \
+  "$HOME/nemo-platform-eval-author/plugins/nemo-eval-author" \
+  --full-depth \
+  --skill '*' --agent codex --yes
+ln -sfn \
+  "$HOME/nemo-platform-eval-author/plugins/nemo-eval-author/docs" \
+  .agents/docs
 npx skills list --agent codex
 codex
 ```
+
+The commit pin is intentional: it is the public standalone Eval Author skill set
+used by this tutorial. Current `nemo-platform` main no longer contains that plugin.
+The sparse checkout also retains the plugin-level fixture reference used by the
+trace-environment skill; installing only the `skills/` URL omits that required
+document.
 
 At the Codex prompt, paste `prompts/eval-author-from-traces.md`. The prompt tells
 Codex to read the installed skills, inspect every indexed trace, report its coverage
@@ -179,19 +280,31 @@ The reviews are deliberate. A person must decide whether a trace is safe to use,
 which source tools a candidate task may access, whether the generalized task still
 tests the intended behavior, and whether the final artifact can be published. In
 this example, MCP calls are classified as `real`: the service is synthetic, but the
-agent truly discovers and invokes the same task-local server used by the verifier.
-Calling it `mock` would mean exact replay or a substituted response mechanism,
-which would not test the harness behavior.
+agent truly discovers and invokes it over Streamable HTTP. Eval Author's
+task-contained stdio adapter uses the same fixture and `ToolRegistry`; it is not a
+replay or substituted response mechanism. The verifier separately scores the
+recorded calls and final answer.
 
 For your agent, replace the fixture server with a safely isolated test version of
 your actual tool contract. Do not give a Harbor task production credentials.
 
 ## 4. Understand and validate the Harbor tasks
 
-Harbor is the execution harness for the eval. Each task builds an isolated Docker
-environment, starts the fixture-backed MCP server, presents one instruction to
-Hermes, and runs a separate no-network verifier. The verifier checks final-answer
-facts, actual calls and arguments, call budgets, retries, and mutation state.
+Harbor is the eval orchestrator. For a model trial, its custom adapter creates a
+short-lived authenticated MCP service and an OpenShell sandbox, then uploads the
+selected arm, prompt, and Relay configuration and runs Hermes. OpenShell permits
+Hermes to reach the MCP service over one reviewed host endpoint. The adapter copies
+the final answer, actual MCP call log, Hermes session, and Relay traces into
+Harbor's artifact boundary.
+Harbor runs the verifier in a separate no-network container; it checks answer facts,
+actual calls and arguments, call budgets, retries, and mutation state.
+
+This split is intentional: OpenShell represents the deployed agent runtime, the
+HTTP MCP process represents a remote enterprise service, and Harbor owns repeatable
+trials and scoring. Eval Author's Oracle/NOP proofs exercise the same tool registry
+through a task-local stdio adapter so the proof remains self-contained and
+no-network. Baseline and candidate scores come from Hermes making remote HTTP calls
+from OpenShell; the verifier remains a separate no-network container.
 
 The checked-in suite contains six development tasks chosen from the source corpus
 and four separately worded held-out tasks. This means:
@@ -235,6 +348,9 @@ run the unchanged agent on the development tasks, then analyze what failed.
 contains those six trajectories already joined with their scores and verifier
 findings. Step 6 consumes this form.
 
+`--runtime openshell` is the default. Use `--runtime direct` only to diagnose the
+legacy in-task runner; do not mix runtime modes within an A/B.
+
 ```bash
 python3 scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 1 --concurrency 2 \
@@ -249,7 +365,7 @@ jq '{passed: .counts.passed, trials: .counts.total,
   .runs/harbor/baseline-development-summary.json
 ```
 
-The reference smoke run reports `1/6` passing, 30 tool calls, and no infrastructure
+The reference smoke run reports `0/6` passing, 57 tool calls, and no infrastructure
 exceptions. Model outputs vary, so your exact score can differ. A zero verifier
 reward is an agent failure; keep it in the denominator. An environment or provider
 exception is infrastructure and should be diagnosed separately.
@@ -277,6 +393,12 @@ python3 scripts/convert_atif_for_insights.py \
   --output .runs/baseline-development-insights.jsonl
 ```
 
+The converter also maps Hermes MCP identifiers such as
+`mcp__enterprise_world__chat_search` to the evaluator-facing `chat.search` name in
+both the tool catalog and executed spans. That normalization lives in
+`scripts/convert_atif_for_insights.py`; without it, an analyzer can mistake an
+available-but-unused tool for an unprovisioned tool.
+
 Install and run Trace Analyst. The repository config enables trajectory patterns,
 tool issues, and evaluation-linked failure patterns; it disables streams that need
 user sentiment or an ethos-specific comparison:
@@ -285,17 +407,20 @@ user sentiment or an ethos-specific comparison:
 uv tool install \
   'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@3a06bce1298190cd143a96880d6999052086632d'
 
-export INSIGHT_AGENT_API_KEY="$NVIDIA_API_KEY"
+printf 'NVIDIA API key for Trace Analyst: '
+read -rs INSIGHT_AGENT_API_KEY
+printf '\n'
+export INSIGHT_AGENT_API_KEY
 insight-agent --config configs/trace-analyst.yaml \
   --trace.filesystem.path .runs/baseline-development-insights.jsonl
+unset INSIGHT_AGENT_API_KEY
 sed -n '1,220p' .runs/baseline-insights.yml
 ```
 
 The output is a YAML list of problems with supporting trace IDs. The reference run
-produced one recurring insight backed by two failed cases: the agent did not invoke
-`chat.search` and `chat.read_thread`, so its answers omitted required chat-derived
-facts such as `security evidence packet`. Trace Analyst suggested emphasizing chat
-tool use, improving selection logic, or adding explicit search/read instructions.
+produced one recurring insight backed by five failed cases: required enterprise
+tools were available, but the agent chose local/session paths, clarification, or
+unsupported answers. Missing calls correlated with missing answer facts.
 
 The saved output is
 [`results/trace-analysis.yml`](../results/trace-analysis.yml). Its generated
@@ -303,9 +428,9 @@ absolute file links were normalized to repository-relative links and the stable 
 `TA-001` was added; its finding text and trace references are unchanged.
 
 Inspect every cited trace before selecting a fix. The candidate responds directly:
-its SOUL routes chat claims to chat, declares search results to be locators rather
-than evidence, and requires reading the selected thread before answering. It also
-downsamples irrelevant built-ins so that route competes with fewer alternatives.
+its SOUL routes claims to authoritative enterprise sources, declares search results
+to be locators rather than evidence, and requires reading selected records before
+answering. It also downsamples irrelevant built-ins behind tool discovery.
 That interpretation is the human engineering step between an insight and an arm.
 
 Trace Analyst can also inspect the 36 unscored source traces for tool anomalies and
@@ -332,6 +457,7 @@ change:
 | --- | --- | --- |
 | System policy | `profiles/baseline-soul.md` | `profiles/candidate-soul.md` |
 | Built-in toolsets | broad `hermes-cli` surface | `skills` only; task MCP remains available |
+| Enterprise-tool exposure | eager catalog | brokered discovery (`auto`) |
 | Maximum turns | 60 | 12 |
 
 Read the actual intervention:
@@ -340,6 +466,8 @@ Read the actual intervention:
 sed -n '1,240p' results/candidate-proposal.md
 diff -u profiles/baseline-soul.md profiles/candidate-soul.md || true
 sed -n '1,90p' harbor_agents/hermes_flywheel.py
+sed -n '1,220p' harbor_agents/openshell_hermes.py
+cat openshell/policy.yaml
 ```
 
 The candidate adds claim-to-source routing, search-then-read, evidence-completeness
@@ -348,7 +476,8 @@ connector-status handling, and prepare-without-send. Tool downsampling removes
 irrelevant local/web/code paths, and the shorter turn cap bounds runaway behavior.
 
 Nothing is hidden in a configurator. Edit the Markdown profile and the `ARM_CONFIG`
-entry in `harbor_agents/hermes_flywheel.py` to create another arm. Add its name to
+entry in `harbor_agents/hermes_flywheel.py` to create another arm. The OpenShell
+adapter reads those same controls and stages them in the sandbox. Add its name to
 the `--arm` choices in `scripts/run_harbor_eval.py`. Change one coherent hypothesis
 at a time, keep tasks and verifiers frozen, and use the Relay output to explain the
 result.
@@ -372,8 +501,8 @@ jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
   .runs/harbor/{baseline,candidate}-development-summary.json
 ```
 
-The reference smoke comparison is baseline `1/6` versus candidate `6/6`, with mean
-tool calls falling from 5.00 to 2.17. For a stronger development estimate, rerun
+The reference smoke comparison is baseline `0/6` versus candidate `3/6`, with mean
+tool calls falling from 9.50 to 1.00. For a stronger development estimate, rerun
 *both* arms with fresh job names and `--attempts 3`; never add attempts only to the
 arm or task that missed.
 
@@ -393,10 +522,10 @@ cases. Do not inspect or tune against them until the candidate is frozen.
 
 ```bash
 python3 scripts/run_harbor_eval.py \
-  --arm baseline --split held-out --attempts 3 --concurrency 2 \
+  --arm baseline --split held-out --attempts 1 --concurrency 2 \
   --harbor .harbor-venv/bin/harbor --job-name baseline-held-out
 python3 scripts/run_harbor_eval.py \
-  --arm candidate --split held-out --attempts 3 --concurrency 2 \
+  --arm candidate --split held-out --attempts 1 --concurrency 2 \
   --harbor .harbor-venv/bin/harbor --job-name candidate-held-out
 
 for arm in baseline candidate; do
@@ -410,9 +539,10 @@ jq -s 'map({job_dir, passed: .counts.passed, trials: .counts.total,
   .runs/harbor/{baseline,candidate}-held-out-summary.json
 ```
 
-The measured reference result is baseline `2/12` and candidate `11/12`. One
-candidate miss still failed search-then-read, a useful reminder that a profile is a
-probabilistic intervention rather than a guarantee. Keep timeouts and clean
+The measured reference result is baseline `1/4` and candidate `2/4`. The candidate
+still missed security timing and owner tasks, a useful reminder that a profile is
+a probabilistic intervention rather than a guarantee. For a variance estimate,
+rerun both arms with fresh job names and `--attempts 3`. Keep timeouts and clean
 zero-reward trials in the denominator and report the small sample size.
 
 Run `python3 scripts/validate_artifact_chain.py` as the final gate. It confirms

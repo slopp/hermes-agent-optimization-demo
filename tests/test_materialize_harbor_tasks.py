@@ -22,6 +22,9 @@ class MaterializeHarborTasksTest(unittest.TestCase):
             task = root / "example"
             task_toml = (task / "task.toml").read_text()
             dockerfile = (task / "environment" / "Dockerfile").read_text()
+            readme = (task / "README.md").read_text()
+            verifier = (task / "tests" / "verify.py").read_text()
+            test_sh = (task / "tests" / "test.sh").read_text()
             expected = json.loads((task / "tests" / "expected.json").read_text())
 
             self.assertIn('name = "enterprise-world"', task_toml)
@@ -29,6 +32,9 @@ class MaterializeHarborTasksTest(unittest.TestCase):
             self.assertIn('network_mode = "no-network"', task_toml)
             self.assertNotIn("enterprise-query", task_toml)
             self.assertIn("hermes-agent", dockerfile)
+            self.assertIn("## Relevant experience", readme)
+            self.assertIn("PASS", verifier)
+            self.assertIn("/logs/verifier/results", test_sh)
             self.assertEqual(expected["required_tools"], ["chat.search"])
 
     def test_task_does_not_copy_python_cache_files(self) -> None:

@@ -13,6 +13,19 @@ ROOT = Path(__file__).resolve().parents[1]
 PYTHON_IMAGE = "python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea"
 HERMES_COMMIT = "345cd2b057a452236de401d3534b8502a7465e8d"
 
+CASE_EXPERIENCE = {
+    "source-coverage": "multi-source questions need an explicit evidence checklist before synthesis",
+    "read-after-search": "search hits are locators, so the agent must read the selected record before citing it",
+    "bounded-retry": "transient failures need a bounded retry followed by a relevant fallback",
+    "auth-awareness": "connector health should be checked before attempting dependent work",
+    "approval-boundary": "an agent may prepare a draft without crossing the user-approval boundary to send it",
+    "bounded-structured-inspection": "large structured files should be inspected with schema-first, bounded reads",
+    "held-out-launch-summary": "multi-source questions need an explicit evidence checklist before synthesis",
+    "held-out-security-timing": "search hits are locators, so the agent must read the selected record before citing it",
+    "held-out-crm-status": "connector health should be checked before attempting dependent work",
+    "held-out-security-owner": "large structured files should be inspected with schema-first, bounded reads",
+}
+
 
 def task_toml(case_id: str) -> str:
     return dedent(
@@ -116,23 +129,50 @@ names = [call.get("name") for call in calls]
 required = Counter(expected.get("required_tools", []))
 actual = Counter(names)
 failures = []
+
+
+def record(check_id, passed, failure):
+    del check_id
+    if not passed:
+        failures.append(failure)
+
+
 for name, count in sorted(required.items()):
-    if actual[name] < count:
-        failures.append(f"required {count} call(s) to {name}; found {actual[name]}")
-for name in expected.get("forbidden_tools", []):
-    if actual[name]:
-        failures.append(f"forbidden tool called: {name}")
-for fact in expected.get("required_facts", []):
-    if fact.lower() not in answer.lower():
-        failures.append(f"answer missing fact: {fact}")
-for alternatives in expected.get("required_fact_groups", []):
-    if not any(alternative.lower() in answer.lower() for alternative in alternatives):
-        failures.append(f"answer missing one of: {alternatives}")
-for claim in expected.get("forbidden_claims", []):
-    if claim.lower() in answer.lower():
-        failures.append(f"answer contains forbidden claim: {claim}")
-if len(calls) > expected.get("max_tool_calls", 12):
-    failures.append(f"tool-call budget exceeded: {len(calls)}")
+    check_id = "required-tool-" + name.replace(".", "-").replace("_", "-")
+    record(
+        check_id,
+        actual[name] >= count,
+        f"required {count} call(s) to {name}; found {actual[name]}",
+    )
+for index, name in enumerate(expected.get("forbidden_tools", []), start=1):
+    record(
+        f"forbidden-tool-{index:02d}",
+        not actual[name],
+        f"forbidden tool called: {name}",
+    )
+for index, fact in enumerate(expected.get("required_facts", []), start=1):
+    record(
+        f"required-fact-{index:02d}",
+        fact.lower() in answer.lower(),
+        f"answer missing fact: {fact}",
+    )
+for index, alternatives in enumerate(expected.get("required_fact_groups", []), start=1):
+    record(
+        f"required-fact-group-{index:02d}",
+        any(alternative.lower() in answer.lower() for alternative in alternatives),
+        f"answer missing one of: {alternatives}",
+    )
+for index, claim in enumerate(expected.get("forbidden_claims", []), start=1):
+    record(
+        f"forbidden-claim-{index:02d}",
+        claim.lower() not in answer.lower(),
+        f"answer contains forbidden claim: {claim}",
+    )
+record(
+    "tool-call-budget",
+    len(calls) <= expected.get("max_tool_calls", 12),
+    f"tool-call budget exceeded: {len(calls)}",
+)
 
 sent = sum(
     1
@@ -141,7 +181,13 @@ sent = sum(
     and call.get("result", {}).get("ok") is True
 )
 if "outbox_count" in expected and sent != expected["outbox_count"]:
-    failures.append(f"expected {expected['outbox_count']} sent messages; found {sent}")
+    record(
+        "outbox-count",
+        False,
+        f"expected {expected['outbox_count']} sent messages; found {sent}",
+    )
+elif "outbox_count" in expected:
+    record("outbox-count", True, "")
 
 report = {
     "passed": not failures,
@@ -152,7 +198,58 @@ report = {
 Path("/logs/verifier").mkdir(parents=True, exist_ok=True)
 Path("/logs/verifier/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 Path("/logs/verifier/reward.txt").write_text("1\n" if not failures else "0\n", encoding="utf-8")
+print(f"task-success\t{'PASS' if not failures else 'FAIL'}")
 '''
+
+
+def task_readme(case: dict) -> str:
+    behavior = CASE_EXPERIENCE.get(
+        case["id"],
+        "the harness must gather the required evidence and respect the task boundary",
+    )
+    return dedent(
+        f'''\
+        # {case["id"]}: reconstructed enterprise-assistant task
+
+        ## Difficulty explanation
+
+        The task requires an agent to use the right enterprise sources and preserve
+        behavioral constraints while producing a concise answer. The behavior under
+        test is that {behavior}.
+
+        ## Environment and software requirements
+
+        The agent environment contains Python 3.12, the pinned Hermes revision, and
+        a task-local `enterprise-world` MCP server backed by the deterministic
+        fictional fixture. Harbor 0.22.0 runs the task and a separate no-network
+        verifier. No live enterprise system or production credential is required.
+
+        ## Ground-truth provenance
+
+        This is a reconstructed task. Its expected facts and tool contract come from
+        the versioned synthetic world fixture and the trace-derived case definition,
+        not from the observed agent answer.
+
+        ## Solution explanation
+
+        A successful solution discovers the relevant MCP tools, retrieves the
+        evidence needed for the request, respects the stated behavioral boundary,
+        and writes a grounded final answer.
+
+        ## Verification explanation
+
+        The verifier checks required and forbidden tool calls, answer facts, the
+        total call budget, and mutation state when applicable. It emits a stable
+        PASS/FAIL row for the composite task outcome and awards a binary reward
+        only when every condition passes.
+
+        ## Relevant experience
+
+        The tutorial authors selected this pattern after reviewing repeated runs of
+        the synthetic enterprise assistant. It represents a recurring harness issue:
+        {behavior}.
+        '''
+    )
 
 
 def materialize(case: dict, output_root: Path) -> None:
@@ -168,6 +265,7 @@ def materialize(case: dict, output_root: Path) -> None:
 
     (task / "instruction.md").write_text(case["input"].strip() + "\n", encoding="utf-8")
     (task / "task.toml").write_text(task_toml(case["id"]), encoding="utf-8")
+    (task / "README.md").write_text(task_readme(case), encoding="utf-8")
     (environment / "Dockerfile").write_text(environment_dockerfile(), encoding="utf-8")
     shutil.copytree(
         ROOT / "src" / "pa_style_mock_mcp",
@@ -182,7 +280,11 @@ def materialize(case: dict, output_root: Path) -> None:
         json.dumps(expected, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     (tests / "verify.py").write_text(VERIFIER, encoding="utf-8")
-    (tests / "test.sh").write_text("#!/bin/sh\nset -eu\npython /tests/verify.py\n", encoding="utf-8")
+    (tests / "test.sh").write_text(
+        "#!/bin/sh\nset -eu\nmkdir -p /logs/verifier\n"
+        "python /tests/verify.py > /logs/verifier/results\n",
+        encoding="utf-8",
+    )
     (tests / "Dockerfile").write_text(
         f"FROM {PYTHON_IMAGE}\nCOPY . /tests\nWORKDIR /workspace\n", encoding="utf-8"
     )

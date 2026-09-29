@@ -1,22 +1,28 @@
-# Portable copy of Trace Analyst output from the scored baseline bundle.
-# A stable ID was added and absolute file links were made repository-relative;
-# the generated finding text and trace references are unchanged.
+# Portable copy of Trace Analyst output from the scored OpenShell baseline.
+# A stable ID was added and generated absolute links were made repository-relative;
+# the finding text and trace references are otherwise unchanged.
 - id: TA-001
-  name: Agent fails to invoke required chat tools (chat.read_thread, chat.search), leading to missing chat-derived facts
+  name: Agent fails to invoke required tools specified by evaluators
   description: >-
-    The agent consistently fails to call chat.read_thread and chat.search tools
-    when tasks require reading chat threads or searching chat history. This
-    failure is observed across two distinct test cases (read-after-search and
-    source-coverage), both resulting in harbor.reward=0.0 and
-    harbor.passed=False. The non-invocation of these chat tools correlates with
-    missing critical facts in the final answer, notably "security evidence
-    packet," which is absent in both cases. The developer can fix this by
-    updating the system prompt to emphasize chat tool usage, improving tool
-    selection logic, or adding explicit instructions for when to use
-    chat.search and chat.read_thread.
+    Across 5 of 6 evaluation traces, the agent consistently fails to call tools
+    that evaluators require (actions.prepare_message, files.read_json,
+    files.search, chat.read_thread, chat.search, connectors.get_status,
+    calendar.list_events). In 4 of these traces, this directly correlates with
+    missing factual content in final answers (security evidence packet,
+    ava.patel@example.test, one business day, date variants, needs_auth) that the
+    required tools would have retrieved. The agent instead produces answers by
+    writing files, running scripts, or asking for clarification without using the
+    mandated tools. This suggests a systemic prompt or planning misalignment where
+    the agent does not recognize when specific tools are required.
   trace_refs:
-    - 01a0b678-9751-77e3-b130-369a60e447f3
-    - 01a0b67b-c2b2-73e1-ad28-ec7205bb1177
+    - 01a0ea5c-00d7-7f61-a34c-702aac50efb9
+    - 01a0ea5c-1063-7fa2-a848-ee9c755bca49
+    - 01a0ea5d-bb37-7dc3-9871-bfe8d80eb300
+    - 01a0ea5f-0bb0-7511-81d6-8f3204fef0da
+    - 01a0ea60-c2ee-75b3-bb92-33aaa87f731c
   trace_links:
+    - traces/world-v2/baseline-eval/insights.jsonl#L1
+    - traces/world-v2/baseline-eval/insights.jsonl#L4
     - traces/world-v2/baseline-eval/insights.jsonl#L5
+    - traces/world-v2/baseline-eval/insights.jsonl#L2
     - traces/world-v2/baseline-eval/insights.jsonl#L6
