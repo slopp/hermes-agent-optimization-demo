@@ -59,6 +59,7 @@ class CompareHarborJobsTest(unittest.TestCase):
         self.assertEqual(report["development"]["candidate"]["passed"], 5)
         self.assertTrue(report["development"]["candidate_improved"])
         self.assertTrue(report["held_out"]["candidate_improved"])
+        self.assertEqual(report["development"]["regressed_tasks"], [])
         self.assertEqual(len(report["held_out"]["baseline"]["wilson_95"]), 2)
 
     def test_wilson_interval_handles_empty_and_perfect_samples(self) -> None:
@@ -66,6 +67,16 @@ class CompareHarborJobsTest(unittest.TestCase):
         lower, upper = wilson_interval(3, 3)
         self.assertLess(lower, 1.0)
         self.assertEqual(upper, 1.0)
+
+    def test_aggregate_improvement_does_not_hide_task_regression(self) -> None:
+        from scripts.compare_harbor_jobs import compare_split
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            baseline = write_job(root, "baseline", {"a": [1, 0, 0], "b": [0, 0, 0]})
+            candidate = write_job(root, "candidate", {"a": [0, 0, 0], "b": [1, 1, 1]})
+            report = compare_split(baseline, candidate, {"a", "b"}, 3)
+            self.assertTrue(report["candidate_improved"])
+            self.assertEqual(report["regressed_tasks"], ["a"])
 
 
 if __name__ == "__main__":

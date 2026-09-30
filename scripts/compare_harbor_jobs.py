@@ -102,6 +102,11 @@ def compare_split(
         "candidate": candidate_summary,
         "pass_rate_delta": candidate_summary["pass_rate"] - baseline_summary["pass_rate"],
         "candidate_improved": candidate_summary["pass_rate"] > baseline_summary["pass_rate"],
+        "regressed_tasks": sorted(
+            task_id for task_id in expected_ids
+            if candidate_summary["per_task"][task_id]["passed"]
+            < baseline_summary["per_task"][task_id]["passed"]
+        ),
     }
 
 
@@ -168,11 +173,22 @@ def main() -> int:
             report["development"]["candidate_improved"]
             and report["held_out"]["candidate_improved"]
         ),
+        no_task_regressions=not (
+            report["development"]["regressed_tasks"] or report["held_out"]["regressed_tasks"]
+        ),
+        no_runtime_exceptions=not any(
+            report[split][arm]["exceptions"]
+            for split in ("development", "held_out") for arm in ("baseline", "candidate")
+        ),
+    )
+    report["acceptance"]["accepted"] = all(
+        report["acceptance"][key]
+        for key in ("both_splits_improve", "no_task_regressions", "no_runtime_exceptions")
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report["acceptance"]))
-    return 0 if report["acceptance"]["both_splits_improve"] else 2
+    return 0 if report["acceptance"]["accepted"] else 2
 
 
 if __name__ == "__main__":

@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
-
-def load_json(relative: str) -> dict[str, Any]:
-    return json.loads((ROOT / relative).read_text(encoding="utf-8"))
+from scripts.validate_task_products import validate as validate_task_products
 
 
 def digest(path: Path) -> str:
@@ -25,8 +26,8 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(f"artifact-chain validation failed: {message}")
 
 
-def main() -> int:
-    chain_path = ROOT / "results" / "artifact-chain.json"
+def validate(root: Path, *, require_review: bool = True) -> None:
+    chain_path = root / "results" / "artifact-chain.json"
     chain = json.loads(chain_path.read_text(encoding="utf-8"))
     require(
         chain.get("schema") == "hermes-agent-optimization-artifact-chain-v3",
@@ -46,7 +47,9 @@ def main() -> int:
         stage_id = stage.get("id")
         require(isinstance(stage_id, str) and stage_id not in stage_ids, f"duplicate/invalid stage {stage_id}")
         require(set(stage.get("consumes", [])) <= stage_ids, f"{stage_id} consumes a missing or later stage")
-        path = ROOT / stage["path"]
+        relative = Path(stage["path"])
+        require(not relative.is_absolute() and ".." not in relative.parts, "unsafe artifact path")
+        path = root / relative
         require(path.is_file(), f"missing artifact {stage['path']}")
         require(digest(path) == stage.get("sha256"), f"digest drift in {stage['path']}")
         stage_ids.add(stage_id)
@@ -71,7 +74,9 @@ def main() -> int:
     suite = json.loads(stage_paths["eval_suite"].read_text(encoding="utf-8"))
     generation = suite.get("generation", {})
     require(generation.get("source_trace_count") == len(source_traces), "suite source denominator differs from corpus")
-    require(generation.get("review_status") == "human_reviewed", "suite requires human task/split review")
+    review = generation.get("review_status")
+    require(review in ("human_reviewed", "pending_human_review"), "invalid suite review state")
+    require(not require_review or review == "human_reviewed", "suite requires human task/split review")
     require(generation.get("split_frozen_before_candidate") is True, "suite split was not frozen before candidate design")
     cases = suite.get("cases", [])
     dev_cases = [case for case in cases if case.get("case_kind") == "development"]
@@ -88,7 +93,19 @@ def main() -> int:
         require(source_ref not in seen_sources, f"source trace reused for {case.get('id')}")
         seen_sources.add(source_ref)
         require(provenance.get("insight_refs"), f"case {case.get('id')} lacks production Insights provenance")
-        require(case.get("relevant_experience"), f"case {case.get('id')} lacks human-reviewed relevant experience")
+        require(case.get("relevant_experience"), f"case {case.get('id')} lacks relevant experience")
+
+    proof_errors = validate_task_products(root, require_review=require_review)
+    require(not proof_errors, "; ".join(proof_errors))
+    freeze = json.loads((root / "results/experiment-freeze.json").read_text())
+    require(freeze.get("candidate_frozen_before_held_out_execution") is True,
+            "candidate was not frozen before held-out execution")
+    require(set(freeze.get("development_task_ids", [])) == {case["id"] for case in dev_cases},
+            "development membership differs from experiment freeze")
+    require(set(freeze.get("held_out_task_ids", [])) == {case["id"] for case in held_cases},
+            "held-out membership differs from experiment freeze")
+    require(digest(stage_paths["candidate_profile"]) == freeze.get("candidate_profile_sha256"),
+            "candidate profile differs from frozen design")
 
     baseline_bundle_path = stage_paths["baseline_development_traces"]
     baseline_bundle = [
@@ -109,6 +126,7 @@ def main() -> int:
     require(isinstance(attempts, int) and attempts >= 3, "A/B requires at least three attempts per task and arm")
     for split, cases_on_split in (("development", dev_cases), ("held_out", held_cases)):
         record = measured.get(split, {})
+        require(record.get("regressed_tasks") == [], f"{split} has per-task regressions or lacks a regression check")
         require(record.get("tasks") == len(cases_on_split), f"{split} task denominator differs from frozen suite")
         require(record.get("attempts_per_task_per_arm") == attempts, f"{split} attempt count differs")
         for arm in ("baseline", "candidate"):
@@ -123,10 +141,20 @@ def main() -> int:
 
     print(
         "artifact chain valid: "
-        f"X={len(source_traces)} source traces → Y={len(cases)} reviewed tasks "
+        f"X={len(source_traces)} source traces → Y={len(cases)} tasks "
         f"({len(dev_cases)} development/{len(held_cases)} held out) → "
         f"K={attempts} attempts → candidate improves both splits"
     )
+    if not require_review:
+        print("Technical pilot integrity only; this does not establish human task review or readiness.")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--allow-unreviewed", action="store_true",
+                        help="Check technical pilot integrity without claiming human review.")
+    args = parser.parse_args()
+    validate(ROOT, require_review=not args.allow_unreviewed)
     return 0
 
 

@@ -408,7 +408,7 @@ held out and needs a new frozen sample.
 Harbor rewards, verifier details, Relay traces, MCP logs, and the candidate diff.
 **Output:** reproducible comparison and go/no-go decision.
 
-Compare per-task and aggregate success, paired attempt outcomes, answer/source
+Compare per-task and aggregate success, repeated outcomes, answer/source
 coverage, tool-call counts, exceptions, latency/cost if available, and safety
 guardrails such as no unapproved sends. Require improvement on both the development
 and held-out sets; show uncertainty at `K=3` and avoid claiming
@@ -431,8 +431,12 @@ so and keep it as a hypothesis rather than declaring victory.
 
 The checked-in `results/` artifacts should include the exact corpus, task split,
 both Insights reports, candidate diff/proposal, all run summaries, artifact
-hashes, and a paired comparison. `make validate` checks that the recorded
-provenance and task denominators still agree.
+hashes, and a task-matched comparison. `make validate
+PYTHON=.harbor-venv/bin/python` checks provenance, exact proof digests, frozen
+membership, and denominators, and requires recorded human review. For the
+checked-in experimental suite with review pending, use `make validate-pilot
+PYTHON=.harbor-venv/bin/python` to check technical integrity without claiming
+readiness. Repeated model samples are not seed-paired statistical trials.
 
 ## Secondary path: just try Trace Analyst
 
