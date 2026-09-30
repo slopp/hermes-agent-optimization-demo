@@ -33,7 +33,7 @@ def main() -> int:
     parser.add_argument(
         "--tasks-dir", type=Path, default=ROOT / "evals" / "harbor-tasks-v3"
     )
-    parser.add_argument("--model", default="nvidia/nemotron-3-ultra")
+    parser.add_argument("--model", default="nvidia/nemotron-3-ultra-550b-a55b")
     parser.add_argument("--openshell-bin", default="openshell")
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.3")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")

@@ -15,6 +15,8 @@ class TraceAnalystConfigTest(unittest.TestCase):
         self.assertIn("authorization to send", ethos_path.read_text())
         self.assertTrue(config["evidence_streams"]["anomaly_and_patterns"])
         self.assertTrue(config["evidence_streams"]["tool_issues"])
+        self.assertEqual(config["model"], "openai/nvidia/nemotron-3-ultra-550b-a55b")
+        self.assertEqual(config["api_base"], "https://integrate.api.nvidia.com/v1")
 
 
 if __name__ == "__main__":
