@@ -74,6 +74,10 @@ curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | 
 openshell --version
 openshell status
 openshell doctor check
+openshell gateway info
+
+# Preload the supervisor image required by the version-pinned 0.1.2 Docker driver.
+docker pull ghcr.io/nvidia/openshell/supervisor@sha256:d7b5264bb6bc56f4796e6fa3617b8e4a8d785be0b7293542efd8cc250b0fb67a
 
 docker build -f openshell/Dockerfile -t hermes-flywheel-openshell:0.3 .
 uv venv .mcp-venv --python 3.12
