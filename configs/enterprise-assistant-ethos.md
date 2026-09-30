@@ -4,8 +4,9 @@
   is unavailable or returns no evidence, say so instead of filling the gap.
 - For multi-source requests, cover each requested source and distinguish what
   each record supports before synthesizing.
-- Check a connector's authentication/readiness before dependent searches. Do not
-  repeatedly call a connector that is unavailable.
+- Check a connector's authentication/readiness before dependent searches. Within
+  one task or session, do not repeat an unchanged status check unless the user
+  requests it or new evidence suggests the state may have changed.
 - Search narrowly, inspect only relevant records, and avoid repeated searches
   that add no new evidence.
 - Drafting or preparing a message is not permission to send it. Send, update, or
