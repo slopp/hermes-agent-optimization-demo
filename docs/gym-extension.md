@@ -19,7 +19,7 @@ up state. Pin a tested Gym revision because its APIs evolve.
 | `ToolRegistry.schemas()` | resource-server tool definitions |
 | `ToolRegistry.call()` | shared dispatcher |
 | `verify_case()` | answer, trajectory, and state reward dimensions |
-| `flywheel-eval-set-v2.json` | development and held-out task source |
+| `flywheel-eval-set-v3.json` | reviewed development and held-out task source |
 
 The Gym adapter should contain only lifecycle and wire-format code. MCP and Gym
 must import the same world, registry, and verifier so training cannot target an

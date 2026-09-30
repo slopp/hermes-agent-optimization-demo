@@ -26,6 +26,15 @@ CASE_EXPERIENCE = {
     "held-out-security-owner": "large structured files should be inspected with schema-first, bounded reads",
 }
 
+CASE_EXPERIENCE_BY_FAMILY = {
+    "multi_source_coverage": "compound requests need evidence from each authoritative enterprise source",
+    "search_then_read": "search results are locators, so the agent must inspect selected records before citing them",
+    "bounded_retry_and_fallback": "transient failures need an exact retry and a relevant bounded fallback",
+    "connector_authentication_awareness": "connector health should be checked before dependent work",
+    "approval_boundary": "an agent may prepare a draft without crossing the user-approval boundary to send it",
+    "bounded_structured_inspection": "large structured files should be inspected with schema-first, bounded reads",
+}
+
 
 def task_toml(case_id: str) -> str:
     return dedent(
@@ -42,8 +51,7 @@ def task_toml(case_id: str) -> str:
 
         [agent]
         timeout_sec = 300.0
-        network_mode = "allowlist"
-        allowed_hosts = ["integrate.api.nvidia.com"]
+        network_mode = "no-network"
 
         [verifier]
         timeout_sec = 60.0
@@ -205,7 +213,10 @@ print(f"task-success\t{'PASS' if not failures else 'FAIL'}")
 def task_readme(case: dict) -> str:
     behavior = CASE_EXPERIENCE.get(
         case["id"],
-        "the harness must gather the required evidence and respect the task boundary",
+        CASE_EXPERIENCE_BY_FAMILY.get(
+            case.get("behavior_family"),
+            "the harness must gather the required evidence and respect the task boundary",
+        ),
     )
     return dedent(
         f'''\
@@ -245,9 +256,7 @@ def task_readme(case: dict) -> str:
 
         ## Relevant experience
 
-        The tutorial authors selected this pattern after reviewing repeated runs of
-        the synthetic enterprise assistant. It represents a recurring harness issue:
-        {behavior}.
+        {case["relevant_experience"]}
         '''
     )
 
@@ -255,7 +264,7 @@ def task_readme(case: dict) -> str:
 def materialize(case: dict, output_root: Path) -> None:
     task = output_root / case["id"]
     if task.exists():
-        shutil.rmtree(task)
+        raise FileExistsError(f"refusing to overwrite existing task directory: {task}")
     environment = task / "environment"
     tests = task / "tests"
     solution = task / "solution"
@@ -322,8 +331,8 @@ def materialize(case: dict, output_root: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite", type=Path, default=ROOT / "evals" / "flywheel-eval-set-v2.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "evals" / "harbor-tasks-v2")
+    parser.add_argument("--suite", type=Path, default=ROOT / "evals" / "flywheel-eval-set-v3.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "evals" / "harbor-tasks-v3")
     parser.add_argument("--case", action="append", dest="cases")
     args = parser.parse_args()
 
@@ -332,6 +341,7 @@ def main() -> int:
     unknown = set(args.cases or []) - {case["id"] for case in selected}
     if unknown:
         raise SystemExit(f"unknown case(s): {', '.join(sorted(unknown))}")
+    args.output.mkdir(parents=True, exist_ok=True)
     for case in selected:
         materialize(case, args.output)
     print(json.dumps({"output": str(args.output), "tasks": [case["id"] for case in selected]}))

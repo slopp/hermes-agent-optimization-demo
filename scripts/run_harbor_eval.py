@@ -22,14 +22,18 @@ def main() -> int:
         default="openshell",
         help="Run Hermes in OpenShell (default) or directly in the Harbor task image.",
     )
-    parser.add_argument("--attempts", type=int, default=1)
+    parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--harbor", default="harbor")
     parser.add_argument("--jobs-dir", type=Path, default=ROOT / ".runs" / "harbor")
     parser.add_argument("--job-name")
     parser.add_argument(
-        "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
+        "--suite", type=Path, default=ROOT / "evals" / "flywheel-eval-set-v3.json"
     )
+    parser.add_argument(
+        "--tasks-dir", type=Path, default=ROOT / "evals" / "harbor-tasks-v3"
+    )
+    parser.add_argument("--model", default="nvidia/nvidia/nemotron-3-ultra")
     parser.add_argument("--openshell-bin", default="openshell")
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
@@ -38,8 +42,8 @@ def main() -> int:
     if args.attempts < 1 or args.concurrency < 1:
         parser.error("--attempts and --concurrency must be positive")
 
-    suite = json.loads((ROOT / "evals" / "flywheel-eval-set-v2.json").read_text())
-    case_kind = "held_out" if args.split == "held-out" else "trace_derived"
+    suite = json.loads(args.suite.read_text(encoding="utf-8"))
+    case_kind = "held_out" if args.split == "held-out" else "development"
     case_ids = [case["id"] for case in suite["cases"] if case["case_kind"] == case_kind]
     job_name = args.job_name or f"{args.arm}-{args.split}"
     agent = (
@@ -51,7 +55,7 @@ def main() -> int:
         args.harbor,
         "run",
         "-p",
-        str(ROOT / "evals" / "harbor-tasks-v2"),
+        str(args.tasks_dir),
         "-a",
         agent,
         "--ak",

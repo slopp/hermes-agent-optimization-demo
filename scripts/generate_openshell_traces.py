@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harbor_agents.openshell_hermes import OpenShellHermesFlywheel
+from scripts.production_workload import validate_matrix
 
 
 async def collect(
@@ -76,6 +77,7 @@ async def collect(
                 {
                     "run_id": run_id,
                     "logical_case_id": case_id,
+                    "behavior_family": scenario.get("behavior_family"),
                     "attempt": attempt,
                     "runtime_attempts": retry + 1,
                     "prompt": scenario["prompt"],
@@ -115,7 +117,7 @@ async def collect(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--matrix", type=Path, default=ROOT / "experiments" / "fidelity-matrix-v2.json"
+        "--matrix", type=Path, default=ROOT / "experiments" / "production-trace-matrix-v3.json"
     )
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=2)
@@ -127,9 +129,7 @@ def main() -> int:
     )
     parser.add_argument("--case", action="append", help="Run only this matrix case (repeatable).")
     parser.add_argument("--output", type=Path, default=ROOT / ".runs" / "source-traces")
-    parser.add_argument(
-        "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
-    )
+    parser.add_argument("--model", default="nvidia/nvidia/nemotron-3-ultra")
     parser.add_argument("--openshell-bin", default="openshell")
     parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
@@ -140,6 +140,25 @@ def main() -> int:
     if not args.matrix.is_file():
         parser.error(f"matrix not found: {args.matrix}")
 
+    try:
+        matrix = json.loads(args.matrix.read_text(encoding="utf-8"))
+        validate_matrix(matrix, allow_partial=bool(args.case))
+    except (ValueError, TypeError) as exc:
+        parser.error(str(exc))
+    requested = set(args.case or [])
+    selected = [
+        scenario
+        for scenario in matrix["scenarios"]
+        if not requested or scenario["id"] in requested
+    ]
+    unknown = requested - {scenario["id"] for scenario in selected}
+    if unknown:
+        parser.error(f"unknown matrix case(s): {', '.join(sorted(unknown))}")
+    if args.attempts != 1 and not args.case:
+        parser.error(
+            "production traces use one run per distinct request; add matrix rows instead of repeating prompts"
+        )
+
     records, failures = asyncio.run(collect(args))
     matrix_path = args.matrix.resolve()
     try:
@@ -147,13 +166,14 @@ def main() -> int:
     except ValueError:
         matrix_label = str(matrix_path)
     manifest = {
-        "schema": "openshell-source-traces-v1",
+        "schema": "openshell-source-traces-v2",
         "runtime": "openshell",
         "mcp_transport": "streamable-http",
         "mcp_endpoint": "host.openshell.internal:8765-8766",
         "arm": "baseline",
         "model": args.model,
         "matrix": matrix_label,
+        "distinct_requests": len(selected),
         "runs": records,
         "failures": failures,
     }

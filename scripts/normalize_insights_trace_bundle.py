@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -150,23 +149,33 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", action="append", required=True, metavar="LABEL=PATH")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--per-case", type=int, default=3)
+    parser.add_argument(
+        "--matrix",
+        type=Path,
+        default=ROOT / "experiments" / "production-trace-matrix-v3.json",
+        help="Source workload matrix used to label behavior families.",
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    matrix = json.loads(args.matrix.read_text(encoding="utf-8"))
+    family_by_case = {
+        scenario["id"]: scenario["behavior_family"]
+        for scenario in matrix["scenarios"]
+        if scenario.get("behavior_family")
+    }
     index = []
+    ordinal = 0
     for source in args.source:
         label, separator, raw_path = source.partition("=")
         if not separator or not label:
             raise SystemExit("--source must be LABEL=PATH")
-        counts: dict[str, int] = defaultdict(int)
         for line in Path(raw_path).read_text(encoding="utf-8").splitlines():
             trace = json.loads(line)
             case_id = trace.get("attributes", {}).get("logical_case_id")
-            if not isinstance(case_id, str) or counts[case_id] >= args.per_case:
-                continue
-            counts[case_id] += 1
-            ordinal = counts[case_id]
-            filename = f"{case_id}--{label}--{ordinal:02d}.atif.json"
+            if not isinstance(case_id, str):
+                raise ValueError("each source trace needs a logical_case_id")
+            ordinal += 1
+            filename = f"trace-{ordinal:03d}--{label}.atif.json"
             atif = convert(trace, collection=label, ordinal=ordinal)
             (args.output / filename).write_text(
                 json.dumps(atif, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -177,10 +186,12 @@ def main() -> int:
                     "trace_id": atif["trajectory_id"],
                     "logical_case_id": case_id,
                     "collection": label,
+                    "behavior_family": family_by_case.get(case_id),
+                    "prompt": trace.get("attributes", {}).get("task_text", ""),
                 }
             )
     (args.output / "index.json").write_text(
-        json.dumps({"schema": "enterprise-trace-corpus-v1", "traces": index}, indent=2)
+        json.dumps({"schema": "enterprise-trace-corpus-v2", "traces": index}, indent=2)
         + "\n",
         encoding="utf-8",
     )

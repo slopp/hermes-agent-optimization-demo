@@ -7,6 +7,21 @@ from scripts.materialize_harbor_tasks import materialize
 
 
 class MaterializeHarborTasksTest(unittest.TestCase):
+    def test_existing_task_is_not_destroyed_on_rerun(self) -> None:
+        case = {
+            "id": "example", "input": "Find it.", "expectations": {},
+            "relevant_experience": "Reviewer explains the intended behavior.",
+        }
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            existing = root / "example"
+            existing.mkdir()
+            marker = existing / "keep.txt"
+            marker.write_text("preserve")
+            with self.assertRaises(FileExistsError):
+                materialize(case, root)
+            self.assertEqual(marker.read_text(), "preserve")
+
     def test_task_uses_real_mcp_and_separate_verifier(self) -> None:
         case = {
             "id": "example",
@@ -15,6 +30,7 @@ class MaterializeHarborTasksTest(unittest.TestCase):
                 "required_tools": ["chat.search"],
                 "required_facts": ["evidence"],
             },
+            "relevant_experience": "Reviewer notes why this behavior matters for the fictional task.",
         }
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -49,7 +65,10 @@ class MaterializeHarborTasksTest(unittest.TestCase):
         cached_file.write_bytes(b"cache")
         self.addCleanup(cached_file.unlink, missing_ok=True)
 
-        case = {"id": "example", "input": "Find it.", "expectations": {}}
+        case = {
+            "id": "example", "input": "Find it.", "expectations": {},
+            "relevant_experience": "Reviewer explains the intended behavior.",
+        }
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             materialize(case, root)

@@ -34,6 +34,19 @@ class OpenShellHelpersTest(unittest.TestCase):
 
 @unittest.skipIf(OpenShellHermesFlywheel is None, "Harbor is not installed")
 class OpenShellRuntimeTest(unittest.TestCase):
+    def test_remote_mcp_host_bridge_is_allowlisted_as_external_http_service(self) -> None:
+        import yaml
+
+        policy = yaml.safe_load(
+            (Path(__file__).parents[1] / "openshell" / "policy.yaml").read_text()
+        )
+        endpoints = policy["network_policies"]["enterprise_mcp"]["endpoints"]
+        self.assertEqual(
+            {(endpoint["host"], endpoint["port"]) for endpoint in endpoints},
+            {("host.openshell.internal", 8765), ("host.openshell.internal", 8766)},
+        )
+        self.assertTrue(all(endpoint["enforcement"] == "enforce" for endpoint in endpoints))
+
     def test_runtime_contains_arm_mcp_relay_and_no_api_key(self) -> None:
         import yaml
 
@@ -41,7 +54,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+                model_name="nvidia/nvidia/nemotron-3-ultra",
                 arm="candidate",
             )
             self.assertEqual(agent.version(), "0.21.3")
@@ -57,6 +70,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             self.assertEqual(
                 enterprise["url"], "http://host.openshell.internal:8765/mcp"
             )
+            self.assertTrue(enterprise["url"].startswith("http://"))
             self.assertEqual(
                 enterprise["headers"]["Authorization"], "Bearer test-token"
             )
@@ -82,7 +96,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+                model_name="nvidia/nvidia/nemotron-3-ultra",
                 arm="baseline",
                 provider_base_url="https://inference.example.test/v1/",
             )
@@ -100,7 +114,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra-550b-a55b",
+                model_name="nvidia/nvidia/nemotron-3-ultra",
                 arm="baseline",
             )
             runtime = root / "run"

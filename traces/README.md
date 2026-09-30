@@ -1,41 +1,25 @@
-# Checked-in traces
+# Trace artifacts
 
-`world-v2/corpus/` contains 36 Relay-compatible ATIF-v1.7 trajectories from
-repeated baseline Hermes runs in an OpenShell sandbox against the synthetic
-enterprise world. The index
-records provenance and six observable behavior groups. Fixture-backed MCP calls
-retain their schemas, arguments, and results; unrelated payloads use explicit
-redaction markers.
+`world-v3/production/` is the starting corpus: 36–48 distinct baseline Hermes
+requests recorded by NeMo Relay while the agent ran in OpenShell and called the
+host-side HTTP MCP through `openshell/policy.yaml`. The ATIF files are the
+trace-derived task evidence; `insights.jsonl` is the canonical Trace Analyst
+input; `index.json` records stable IDs, source prompts, and behavior families.
 
-These are the source traces used for Eval Author task design. They do not contain
-Harbor scores:
+`world-v3/baseline-development/insights.jsonl` contains every repeated baseline
+development rollout joined to its Harbor reward and verifier findings. It is
+the second Trace Analyst input and must contain exactly `D × K` traces with at
+least three per development task.
 
-```bash
-python3 scripts/validate_trace_corpus.py traces/world-v2/corpus/index.json
-```
-
-To collect a fresh unscored bundle with the same OpenShell-hosted agent and mock
-MCP world, follow walkthrough step 2 and run
-`scripts/generate_openshell_traces.py`. The checked-in corpus remains the stable
-authoring input; fresh model output is expected to vary.
-
-`world-v2/baseline-eval/insights.jsonl` is a separate six-trace canonical JSONL
-bundle from the measured baseline development run. Each record joins a Relay
-trajectory with its Harbor reward and verifier findings in `evaluator_results`.
-It lets the Insights-only path analyze real scored failures without rerunning the
-agent. The bundle contains one trial for each development task: one passed and five
-failed. The conversion unwraps Hermes' generic `tool_call` broker spans into the
-actual MCP operation and retains schemas learned through `tool_search` and
-`tool_describe`, so Trace Analyst sees capabilities that were dynamically exposed.
-
-For a fresh Harbor job, produce the same contract with:
+Validate a corpus and scored bundle with:
 
 ```bash
-python3 scripts/convert_atif_for_insights.py \
-  .runs/harbor/baseline-development \
-  --output .runs/baseline-development-insights.jsonl
+python3 scripts/validate_trace_corpus.py traces/world-v3/production/index.json
+python3 scripts/validate_scored_trace_bundle.py \
+  traces/world-v3/baseline-development/insights.jsonl --minimum-attempts 3
 ```
 
-For your own agent, export Relay-compatible ATIF with stable IDs, task text, tool
-calls/results, and reviewed provenance. The converter automatically joins Harbor
-`result.json` and `verifier/report.json` files when they enclose each trajectory.
+Fresh source collection and normalization commands are in the
+[walkthrough](../docs/walkthrough.md). For your own agent, retain stable IDs,
+user instructions, tool calls/results, recorded evaluation outcomes, and trace
+provenance; record normalization losses rather than filling missing fields.
