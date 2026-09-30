@@ -28,14 +28,21 @@ OpenShell policy. The candidate does not encode task IDs or expected answers.
 
 ## Measurement status
 
-| Development pilot | Passed | Runtime exceptions | Relay complete |
+| Development-host verification | Passed | Runtime exceptions | Relay complete |
 | --- | ---: | ---: | ---: |
-| Baseline | 4/6 | 0 | 6/6 |
-| Candidate | 6/6 | 0 | 6/6 |
+| Baseline, development | 3/6 | 0 | 6/6 |
+| Candidate, development | 6/6 | 0 | 6/6 |
+| Baseline, held out | 4/6 | 0 | 6/6 |
+| Candidate, held out | 5/6 | 0 | 6/6 |
 
-These are preliminary development measurements. The held-out comparison,
-final measurements against the exact exported task tree, and fresh-host
-walkthrough are still being verified. They are not a completed reference run.
+These measurements use the exact exported task trees. Both aggregate rates
+improve, but the candidate loses one content-check pass on the reviewable-draft
+control (3/3 to 2/3). It invents launch-plan details rather than drafting about
+the requested outstanding artifact. The conservative per-task regression gate
+therefore rejects this cycle. The candidate was not tuned against that result.
+
+The public-provider comparison and fresh-host walkthrough are still being
+verified. These are not a completed public reference run.
 Task controls and human review are separate gates: passing NOP, Oracle, and
 negative controls establishes technical behavior, not human approval of the task.
 
