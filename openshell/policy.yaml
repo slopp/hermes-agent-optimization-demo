@@ -18,11 +18,6 @@ network_policies:
         protocol: rest
         access: read-write
         enforcement: enforce
-      - host: host.openshell.internal
-        port: 8766
-        protocol: rest
-        access: read-write
-        enforcement: enforce
     binaries:
       - path: /usr/local/bin/hermes
       - path: /usr/local/bin/python

@@ -20,6 +20,11 @@ endpoints:
     protocol: rest
     access: read-write
     enforcement: enforce
+  - host: inference-api.nvidia.com
+    port: 443
+    protocol: rest
+    access: read-write
+    enforcement: enforce
 binaries:
   - /usr/local/bin/hermes
   - /usr/local/bin/python

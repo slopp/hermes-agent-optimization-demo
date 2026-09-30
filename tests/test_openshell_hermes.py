@@ -43,9 +43,20 @@ class OpenShellRuntimeTest(unittest.TestCase):
         endpoints = policy["network_policies"]["enterprise_mcp"]["endpoints"]
         self.assertEqual(
             {(endpoint["host"], endpoint["port"]) for endpoint in endpoints},
-            {("host.openshell.internal", 8765), ("host.openshell.internal", 8766)},
+            {("host.openshell.internal", 8765)},
         )
         self.assertTrue(all(endpoint["enforcement"] == "enforce" for endpoint in endpoints))
+
+    def test_nvidia_provider_profile_allows_both_supported_model_hosts(self) -> None:
+        import yaml
+
+        profile = yaml.safe_load(
+            (Path(__file__).parents[1] / "openshell" / "provider-nvidia.yaml").read_text()
+        )
+        hosts = {endpoint["host"] for endpoint in profile["endpoints"]}
+        self.assertEqual(
+            hosts, {"integrate.api.nvidia.com", "inference-api.nvidia.com"}
+        )
 
     def test_runtime_contains_arm_mcp_relay_and_no_api_key(self) -> None:
         import yaml

@@ -38,7 +38,7 @@ def main() -> int:
     require(mcp.get("location") == "host_outside_sandbox", "MCP must be hosted outside OpenShell")
     require(mcp.get("transport") == "streamable-http", "measured MCP transport must be Streamable HTTP")
     require(mcp.get("host") == "host.openshell.internal", "unexpected OpenShell host bridge")
-    require(set(mcp.get("ports", [])) == {8765, 8766}, "MCP ports differ from the OpenShell policy")
+    require(set(mcp.get("ports", [])) == {8765}, "MCP ports differ from the OpenShell policy")
 
     stage_ids: set[str] = set()
     stage_paths: dict[str, Path] = {}

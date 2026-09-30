@@ -30,7 +30,9 @@ DEFAULT_IMAGE = "hermes-flywheel-openshell:0.3"
 DEFAULT_PROVIDER = "hermes-nvidia"
 HERMES_VERSION = "0.21.3"
 DEFAULT_MCP_HOST = "host.openshell.internal"
-DEFAULT_MCP_PORTS = (8765, 8766)
+# Keep one policy-approved host endpoint. Concurrent Harbor trials queue here,
+# so a second port never broadens host reachability or risks another service.
+DEFAULT_MCP_PORTS = (8765,)
 _REMOTE_MCP_QUEUES: dict[asyncio.AbstractEventLoop, asyncio.Queue[int]] = {}
 
 

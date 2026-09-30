@@ -24,7 +24,7 @@ a repeatability check, not a strong statistical-significance claim.
 
 The main path runs Hermes inside OpenShell. Each trial starts a separate,
 authenticated Streamable HTTP mock MCP service on the host running Harbor. Hermes
-reaches it as a remote service at `host.openshell.internal:8765` or `:8766`,
+reaches it as a remote service at `host.openshell.internal:8765`,
 allowed by `openshell/policy.yaml`; the MCP process, package, fixture, and call
 logs are not inside the OpenShell sandbox. Do not replace this with an in-sandbox
 stdio MCP for measured runs. Eval Author's offline NOP/Oracle task proofs are a
@@ -99,7 +99,7 @@ unset NVIDIA_API_KEY
 ```
 
 The checked-in profile permits the model endpoint; the separate OpenShell policy
-allows only the two local host-bridge MCP ports. Harbor verifier containers
+allows only the local host-bridge MCP port. Harbor verifier containers
 remain separately isolated and no-network.
 
 ### 2. Start from the production-like traces (X)

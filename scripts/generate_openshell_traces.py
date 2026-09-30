@@ -120,7 +120,7 @@ def main() -> int:
         "--matrix", type=Path, default=ROOT / "experiments" / "production-trace-matrix-v3.json"
     )
     parser.add_argument("--attempts", type=int, default=1)
-    parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
         "--retries",
         type=int,
@@ -169,7 +169,7 @@ def main() -> int:
         "schema": "openshell-source-traces-v2",
         "runtime": "openshell",
         "mcp_transport": "streamable-http",
-        "mcp_endpoint": "host.openshell.internal:8765-8766",
+        "mcp_endpoint": "host.openshell.internal:8765",
         "arm": "baseline",
         "model": args.model,
         "matrix": matrix_label,
