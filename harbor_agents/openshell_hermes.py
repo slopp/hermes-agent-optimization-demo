@@ -148,14 +148,14 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         hermes_home = runtime_dir / "hermes"
         (hermes_home / "nemo-relay").mkdir(parents=True)
 
-        if not self.model_name or "/" not in self.model_name:
-            raise ValueError("Model name must be in provider/model format")
-        provider, model = self.model_name.split("/", 1)
-        if provider != "nvidia":
+        if not self.model_name.startswith("nvidia/"):
             raise ValueError(
-                "The tutorial OpenShell profile supports NVIDIA models only; "
-                f"received provider {provider!r}"
+                "The tutorial OpenShell profile supports NVIDIA model IDs only; "
+                f"received {self.model_name!r}"
             )
+        # Keep the provider-native model ID intact. NVIDIA's two supported API
+        # hosts use different IDs for the same model (one vs. two path segments).
+        model = self.model_name
 
         mcp_url = mcp_url or f"http://{self.mcp_host}:{DEFAULT_MCP_PORTS[0]}/mcp"
         config = self._build_config_yaml(model) + f'''mcp_servers:

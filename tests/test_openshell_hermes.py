@@ -119,6 +119,19 @@ class OpenShellRuntimeTest(unittest.TestCase):
                 "export NVIDIA_BASE_URL=https://inference.example.test/v1", script
             )
 
+    def test_model_id_is_passed_to_provider_without_rewriting(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            agent = OpenShellHermesFlywheel(
+                logs_dir=root / "logs",
+                model_name="nvidia/nvidia/nemotron-3-ultra",
+                arm="baseline",
+            )
+            runtime = root / "run"
+            agent._write_runtime(runtime, "Find launch evidence.")
+            script = (runtime / "run.sh").read_text()
+            self.assertIn("--model nvidia/nvidia/nemotron-3-ultra", script)
+
     def test_baseline_eagerly_exposes_mcp_tools(self) -> None:
         import yaml
 
