@@ -51,6 +51,10 @@ and freezes development/held-out membership before any candidate changes. Each
 task is then run at least three times per arm; the same Harbor task set and
 fixture-backed host MCP are used for both arms.
 
+The checked-in task collection is an experimental pilot with human task review
+pending. Passing automated controls establishes technical behavior, not task
+readiness. See the [reference evidence and limits](docs/results.md).
+
 ## Start here
 
 Follow the [walkthrough](docs/walkthrough.md) for prerequisites, copyable host
@@ -60,6 +64,10 @@ with native Docker, at least 4 vCPUs, 16 GB RAM, 50 GB free disk, and a working
 OpenShell gateway; a Brev CPU instance is a convenient option. Harbor's isolated
 verifier requires a Linux kernel with `CONFIG_NFT_FIB_INET`, so Docker Desktop is
 not the supported full-run environment.
+
+Supporting detail: [fixture world](fixtures/README.md),
+[harness patterns](docs/harness-patterns.md), and
+[extending the environment for RL](docs/gym-extension.md).
 
 The public example uses synthetic records throughout. Replace the workload,
 fixtures, trace adapter, and task environment to apply the same method to a real
