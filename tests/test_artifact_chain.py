@@ -90,6 +90,21 @@ class ArtifactChainTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "per-task regressions"):
                 self.check(root)
 
+    def test_frozen_evaluation_contract_cannot_drift_with_stage_hash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            chain, _ = self.prepare(root)
+            path = root / "evals/flywheel-eval-set-v3.json"
+            suite = json.loads(path.read_text())
+            suite["cases"][0]["input"] = "Changed evaluation request"
+            path.write_text(json.dumps(suite))
+            for stage in chain["stages"]:
+                if stage["id"] == "eval_suite":
+                    stage["sha256"] = digest(path)
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            with self.assertRaisesRegex(SystemExit, "evaluation contract differs"):
+                self.check(root)
+
 
 if __name__ == "__main__":
     unittest.main()

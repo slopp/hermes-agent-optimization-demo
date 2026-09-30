@@ -98,6 +98,13 @@ def validate(root: Path, *, require_review: bool = True) -> None:
     proof_errors = validate_task_products(root, require_review=require_review)
     require(not proof_errors, "; ".join(proof_errors))
     freeze = json.loads((root / "results/experiment-freeze.json").read_text())
+    contract_fields = ("id", "case_kind", "behavior_family", "input", "expectations", "provenance")
+    contract = [{key: case[key] for key in contract_fields} for case in cases]
+    contract_hash = hashlib.sha256(
+        json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    require(contract_hash == freeze.get("evaluation_contract_sha256"),
+            "evaluation contract differs from frozen design")
     require(freeze.get("candidate_frozen_before_held_out_execution") is True,
             "candidate was not frozen before held-out execution")
     require(set(freeze.get("development_task_ids", [])) == {case["id"] for case in dev_cases},
