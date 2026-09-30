@@ -59,7 +59,7 @@ class RunHarborEvalTest(unittest.TestCase):
         self.assertIn(
             "harbor_agents.openshell_hermes:OpenShellHermesFlywheel", command
         )
-        self.assertIn("openshell_image=hermes-flywheel-openshell:0.2", command)
+        self.assertIn("openshell_image=hermes-flywheel-openshell:0.3", command)
         self.assertIn(
             "provider_base_url=https://inference.example.test/v1", command
         )

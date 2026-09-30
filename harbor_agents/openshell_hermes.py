@@ -26,7 +26,7 @@ from harbor_agents.hermes_flywheel import ARM_CONFIG, HermesFlywheel
 from harbor_agents.openshell_utils import final_answer, sandbox_name
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_IMAGE = "hermes-flywheel-openshell:0.2"
+DEFAULT_IMAGE = "hermes-flywheel-openshell:0.3"
 DEFAULT_PROVIDER = "hermes-nvidia"
 HERMES_VERSION = "0.21.3"
 DEFAULT_MCP_HOST = "host.openshell.internal"

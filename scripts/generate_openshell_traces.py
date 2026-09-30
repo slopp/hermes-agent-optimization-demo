@@ -131,7 +131,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=ROOT / ".runs" / "source-traces")
     parser.add_argument("--model", default="nvidia/nvidia/nemotron-3-ultra")
     parser.add_argument("--openshell-bin", default="openshell")
-    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
+    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.3")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
     parser.add_argument("--provider-base-url", default="")
     args = parser.parse_args()

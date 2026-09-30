@@ -75,7 +75,7 @@ openshell --version
 openshell status
 openshell doctor check
 
-docker build -f openshell/Dockerfile -t hermes-flywheel-openshell:0.2 .
+docker build -f openshell/Dockerfile -t hermes-flywheel-openshell:0.3 .
 uv venv .mcp-venv --python 3.12
 uv pip install --python .mcp-venv/bin/python -e '.[remote-mcp]'
 uv venv .harbor-venv --python 3.12
