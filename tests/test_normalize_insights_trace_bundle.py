@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.normalize_insights_trace_bundle import _source_prompt
+from scripts.normalize_insights_trace_bundle import _source_prompt, convert
 
 
 class NormalizeInsightsTraceBundleTest(unittest.TestCase):
@@ -12,6 +12,37 @@ class NormalizeInsightsTraceBundleTest(unittest.TestCase):
             _source_prompt({"task_text": "Canonical request", "prompt": "Other"}),
             "Canonical request",
         )
+
+    def test_preserves_fixture_call_and_harbor_reward(self) -> None:
+        trace = {
+            "id": "scored-trace",
+            "attributes": {"task_text": "Prepare a message", "final_answer": "Prepared"},
+            "evaluator_results": {"harbor.reward": 0.0},
+            "root_spans": [{
+                "kind": "TOOL", "tool_name": "actions.prepare_message",
+                "input": {"recipient": "Maya Chen", "body": "Review requested"},
+                "output": {"ok": True},
+            }],
+        }
+        atif = convert(trace, collection="development", ordinal=1)
+        self.assertEqual(atif["steps"][0]["message"], "Prepare a message")
+        call = atif["steps"][1]["tool_calls"][0]
+        self.assertEqual(call["arguments"], trace["root_spans"][0]["input"])
+        self.assertEqual(atif["extra"]["evaluator_results"], {"harbor.reward": 0.0})
+        self.assertTrue(atif["extra"]["tool_catalog"]["actions.prepare_message"])
+
+    def test_redacts_non_fixture_payload_without_losing_call_identity(self) -> None:
+        atif = convert({
+            "id": "native-helper",
+            "attributes": {"prompt": "Inspect a result"},
+            "root_spans": [{"kind": "TOOL", "tool_name": "terminal",
+                            "input": {"command": "private command"},
+                            "output": "private output"}],
+        }, collection="production", ordinal=1)
+        call = atif["steps"][1]["tool_calls"][0]
+        self.assertEqual(call["function_name"], "terminal")
+        self.assertIn("redacted", call["arguments"])
+        self.assertEqual(atif["extra"]["tool_catalog"]["terminal"], {})
 
 
 if __name__ == "__main__":

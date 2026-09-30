@@ -1,89 +1,52 @@
-# Measured reference run
+# Reference experiment
 
-The checked-in reference validates the tutorial's complete trace-to-harness loop
-on a fresh Ubuntu 24.04 Brev CPU host with native Docker. Harbor 0.22.0 ran Hermes
-Agent 0.21.3 with a Nemotron 3 Ultra endpoint. Hermes and Relay ran in OpenShell;
-the authenticated mock MCP ran as a separate host service reachable only through
-the reviewed OpenShell policy. Both arms used the same model, tasks, 504-record
-fixture, remote MCP server, prompts, and separate no-network verifiers.
+The experiment starts with 42 distinct production-like requests to Hermes,
+running inside OpenShell against the fictional enterprise's remote MCP service.
+Trace Analyst identified an approval-boundary problem: the agent sometimes
+interpreted a request to write or compose a message as permission to send it.
 
-## Results
+## Evidence and hypothesis
 
-| Split | Arm | Pass | MCP calls | Mean calls | Exceptions | Relay complete |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Development, one attempt | Baseline | 0/6 (0%) | 57 | 9.50 | 0 | 6/6 |
-| Development, one attempt | Candidate | 3/6 (50%) | 6 | 1.00 | 0 | 6/6 |
-| Held out, one attempt | Baseline | 1/4 (25%) | 9 | 2.25 | 0 | 4/4 |
-| Held out, one attempt | Candidate | 2/4 (50%) | 4 | 1.00 | 0 | 4/4 |
+The [production report](../results/production-insights.yml) identifies the
+behavior in source traces. Codex used Eval Author's experimental trace-environment
+workflow to draft four independently graded tasks: two development tasks and
+two held-out tasks. Each task checks the requested message content and the
+absence of an unapproved send, using the actual fixture-backed tools and trusted
+MCP call logs—not a replay of a successful answer.
 
-The held-out measurement used one frozen attempt for every task and arm; no result
-was discarded or replaced. The candidate flipped launch-summary and CRM-status
-paraphrases to passing, while security-timing and security-owner still failed. We
-did not tune the profile after opening the held-out set. Repeat every task in both
-arms when estimating variance; this reference is an end-to-end acceptance run,
-not a confidence interval.
+The baseline development measurement used three attempts per task. The
+[development report](../results/baseline-development-insights.yml) confirmed
+unauthorized sends in two of the six scored trajectories. Successes remained
+in the analysis input as counter-evidence.
 
-## What was tested
+The [candidate proposal](../results/candidate-proposal.md) connects both reports
+to a small, general change in [the Hermes profile](../profiles/candidate-soul.md):
+drafting is not sending, a tool-issued token is not user consent, and sending
+requires explicit authorization for the intended recipient and message.
+Both arms retain the same tools, 60-turn limit, model, world, verifier, and
+OpenShell policy. The candidate does not encode task IDs or expected answers.
 
-The baseline eagerly exposes enterprise MCP alongside Hermes' broad built-in tool
-surface, uses a generic policy, and permits 60 turns. Candidate changes only the
-harness:
+## Measurement status
 
-- route each claim to its natural enterprise source and stop when covered;
-- treat search hits as metadata, then read the selected record;
-- inspect schemas before bounded structured reads;
-- retry the same transient call once, then use one declared fallback;
-- prepare requested messages without sending;
-- put enterprise MCP behind brokered discovery and remove irrelevant local, web,
-  code, and session toolsets; and
-- cap the policy at eight MCP calls and the runtime at 12 turns.
+| Development pilot | Passed | Runtime exceptions | Relay complete |
+| --- | ---: | ---: | ---: |
+| Baseline | 4/6 | 0 | 6/6 |
+| Candidate | 6/6 | 0 | 6/6 |
 
-Both splits are one-attempt smoke runs, not statistical estimates. The held-out
-split still matters because it uses four frozen wordings that were not used to
-derive the candidate.
+These are preliminary development measurements. The held-out comparison,
+final measurements against the exact exported task tree, and fresh-host
+walkthrough are still being verified. They are not a completed reference run.
+Task controls and human review are separate gates: passing NOP, Oracle, and
+negative controls establishes technical behavior, not human approval of the task.
 
-## Trace and task evidence
+## Limits
 
-The checked-in source corpus contains 36 baseline traces and 525 recorded calls.
-Four traces contain no tool trajectory because the agent answered or asked for
-clarification without using enterprise MCP. Those are valid agent behaviors, not
-missing trace data. Eval Author task design selected recurring problems from this
-corpus; it did not score these source traces.
+This is a focused approval-boundary pilot, not a benchmark of all enterprise
+assistant capabilities. Three attempts per task expose some variability but do
+not establish statistical significance. Held-out tasks are selected from the
+same discovery corpus and are a protocol holdout, not an unseen distribution.
 
-The checked-in scored development bundle contains the six OpenShell baseline
-rollouts; all six failed. Every record carries the Harbor reward and
-verifier findings used by Trace Analyst's evaluation-failure stream.
-After the converter canonicalized Hermes' MCP catalog and call names, Trace Analyst
-produced one recurring insight backed by five failed cases: required enterprise
-tools were available but the agent chose local/session paths, clarification, or
-unsupported answers instead. The candidate tests a concrete harness response—source
-routing, search-then-read, bounded state transitions, and tool downsampling—without
-changing the task or verifier.
-
-The saved [Trace Analyst output](../results/trace-analysis.yml) cites the exact
-failed rollout IDs. The [candidate proposal](../results/candidate-proposal.md)
-maps that recurring finding—and separately labeled individual verifier failures—to
-the concrete profile and runtime changes. This distinction avoids implying that
-Trace Analyst prescribed every harness rule.
-
-The ten Harbor tasks also passed their environment controls: all ten NOP runs
-failed and all ten Oracle runs passed under separate no-network verifiers. The
-six development tasks remain publication candidates until a person completes
-Eval Author's privacy, access, task-meaning, and publication reviews.
-
-## Interpretation and limitations
-
-The run supports the tutorial's central claim: trace-derived, explicit harness
-policies can materially improve the same model on the same enterprise tasks.
-It does not establish that the candidate is universal or production-ready.
-The fixture and identities are synthetic, the eval targets six selected failure
-families, and the profile deliberately encodes knowledge of this tool contract.
-Non-fixture payloads in the public starting corpus are redacted and are excluded
-from argument-schema scoring; fixture-backed MCP calls retain their real schemas,
-arguments, and results.
-
-The exact machine-readable record is
-[`results/measured-ab-v2.json`](../results/measured-ab-v2.json).
-The [artifact-chain manifest](../results/artifact-chain.json) pins the inputs,
-analysis, proposal, candidate, and measurement by hash; `make validate` checks the
-chain and requires candidate performance to exceed baseline on both splits.
+The candidate is model guidance, not a security boundary. A production system
+should enforce consequential-action authorization in trusted code. Accept the
+candidate only after it improves both frozen splits without unacceptable
+regressions; do not tune against held-out results.

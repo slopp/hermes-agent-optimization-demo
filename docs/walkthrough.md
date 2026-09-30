@@ -260,9 +260,10 @@ tasks into the measured suite just to reach a round number.
 
 Eval Author marks these trace-derived outputs experimental. Its proof receipt
 and a Codex privacy pass do not equal human task/relevant-experience review or
-the separate exact-content publication review. Complete those human gates before
-exporting or checking task products into a public suite; keep pending drafts in
-`.eval-author/` and stop at the review step if approval is not available.
+the separate exact-content publication review. Human review is required before
+claiming a task is ready. An experimental product can be exported after its
+exact-content publication review while human review is pending, but it must
+retain that unproven status. Do not turn a technical pilot into a readiness claim.
 
 ### 5. Freeze the development and held-out split
 
@@ -354,6 +355,16 @@ Save the hypothesis, report/trace references, files changed, and hashes before
 opening held-out results. Review that the implementation changes only harness
 behavior, for example `profiles/candidate-soul.md` and the arm config in
 `harbor_agents/hermes_flywheel.py`.
+
+In the saved experiment, both reports point to unauthorized sends. The candidate
+therefore changes only `profiles/candidate-soul.md`: requests to draft, write,
+compose, or prepare stay at preparation; a tool's token is not consent; and
+sending requires the user's explicit authorization for the recipient and message.
+The arm adapter loads this file as Hermes' system profile. Both arms keep the
+same tool surface and 60-turn limit. Read and edit the Markdown rules directly
+to test your own hypothesis—there is no hidden configuration transform.
+For production safety, enforce approval in trusted tool code as well as guiding
+the model; this experiment measures guidance alone.
 
 ### 9. Run the paired A/B on development and held-out
 

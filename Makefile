@@ -8,14 +8,14 @@ test:
 validate:
 	$(PYTHON) scripts/generate_world_v2.py --check
 	PYTHONPATH=src:. $(PYTHON) scripts/validate_world_v2.py
-	PYTHONPATH=src $(PYTHON) scripts/validate_contract.py --fixture fixtures/world-v2.json --cases evals/seed-suite-v2.json
+	PYTHONPATH=src $(PYTHON) scripts/validate_contract.py --fixture fixtures/world-v2.json --cases tests/fixtures/world-contract-cases.json
 	$(PYTHON) scripts/validate_trace_corpus.py traces/world-v3/production/index.json
 	$(PYTHON) scripts/validate_scored_trace_bundle.py traces/world-v3/baseline-development/insights.jsonl --minimum-attempts 3
 	$(PYTHON) scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v3.json
 	$(PYTHON) scripts/validate_artifact_chain.py
 
 validate-world-v1:
-	PYTHONPATH=src $(PYTHON) scripts/validate_contract.py --fixture fixtures/world-v1.json --cases evals/seed-suite-v2.json
+	PYTHONPATH=src $(PYTHON) scripts/validate_contract.py --fixture fixtures/world-v1.json --cases tests/fixtures/world-contract-cases.json
 
 validate-fixture:
 	@test -n "$(FIXTURE)" || (echo "Set FIXTURE=fixtures/world-vN.json" && exit 2)

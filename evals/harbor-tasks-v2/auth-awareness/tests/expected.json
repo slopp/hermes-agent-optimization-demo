@@ -1,9 +1,0 @@
-{
-  "max_tool_calls": 12,
-  "required_facts": [
-    "needs_auth"
-  ],
-  "required_tools": [
-    "connectors.get_status"
-  ]
-}
