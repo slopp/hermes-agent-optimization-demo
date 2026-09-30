@@ -132,7 +132,7 @@ curl --fail-with-body -sS https://integrate.api.nvidia.com/v1/chat/completions \
   -o .runs/provider-smoke.json && jq '{model,choices}' .runs/provider-smoke.json
 openshell profile lint -f openshell/provider-nvidia.yaml
 openshell profile import -f openshell/provider-nvidia.yaml
-openshell provider create --name hermes-nvidia --type hermes-nvidia-flex \
+openshell provider create --name hermes-nvidia --type hermes-nvidia-build \
   --credential NVIDIA_API_KEY
 unset NVIDIA_API_KEY
 ```

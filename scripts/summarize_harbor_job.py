@@ -21,6 +21,8 @@ def main() -> int:
     args = parser.parse_args()
     trials = []
     runtime_records: list[dict[str, Any]] = []
+    job_result_path = args.job_dir / "result.json"
+    job_result = _load(job_result_path) if job_result_path.is_file() else {}
     for result_path in sorted(args.job_dir.glob("*/result.json")):
         result = _load(result_path)
         agent_info = result.get("agent_info")
@@ -31,10 +33,18 @@ def main() -> int:
         report_path = result_path.parent / "verifier" / "report.json"
         report = _load(report_path) if report_path.exists() else {}
         artifact_root = result_path.parent / "artifacts" / "logs" / "artifacts"
+        fingerprint_path = artifact_root / "runtime-fingerprint.json"
         trials.append(
             {
                 "task": result.get("task_name"),
                 "trial": result.get("trial_name"),
+                "task_checksum": result.get("task_checksum"),
+                "verifier_environment_mode": result.get("verifier_environment_mode"),
+                "requested_model": result.get("config", {}).get("agent", {}).get("model_name"),
+                "arm": result.get("config", {}).get("agent", {}).get("kwargs", {}).get("arm"),
+                "started_at": result.get("started_at"),
+                "finished_at": result.get("finished_at"),
+                "runtime_fingerprint": _load(fingerprint_path) if fingerprint_path.is_file() else None,
                 "reward": reward,
                 "exception": result.get("exception_info"),
                 "tool_calls": report.get("tool_calls", []),
@@ -48,6 +58,8 @@ def main() -> int:
     summary = {
         "schema": "hermes-harbor-job-summary-v1",
         "job_dir": str(args.job_dir),
+        "job_started_at": job_result.get("started_at"),
+        "job_finished_at": job_result.get("finished_at"),
         "runtime": runtime_records[0] if len(runtime_records) == 1 else runtime_records,
         "trials": trials,
         "counts": {

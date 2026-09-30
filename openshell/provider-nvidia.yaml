@@ -1,6 +1,6 @@
 # Derived from OpenShell's NVIDIA example profile. The executable allowlist is
 # expanded for this image because Hermes makes requests from its Python process.
-id: hermes-nvidia-flex
+id: hermes-nvidia-build
 display_name: NVIDIA Build for Hermes
 description: NVIDIA inference access for the tutorial's pinned Hermes image
 category: inference

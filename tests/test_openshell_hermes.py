@@ -54,7 +54,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             (Path(__file__).parents[1] / "openshell" / "provider-nvidia.yaml").read_text()
         )
         hosts = {endpoint["host"] for endpoint in profile["endpoints"]}
-        self.assertEqual(profile["id"], "hermes-nvidia-flex")
+        self.assertEqual(profile["id"], "hermes-nvidia-build")
         self.assertEqual(
             hosts, {"integrate.api.nvidia.com"}
         )
@@ -97,6 +97,10 @@ class OpenShellRuntimeTest(unittest.TestCase):
                 if path.is_file()
             )
             self.assertNotIn("NVIDIA_API_KEY=", all_text)
+            fingerprint = json.loads((runtime / "artifacts/runtime-fingerprint.json").read_text())
+            self.assertEqual(fingerprint["requested_model"], "nvidia/nemotron-3-ultra-550b-a55b")
+            self.assertEqual(fingerprint["arm"], "candidate")
+            self.assertNotIn("test-token", json.dumps(fingerprint))
             self.assertIn("HERMES_NEMO_RELAY_PLUGINS_TOML", all_text)
             # A CLI --toolsets override becomes an MCP server-name allowlist in
             # Hermes 0.21.3. Keep arm toolsets in config so enterprise-world
@@ -148,6 +152,21 @@ class OpenShellRuntimeTest(unittest.TestCase):
                 (runtime / "hermes" / "config.yaml").read_text()
             )
             self.assertEqual(config["tools"]["tool_search"]["enabled"], "off")
+
+    def test_only_profile_fingerprint_changes_between_arms(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fingerprints = []
+            for arm in ("baseline", "candidate"):
+                agent = OpenShellHermesFlywheel(logs_dir=root / arm / "logs",
+                                               model_name="nvidia/nemotron-3-ultra-550b-a55b", arm=arm)
+                runtime = root / arm / "run"
+                agent._write_runtime(runtime, "Prepare a draft.")
+                fingerprints.append(json.loads((runtime / "artifacts/runtime-fingerprint.json").read_text()))
+            self.assertNotEqual(fingerprints[0].pop("profile_sha256"), fingerprints[1].pop("profile_sha256"))
+            for record in fingerprints:
+                record.pop("arm")
+            self.assertEqual(fingerprints[0], fingerprints[1])
 
 
 if __name__ == "__main__":

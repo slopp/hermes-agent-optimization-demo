@@ -9,6 +9,8 @@ service. The adapter copies only verifier artifacts into the Harbor environment.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 import secrets
 import shlex
@@ -153,8 +155,8 @@ class OpenShellHermesFlywheel(HermesFlywheel):
                 "The tutorial OpenShell profile supports NVIDIA model IDs only; "
                 f"received {self.model_name!r}"
             )
-        # Keep the provider-native model ID intact. NVIDIA's two supported API
-        # hosts use different IDs for the same model (one vs. two path segments).
+        # Keep the provider-native model ID intact rather than stripping or
+        # inferring a provider prefix from it.
         model = self.model_name
 
         mcp_url = mcp_url or f"http://{self.mcp_host}:{DEFAULT_MCP_PORTS[0]}/mcp"
@@ -170,6 +172,29 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         (hermes_home / "SOUL.md").write_text(
             ARM_CONFIG[self.arm]["profile"].read_text(encoding="utf-8"),
             encoding="utf-8",
+        )
+        fingerprint = {
+            "schema": "hermes-runtime-fingerprint-v1",
+            "arm": self.arm,
+            "requested_model": model,
+            "provider": self.openshell_provider,
+            "provider_base_url": self.provider_base_url or "https://integrate.api.nvidia.com/v1",
+            "openshell_image": self.openshell_image,
+            "harness_config_sha256": hashlib.sha256(
+                self._build_config_yaml(model).encode()
+            ).hexdigest(),
+            "profile_sha256": hashlib.sha256((hermes_home / "SOUL.md").read_bytes()).hexdigest(),
+            "policy_sha256": hashlib.sha256(self.openshell_policy.read_bytes()).hexdigest(),
+            "fixture_sha256": hashlib.sha256((ROOT / "fixtures/world-v2.json").read_bytes()).hexdigest(),
+            "mcp_implementation_sha256": {
+                name: hashlib.sha256((ROOT / "src/pa_style_mock_mcp" / name).read_bytes()).hexdigest()
+                for name in ("tools.py", "world.py")
+            },
+        }
+        # Retain only selected hashes/identifiers, never config credentials or
+        # the session bearer token. The host writes this before agent execution.
+        (runtime_dir / "artifacts/runtime-fingerprint.json").write_text(
+            json.dumps(fingerprint, indent=2) + "\n", encoding="utf-8"
         )
         relay_config = f'''version = 1
 
@@ -303,7 +328,7 @@ exit "$hermes_rc"
         self, environment: BaseEnvironment, artifact_dir: Path
     ) -> None:
         await environment.exec("mkdir -p /logs/artifacts/relay", timeout_sec=10)
-        for name in ("final-answer.txt", "tool-calls.jsonl", "hermes-session.jsonl"):
+        for name in ("final-answer.txt", "tool-calls.jsonl", "hermes-session.jsonl", "runtime-fingerprint.json"):
             source = artifact_dir / name
             if source.is_file():
                 await environment.upload_file(source, f"/logs/artifacts/{name}")
@@ -329,6 +354,9 @@ exit "$hermes_rc"
                         instruction,
                         mcp_url=f"http://{self.mcp_host}:{mcp_port}/mcp",
                         mcp_token=token,
+                    )
+                    (artifact_dir / "runtime-fingerprint.json").write_bytes(
+                        (runtime_dir / "artifacts/runtime-fingerprint.json").read_bytes()
                     )
                     try:
                         await self._host_command(

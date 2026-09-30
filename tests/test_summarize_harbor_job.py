@@ -21,6 +21,10 @@ class SummarizeHarborJobTest(unittest.TestCase):
                     {
                         "task_name": "suite/case",
                         "trial_name": "case__trial",
+                        "task_checksum": "proof-checksum",
+                        "verifier_environment_mode": "separate",
+                        "config": {"agent": {"model_name": "example/model",
+                                             "kwargs": {"arm": "baseline"}}},
                         "agent_info": {
                             "name": "hermes-flywheel",
                             "model_info": {"name": "example/model", "provider": "example"},
@@ -46,6 +50,10 @@ class SummarizeHarborJobTest(unittest.TestCase):
             self.assertEqual(summary["counts"]["relay_complete"], 1)
             self.assertEqual(summary["tool_calls"]["mean_per_trial"], 2)
             self.assertEqual(summary["runtime"]["model_info"]["name"], "example/model")
+            self.assertEqual(summary["trials"][0]["task_checksum"], "proof-checksum")
+            self.assertEqual(summary["trials"][0]["verifier_environment_mode"], "separate")
+            self.assertEqual(summary["trials"][0]["requested_model"], "example/model")
+            self.assertEqual(summary["trials"][0]["arm"], "baseline")
 
 
 if __name__ == "__main__":
