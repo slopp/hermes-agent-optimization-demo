@@ -394,6 +394,9 @@ Run model-consuming stages sequentially: do not run Trace Analyst alongside
 Harbor jobs using the same API key. If provider retries exhaust with HTTP 429,
 retain that job as infrastructure-invalid and rerun the full affected arm/split
 under a new job name after quota recovers; do not selectively rerun low rewards.
+Update subsequent job-path arguments to that replacement. Serialization reduces
+competition but does not guarantee provider capacity; if 429s recur, stop and
+check your endpoint's quota or availability before retrying the experiment.
 
 ### 7. Run Trace Analyst on scored baseline development traces
 

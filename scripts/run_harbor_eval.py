@@ -7,9 +7,28 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_job_result(job_dir: Path, expected_trials: int) -> int:
+    """Harbor's successful CLI exit does not establish successful trial execution."""
+    result_path = job_dir / "result.json"
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"Cannot verify the recorded Harbor job: {result_path}: {exc}", file=sys.stderr)
+        return 1
+    stats = result.get("stats", {})
+    if (not result.get("finished_at")
+            or stats.get("n_completed_trials") != expected_trials
+            or stats.get("n_errored_trials") != 0):
+        print(f"Harbor job is incomplete or infrastructure-invalid: {result_path}. "
+              "Retain its artifacts and inspect trial exceptions before continuing.", file=sys.stderr)
+        return 1
+    return 0
 
 
 def main() -> int:
@@ -45,6 +64,8 @@ def main() -> int:
     suite = json.loads(args.suite.read_text(encoding="utf-8"))
     case_kind = "held_out" if args.split == "held-out" else "development"
     case_ids = [case["id"] for case in suite["cases"] if case["case_kind"] == case_kind]
+    if not case_ids:
+        parser.error(f"the selected suite has no {args.split} cases")
     job_name = args.job_name or f"{args.arm}-{args.split}"
     agent = (
         "harbor_agents.openshell_hermes:OpenShellHermesFlywheel"
@@ -96,7 +117,10 @@ def main() -> int:
     env["PYTHONPATH"] = (
         f"{ROOT}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else str(ROOT)
     )
-    return subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+    return_code = subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+    if return_code:
+        return return_code
+    return check_job_result(args.jobs_dir / job_name, len(case_ids) * args.attempts)
 
 
 if __name__ == "__main__":
