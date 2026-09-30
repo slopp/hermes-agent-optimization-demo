@@ -1,7 +1,7 @@
 # Derived from OpenShell's NVIDIA example profile. The executable allowlist is
 # expanded for this image because Hermes makes requests from its Python process.
 id: hermes-nvidia-flex
-display_name: NVIDIA for Hermes (Build and Inference endpoints)
+display_name: NVIDIA Build for Hermes
 description: NVIDIA inference access for the tutorial's pinned Hermes image
 category: inference
 inference_capable: true
@@ -16,11 +16,6 @@ discovery:
   credentials: [api_key]
 endpoints:
   - host: integrate.api.nvidia.com
-    port: 443
-    protocol: rest
-    access: read-write
-    enforcement: enforce
-  - host: inference-api.nvidia.com
     port: 443
     protocol: rest
     access: read-write

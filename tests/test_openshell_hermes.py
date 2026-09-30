@@ -47,7 +47,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
         )
         self.assertTrue(all(endpoint["enforcement"] == "enforce" for endpoint in endpoints))
 
-    def test_nvidia_provider_profile_allows_both_supported_model_hosts(self) -> None:
+    def test_nvidia_provider_profile_allows_only_public_build(self) -> None:
         import yaml
 
         profile = yaml.safe_load(
@@ -56,7 +56,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
         hosts = {endpoint["host"] for endpoint in profile["endpoints"]}
         self.assertEqual(profile["id"], "hermes-nvidia-flex")
         self.assertEqual(
-            hosts, {"integrate.api.nvidia.com", "inference-api.nvidia.com"}
+            hosts, {"integrate.api.nvidia.com"}
         )
 
     def test_runtime_contains_arm_mcp_relay_and_no_api_key(self) -> None:
@@ -66,7 +66,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra",
+                model_name="nvidia/nemotron-3-ultra-550b-a55b",
                 arm="candidate",
             )
             self.assertEqual(agent.version(), "0.21.3")
@@ -108,7 +108,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra",
+                model_name="nvidia/nemotron-3-ultra-550b-a55b",
                 arm="baseline",
                 provider_base_url="https://inference.example.test/v1/",
             )
@@ -124,13 +124,13 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra",
+                model_name="vendor/custom-model",
                 arm="baseline",
             )
             runtime = root / "run"
             agent._write_runtime(runtime, "Find launch evidence.")
             script = (runtime / "run.sh").read_text()
-            self.assertIn("--model nvidia/nvidia/nemotron-3-ultra", script)
+            self.assertIn("--model vendor/custom-model", script)
 
     def test_baseline_eagerly_exposes_mcp_tools(self) -> None:
         import yaml
@@ -139,7 +139,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             root = Path(temp)
             agent = OpenShellHermesFlywheel(
                 logs_dir=root / "logs",
-                model_name="nvidia/nvidia/nemotron-3-ultra",
+                model_name="nvidia/nemotron-3-ultra-550b-a55b",
                 arm="baseline",
             )
             runtime = root / "run"
