@@ -353,18 +353,22 @@ def atof_events_to_insights_traces(
         if prompt_case_ids:
             for candidate in user_prompts:
                 case_id = prompt_case_ids.get(candidate)
+                if case_id is not None:
+                    prompt = candidate
+                    break
                 if case_id is None:
                     # Hermes appends a runtime-context block to the recorded
                     # user message. Match only an exact prompt prefix followed
-                    # by that delimiter so attribution remains deterministic.
+                    # by that delimiter so attribution remains deterministic,
+                    # then preserve only the original user-authored request.
                     for matrix_prompt, matrix_case_id in prompt_case_ids.items():
                         if candidate.startswith(
                             f"{matrix_prompt}\n\nNemoClaw runtime context:"
                         ):
                             case_id = matrix_case_id
+                            prompt = matrix_prompt
                             break
                 if case_id is not None:
-                    prompt = candidate
                     break
         if not end and prompt_case_ids is not None and case_id is None:
             # Session cleanup and interrupted startup can leave empty turn

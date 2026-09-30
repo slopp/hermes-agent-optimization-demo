@@ -55,6 +55,15 @@ def _content(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def _source_prompt(attributes: dict[str, Any]) -> str:
+    """Support both canonical task_text and the ATOF adapter's prompt field."""
+    for key in ("task_text", "prompt"):
+        value = attributes.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str, Any]:
     attributes = trace.get("attributes", {})
     spans = sorted(trace.get("root_spans", []), key=lambda span: span.get("start_time", ""))
@@ -187,7 +196,7 @@ def main() -> int:
                     "logical_case_id": case_id,
                     "collection": label,
                     "behavior_family": family_by_case.get(case_id),
-                    "prompt": trace.get("attributes", {}).get("task_text", ""),
+                    "prompt": _source_prompt(trace.get("attributes", {})),
                 }
             )
     (args.output / "index.json").write_text(

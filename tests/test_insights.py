@@ -245,6 +245,8 @@ class InsightsAdapterTests(unittest.TestCase):
         trace = atof_events_to_insights_traces(events, prompt_case_ids={"Find it": "find"})[0]
 
         self.assertEqual(trace["attributes"]["logical_case_id"], "find")
+        self.assertEqual(trace["attributes"]["prompt"], "Find it")
+        self.assertNotIn("NemoClaw runtime context", trace["attributes"]["prompt"])
 
     def test_keeps_original_matrix_prompt_when_retry_adds_continuation(self) -> None:
         events = [
@@ -261,7 +263,7 @@ class InsightsAdapterTests(unittest.TestCase):
         )[0]
 
         self.assertEqual(trace["attributes"]["logical_case_id"], "find")
-        self.assertTrue(trace["attributes"]["prompt"].startswith("Find it\n\n"))
+        self.assertEqual(trace["attributes"]["prompt"], "Find it")
 
     def test_recognizes_tool_prefix_created_by_walkthrough_server_name(self) -> None:
         events = [

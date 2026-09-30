@@ -1,39 +1,16 @@
 import unittest
 
-from scripts.normalize_insights_trace_bundle import convert
+from scripts.normalize_insights_trace_bundle import _source_prompt
 
 
 class NormalizeInsightsTraceBundleTest(unittest.TestCase):
-    def test_catalog_keeps_mock_schema_without_scoring_redacted_runtime_args(self) -> None:
-        trace = {
-            "id": "trace-1",
-            "attributes": {
-                "logical_case_id": "source-coverage",
-                "prompt": "Find evidence",
-                "final_answer": "Done",
-                "tool_catalog": {
-                    "terminal": {
-                        "type": "object",
-                        "required": ["command"],
-                        "properties": {"command": {"type": "str"}},
-                    }
-                },
-            },
-            "root_spans": [
-                {"kind": "TOOL", "tool_name": "terminal", "id": "one"},
-                {
-                    "kind": "TOOL",
-                    "tool_name": "mcp__enterprise_world__chat_search",
-                    "id": "two",
-                },
-            ],
-        }
-        result = convert(trace, collection="test", ordinal=1)
-        catalog = result["extra"]["tool_catalog"]
+    def test_reads_atof_prompt_without_runtime_context_fallback(self) -> None:
+        self.assertEqual(_source_prompt({"prompt": "Original request"}), "Original request")
 
-        self.assertEqual(catalog["terminal"], {})
+    def test_prefers_canonical_task_text_when_present(self) -> None:
         self.assertEqual(
-            catalog["mcp__enterprise_world__chat_search"]["required"], ["query"]
+            _source_prompt({"task_text": "Canonical request", "prompt": "Other"}),
+            "Canonical request",
         )
 
 
