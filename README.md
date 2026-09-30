@@ -1,9 +1,9 @@
 # Hermes agent harness optimization demo
 
 This repository is a hands-on tutorial for improving an enterprise agent harness
-from observed behavior: start with realistic traces, author Harbor evaluations
-with a coding agent, analyze production and baseline-eval traces with NeMo Trace
-Analyst, implement a candidate harness, and compare it with the baseline.
+from observed behavior: analyze realistic production traces with NeMo Trace
+Analyst, author Harbor evaluations with a coding agent, analyze scored baseline
+runs, implement a candidate harness, and compare it with the baseline.
 
 ```text
 42 production traces → Trace Analyst → Codex + Eval Author → frozen Harbor tasks
