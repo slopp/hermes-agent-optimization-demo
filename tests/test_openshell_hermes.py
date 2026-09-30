@@ -54,6 +54,7 @@ class OpenShellRuntimeTest(unittest.TestCase):
             (Path(__file__).parents[1] / "openshell" / "provider-nvidia.yaml").read_text()
         )
         hosts = {endpoint["host"] for endpoint in profile["endpoints"]}
+        self.assertEqual(profile["id"], "hermes-nvidia-flex")
         self.assertEqual(
             hosts, {"integrate.api.nvidia.com", "inference-api.nvidia.com"}
         )

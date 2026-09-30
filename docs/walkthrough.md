@@ -93,7 +93,7 @@ printf '\n'
 export NVIDIA_API_KEY
 openshell profile lint -f openshell/provider-nvidia.yaml
 openshell profile import -f openshell/provider-nvidia.yaml
-openshell provider create --name hermes-nvidia --type hermes-nvidia \
+openshell provider create --name hermes-nvidia --type hermes-nvidia-flex \
   --credential NVIDIA_API_KEY
 unset NVIDIA_API_KEY
 ```
