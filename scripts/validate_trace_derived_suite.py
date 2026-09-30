@@ -12,7 +12,7 @@ MIN_SOURCE_TRACES = 36
 MAX_SOURCE_TRACES = 48
 
 
-def validate(suite: dict[str, Any]) -> list[str]:
+def validate(suite: dict[str, Any], *, require_review: bool = True) -> list[str]:
     errors: list[str] = []
     if suite.get("suite_version") != "3.0":
         errors.append("suite_version must be 3.0")
@@ -21,7 +21,10 @@ def validate(suite: dict[str, Any]) -> list[str]:
         errors.append("generation.method must record Codex using Eval Author")
     if not generation.get("selection_rationale"):
         errors.append("generation.selection_rationale is required")
-    if generation.get("review_status") != "human_reviewed":
+    review_status = generation.get("review_status")
+    if review_status not in ("human_reviewed", "pending_human_review"):
+        errors.append("generation.review_status must be human_reviewed or pending_human_review")
+    elif require_review and review_status != "human_reviewed":
         errors.append("generation.review_status must record human review")
     if generation.get("split_frozen_before_candidate") is not True:
         errors.append("development/held-out split must be frozen before candidate design")
@@ -94,8 +97,15 @@ def validate(suite: dict[str, Any]) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("suite", type=Path)
+    parser.add_argument(
+        "--allow-unreviewed", action="store_true",
+        help="Validate an experimental draft for technical runs; does not establish readiness.",
+    )
     args = parser.parse_args()
-    errors = validate(json.loads(args.suite.read_text(encoding="utf-8")))
+    errors = validate(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        require_review=not args.allow_unreviewed,
+    )
     if errors:
         print("Trace-derived suite validation failed:")
         for error in errors:
@@ -105,6 +115,8 @@ def main() -> int:
     development = sum(case["case_kind"] == "development" for case in suite["cases"])
     held_out = sum(case["case_kind"] == "held_out" for case in suite["cases"])
     print(f"Eval suite validation passed: {development} development tasks, {held_out} held out")
+    if suite["generation"]["review_status"] != "human_reviewed":
+        print("Experimental draft: human task and Relevant experience review remains pending.")
     return 0
 
 

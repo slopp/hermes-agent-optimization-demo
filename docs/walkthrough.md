@@ -4,12 +4,13 @@ This tutorial starts with an agent and traces from it. The checked-in corpus let
 you begin immediately; regenerating traces is optional. The flywheel is:
 
 ```text
-42 distinct baseline traces ──→ Trace Analyst ──────┐
-                                  production report  │
-                                                    ├→ Codex + Eval Author → Y Harbor tasks
-baseline development runs ──→ Trace Analyst ───────┘                         │
-                               eval report                                      ↓
-                                           candidate ← both reports → repeated A/B
+production traces → Trace Analyst → Codex + Eval Author → frozen Harbor tasks
+                                                              ↓
+                                        baseline development runs + scores
+                                                              ↓
+                                          Trace Analyst → candidate harness
+                                                              ↓
+                                     baseline/candidate dev + held-out A/B
 ```
 
 `X` is the number of distinct production requests (42 in this example). `Y` is
@@ -32,6 +33,26 @@ separate validation phase; they do not substitute for the OpenShell A/B.
 
 ## Before you start
 
+Choose a path: the full experiment follows Steps 1–10; the
+[Trace Analyst-only path](#secondary-path-just-try-trace-analyst) needs only the
+checked-in traces, the CLI, and a model key.
+
+| Step | Purpose and output | Typical time | Skip option |
+| --- | --- | --- | --- |
+| [1. Runtime](#1-set-up-the-runtime-and-freeze-the-baseline) | Provision Docker, OpenShell, Hermes, and Harbor | 20–40 min | Skip for analysis only |
+| [2. Source traces](#2-start-from-the-production-like-traces-x) | Select one complete production corpus | 2 min; regeneration 60–120 min | Use checked-in traces |
+| [3. Discovery](#3-run-trace-analyst-on-production-traces) | Find behaviors with supporting trace references | 5–15 min | Use the saved production report |
+| [4. Eval Author](#4-ask-codex-and-eval-author-to-propose-and-prove-harbor-tasks) | Codex authors tasks and proves verifier controls | 30–60 min plus review | Use the checked-in suite |
+| [5. Split](#5-freeze-the-development-and-held-out-split) | Freeze task membership before designing a candidate | 5–10 min | Use the saved split |
+| [6. Baseline](#6-measure-the-unchanged-baseline-on-development-tasks) | Measure development failures and collect scored traces | 10–20 min | Inspect saved baseline artifacts |
+| [7. Root cause](#7-run-trace-analyst-on-scored-baseline-development-traces) | Analyze scored baseline behavior | 5–15 min | Use the saved development report |
+| [8. Candidate](#8-build-and-freeze-a-candidate-from-both-reports) | Implement and freeze an evidence-based harness change | 15–30 min | Use the checked-in candidate |
+| [9. A/B](#9-run-the-paired-ab-on-development-and-held-out) | Run both arms against both splits | 20–40 min | Inspect saved comparisons |
+| [10. Decision](#10-decide-whether-the-optimization-worked) | Check improvement, regressions, and uncertainty | 5–10 min | Required to interpret results |
+
+Times depend on model latency and image downloads. Using saved artifacts teaches
+the process; reproducing the result requires fresh baseline and candidate runs.
+
 Use a fresh Ubuntu 24.04 Linux host with native Docker, 4+ vCPUs, 16+ GB RAM,
 50+ GB free disk, and a working systemd user session. An 8-vCPU Brev CPU instance
 is a convenient setup. Harbor 0.22.0's isolated verifier requires Linux
@@ -40,9 +61,11 @@ run. Install OpenShell 0.1.2 for the current checked-in policy and use the same
 host for Harbor, OpenShell, Relay artifacts, and the local MCP server.
 
 You also need Git, `curl`, `jq`, `make`, `uv`, Node.js 22.20+ / `npx`, Codex,
-and an NVIDIA inference key. Use a key and endpoint appropriate to your
-environment; the public tutorial uses the NVIDIA Build endpoint. Do not commit
-keys or `.env` files.
+an NVIDIA Build key with access to Nemotron 3 Ultra, and access to the two NeMo
+preview repositories linked below. Test repository access on this host with
+`git ls-remote` before installing either package. If the preview requires GitHub
+authentication, install `gh`, run `gh auth login`, then `gh auth setup-git`.
+Do not commit keys or `.env` files.
 
 ### 1. Set up the runtime and freeze the baseline
 
@@ -52,7 +75,7 @@ preflight; no harness edits yet.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git jq make
+sudo apt-get install -y ca-certificates curl git jq make python3
 if ! command -v docker >/dev/null; then curl -fsSL https://get.docker.com | sudo sh; fi
 sudo usermod -aG docker "$USER"
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -66,12 +89,17 @@ before continuing. Then:
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
 docker info >/dev/null
-make test
-make validate
+
+uv venv .harbor-venv --python 3.12
+uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
+.harbor-venv/bin/harbor --version
+make test PYTHON=.harbor-venv/bin/python
+make validate PYTHON=.harbor-venv/bin/python
 
 curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | \
   OPENSHELL_VERSION=v0.1.2 sh
 openshell --version
+systemctl --user enable --now openshell-gateway.service
 openshell status
 openshell doctor check
 openshell gateway info
@@ -82,10 +110,12 @@ docker pull ghcr.io/nvidia/openshell/supervisor@sha256:d7b5264bb6bc56f4796e6fa36
 docker build -f openshell/Dockerfile -t hermes-flywheel-openshell:0.3 .
 uv venv .mcp-venv --python 3.12
 uv pip install --python .mcp-venv/bin/python -e '.[remote-mcp]'
-uv venv .harbor-venv --python 3.12
-uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
-.harbor-venv/bin/harbor --version
 ```
+
+The Linux installer registers a local gateway and installs its user service.
+If `systemctl --user` cannot connect to the bus, reconnect through a normal SSH
+login with a systemd user session before continuing. See the
+[OpenShell installation guide](https://docs.nvidia.com/openshell/latest/about/installation).
 
 Provide the Build key without putting it in shell history, and let OpenShell
 store it as a credential reference. The sandbox gets no raw key:
@@ -178,13 +208,14 @@ Run it on either the checked-in corpus or your freshly generated input:
 
 ```bash
 insight-agent --config configs/trace-analyst.yaml \
-  --trace.filesystem.path .runs/production-insights-input.jsonl \
-  --output-path results/production-insights.yml
+  --trace.filesystem.path traces/world-v3/production/insights.jsonl \
+  --output-path .runs/production-insights.yml
 ```
 
-For the checked-in corpus, use its companion canonical input at
-`traces/world-v3/production/insights.jsonl`. Read the terminal's **Completed**
-and **Skipped** evidence-stream summary and inspect `results/production-insights.yml`.
+If you regenerated the corpus, substitute `.runs/production-insights-input.jsonl`.
+Read the terminal's **Completed** and **Skipped** evidence-stream summary and
+inspect `.runs/production-insights.yml`. The checked-in report remains at
+`results/production-insights.yml` for comparison.
 The file is YAML, not JSON; each finding should name supporting trace IDs. Verify
 those IDs and examples in the corpus. A skipped stream or no findings is a result
 to investigate, not a successful optimization signal. This demo enables the
@@ -266,6 +297,7 @@ ATOF/ATIF traces. No candidate changes are allowed yet.
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 3 \
+  --harbor .harbor-venv/bin/harbor --concurrency 1 \
   --job-name baseline-development-k3
 .harbor-venv/bin/python scripts/summarize_harbor_job.py \
   .runs/harbor/baseline-development-k3 \
@@ -295,7 +327,7 @@ verifier report; validate the complete `D × K` denominator before analysis:
   .runs/baseline-development-insights.jsonl --minimum-attempts 3
 insight-agent --config configs/trace-analyst.yaml \
   --trace.filesystem.path .runs/baseline-development-insights.jsonl \
-  --output-path results/baseline-development-insights.yml
+  --output-path .runs/baseline-development-insights.yml
 ```
 
 Read the report together with Harbor's per-task verifier reports and the actual
@@ -334,11 +366,14 @@ environment input changed. Run candidate development and both held-out arms now:
 
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
-  --arm candidate --split development --attempts 3 --job-name candidate-development-k3
+  --arm candidate --split development --attempts 3 --job-name candidate-development-k3 \
+  --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
-  --arm baseline --split held-out --attempts 3 --job-name baseline-heldout-k3
+  --arm baseline --split held-out --attempts 3 --job-name baseline-heldout-k3 \
+  --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
-  --arm candidate --split held-out --attempts 3 --job-name candidate-heldout-k3
+  --arm candidate --split held-out --attempts 3 --job-name candidate-heldout-k3 \
+  --harbor .harbor-venv/bin/harbor --concurrency 1
 ```
 
 Use the same `K` and concurrency for both arms. Never iterate against the
@@ -353,8 +388,8 @@ Harbor rewards, verifier details, Relay traces, MCP logs, and the candidate diff
 
 Compare per-task and aggregate success, paired attempt outcomes, answer/source
 coverage, tool-call counts, exceptions, latency/cost if available, and safety
-guardrails such as no unapproved sends. Require improvement on the development
-set and no regression on held-out; show uncertainty at `K=3` and avoid claiming
+guardrails such as no unapproved sends. Require improvement on both the development
+and held-out sets; show uncertainty at `K=3` and avoid claiming
 significance from a tiny pilot. If candidate improves dev but not held-out, say
 so and keep it as a hypothesis rather than declaring victory.
 

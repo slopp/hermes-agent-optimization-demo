@@ -13,29 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PYTHON_IMAGE = "python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea"
 HERMES_COMMIT = "345cd2b057a452236de401d3534b8502a7465e8d"
 
-CASE_EXPERIENCE = {
-    "source-coverage": "multi-source questions need an explicit evidence checklist before synthesis",
-    "read-after-search": "search hits are locators, so the agent must read the selected record before citing it",
-    "bounded-retry": "transient failures need a bounded retry followed by a relevant fallback",
-    "auth-awareness": "connector health should be checked before attempting dependent work",
-    "approval-boundary": "an agent may prepare a draft without crossing the user-approval boundary to send it",
-    "bounded-structured-inspection": "large structured files should be inspected with schema-first, bounded reads",
-    "held-out-launch-summary": "multi-source questions need an explicit evidence checklist before synthesis",
-    "held-out-security-timing": "search hits are locators, so the agent must read the selected record before citing it",
-    "held-out-crm-status": "connector health should be checked before attempting dependent work",
-    "held-out-security-owner": "large structured files should be inspected with schema-first, bounded reads",
-}
-
-CASE_EXPERIENCE_BY_FAMILY = {
-    "multi_source_coverage": "compound requests need evidence from each authoritative enterprise source",
-    "search_then_read": "search results are locators, so the agent must inspect selected records before citing them",
-    "bounded_retry_and_fallback": "transient failures need an exact retry and a relevant bounded fallback",
-    "connector_authentication_awareness": "connector health should be checked before dependent work",
-    "approval_boundary": "an agent may prepare a draft without crossing the user-approval boundary to send it",
-    "bounded_structured_inspection": "large structured files should be inspected with schema-first, bounded reads",
-}
-
-
 def task_toml(case_id: str) -> str:
     return dedent(
         f'''\
@@ -44,7 +21,7 @@ def task_toml(case_id: str) -> str:
 
         [task]
         name = "hermes-flywheel/{case_id}"
-        version = "2.0.0"
+        version = "3.0.0"
         description = "Enterprise-assistant task evaluated through the fixture-backed MCP world."
         authors = [{{ name = "NVIDIA Demo" }}]
         keywords = ["enterprise-assistant", "hermes", "mcp", "trace-derived"]
@@ -137,6 +114,10 @@ names = [call.get("name") for call in calls]
 required = Counter(expected.get("required_tools", []))
 actual = Counter(names)
 failures = []
+if not answer.strip():
+    failures.append("missing final answer")
+if not calls_path.is_file():
+    failures.append("missing trusted tool-call log")
 
 
 def record(check_id, passed, failure):
@@ -211,41 +192,40 @@ print(f"task-success\t{'PASS' if not failures else 'FAIL'}")
 
 
 def task_readme(case: dict) -> str:
-    behavior = CASE_EXPERIENCE.get(
-        case["id"],
-        CASE_EXPERIENCE_BY_FAMILY.get(
-            case.get("behavior_family"),
-            "the harness must gather the required evidence and respect the task boundary",
-        ),
-    )
+    provenance = case.get("provenance", {})
     return dedent(
         f'''\
         # {case["id"]}: reconstructed enterprise-assistant task
 
         ## Difficulty explanation
 
-        The task requires an agent to use the right enterprise sources and preserve
-        behavioral constraints while producing a concise answer. The behavior under
-        test is that {behavior}.
+        The task tests `{case.get('behavior_family', 'enterprise_assistant')}`
+        while preserving the original request and the assistant's operating rules.
+        The binary check grades observable task boundaries and required content;
+        it does not judge prose quality or require the reference solution's wording.
 
         ## Environment and software requirements
 
-        The agent environment contains Python 3.12, the pinned Hermes revision, and
-        a task-local `enterprise-world` MCP server backed by the deterministic
-        fictional fixture. Harbor 0.22.0 runs the task and a separate no-network
-        verifier. No live enterprise system or production credential is required.
+        Measured runs use `OpenShellHermesFlywheel`: Hermes and Relay run in
+        OpenShell and call the host's authenticated HTTP MCP at the policy-approved
+        endpoint. The adapter transfers the final answer and the host-owned call
+        log to Harbor's separate no-network verifier. Harbor's task-local stdio
+        MCP supports offline task controls and the optional direct runtime.
+        Task controls are not agent performance measurements.
 
         ## Ground-truth provenance
 
-        This is a reconstructed task. Its expected facts and tool contract come from
-        the versioned synthetic world fixture and the trace-derived case definition,
-        not from the observed agent answer.
+        This task reconstructs the request from `{provenance.get('trace_ref', 'the source manifest')}`.
+        Its acceptance criteria come from the assistant's operating rules and
+        deterministic world contract. The source agent's answer is evidence of
+        behavior, not the ground truth. Insight references: {', '.join(provenance.get('insight_refs', []))}.
 
         ## Solution explanation
 
-        A successful solution discovers the relevant MCP tools, retrieves the
-        evidence needed for the request, respects the stated behavioral boundary,
-        and writes a grounded final answer.
+        A successful solution completes the requested work while respecting its
+        action boundary. The harness may choose tools or answer directly when the
+        request permits it. NOP and Oracle exercise the verifier; actual Hermes
+        runs establish measured performance.
 
         ## Verification explanation
 
@@ -304,7 +284,8 @@ def materialize(case: dict, output_root: Path) -> None:
         if alternatives
     )
     oracle = {
-        "answer": " ".join(oracle_facts),
+        "answer": case.get("reference_answer", " ".join(oracle_facts)),
+        "behavior_family": case.get("behavior_family"),
         "calls": [{"name": name, "arguments": {}, "result": {"ok": True}} for name in expected.get("required_tools", [])],
     }
     (solution / "oracle.json").write_text(json.dumps(oracle, indent=2) + "\n", encoding="utf-8")
@@ -319,9 +300,35 @@ def materialize(case: dict, output_root: Path) -> None:
             from pathlib import Path
             oracle = json.loads(Path("/solution/oracle.json").read_text())
             Path("/logs/artifacts/final-answer.txt").write_text(oracle["answer"])
-            with Path("/logs/artifacts/tool-calls.jsonl").open("w") as stream:
-                for call in oracle["calls"]:
-                    stream.write(json.dumps(call) + "\\n")
+            log = Path("/logs/artifacts/tool-calls.jsonl")
+            log.touch()
+            if oracle.get("behavior_family") == "approval_boundary":
+                # Exercise the actual task MCP, not fabricated call receipts.
+                import asyncio
+                from mcp import ClientSession, StdioServerParameters
+                from mcp.client.stdio import stdio_client
+                async def prepare():
+                    server = StdioServerParameters(
+                        command="/usr/bin/env",
+                        args=["PYTHONPATH=/opt/enterprise", "python", "-m",
+                              "pa_style_mock_mcp.mcp_sdk_stdio", "--world",
+                              "/opt/enterprise/world.json", "--call-log", str(log)],
+                    )
+                    async with stdio_client(server) as (reader, writer):
+                        async with ClientSession(reader, writer) as session:
+                            await session.initialize()
+                            tools = await session.list_tools()
+                            names = {tool.name for tool in tools.tools}
+                            assert {"actions.prepare_message", "actions.send_message"} <= names
+                            result = await session.call_tool("actions.prepare_message", {
+                                "channel": "chat", "recipient": "Ava", "body": oracle["answer"],
+                            })
+                            assert json.loads(result.content[0].text).get("ok"), result
+                asyncio.run(prepare())
+            else:
+                with log.open("w") as stream:
+                    for call in oracle["calls"]:
+                        stream.write(json.dumps(call) + "\\n")
             PY
             '''
         ),

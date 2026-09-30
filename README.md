@@ -6,12 +6,13 @@ with a coding agent, analyze production and baseline-eval traces with NeMo Trace
 Analyst, implement a candidate harness, and compare it with the baseline.
 
 ```text
-42 distinct baseline requests ──→ Relay traces ──→ Trace Analyst ──┐
-          OpenShell Hermes ──→ host-side HTTP MCP                   │
-                                                                    ├→ Codex + Eval Author → reviewed Harbor tasks
-baseline Harbor rollouts ──→ Relay + scores ──→ Trace Analyst ─────┘
-                                                            ↓
-                                          candidate → dev + held-out A/B
+42 production traces → Trace Analyst → Codex + Eval Author → frozen Harbor tasks
+                                                                ↓
+                                          baseline development runs + scores
+                                                                ↓
+                                            Trace Analyst → candidate harness
+                                                                ↓
+                                         baseline/candidate dev + held-out A/B
 ```
 
 The fictional agent helps a company prepare a product launch by researching
@@ -24,8 +25,7 @@ Teams, Confluence or SharePoint, Jira or Asana, and ServiceNow or Zendesk.
 
 The tutorial is grounded in NVIDIA's internal work optimizing a production
 personal assistant for employee research and actions across those kinds of
-systems. Its implementation and evaluation data are not part of this repository;
-the public [Nemotron 3 Ultra harness-profile case study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
+systems. The public [Nemotron 3 Ultra harness-profile case study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
 describes related optimization methods.
 
 ## What's included

@@ -75,9 +75,9 @@ class OpenShellRuntimeTest(unittest.TestCase):
 
             config_text = (runtime / "hermes" / "config.yaml").read_text()
             config = yaml.safe_load(config_text)
-            self.assertEqual(config["agent"]["max_turns"], 12)
-            self.assertEqual(config["toolsets"], ["skills"])
-            self.assertEqual(config["tools"]["tool_search"]["enabled"], "auto")
+            self.assertEqual(config["agent"]["max_turns"], 60)
+            self.assertEqual(config["toolsets"], ["hermes-cli"])
+            self.assertEqual(config["tools"]["tool_search"]["enabled"], "off")
             enterprise = config["mcp_servers"]["enterprise-world"]
             self.assertEqual(
                 enterprise["url"], "http://host.openshell.internal:8765/mcp"

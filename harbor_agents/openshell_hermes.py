@@ -225,6 +225,9 @@ exit "$hermes_rc"
         self, artifact_dir: Path, token: str, port: int
     ) -> tuple[asyncio.subprocess.Process, IO[bytes]]:
         """Start one authenticated host-side MCP service for this trial."""
+        # An empty host-owned log is evidence of zero calls. Never accept an
+        # agent-written replacement or infer zero mutations from a missing log.
+        (artifact_dir / "tool-calls.jsonl").touch()
         server_log = (artifact_dir / "mcp-server.log").open("wb")
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT / "src")

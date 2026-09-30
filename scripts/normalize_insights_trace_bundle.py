@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
+from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -17,23 +18,31 @@ from pa_style_mock_mcp import EnterpriseWorld, ToolRegistry
 MCP_PREFIXES = ("mcp__pa_style_enterprise__", "mcp__enterprise_world__")
 
 
+@lru_cache(maxsize=1)
+def _fixture_schemas() -> dict[str, dict[str, Any]]:
+    registry = ToolRegistry(
+        EnterpriseWorld.from_path(ROOT / "fixtures" / "world-v2.json"), catalog="extended"
+    )
+    return {schema["name"]: schema["inputSchema"] for schema in registry.schemas()}
+
+
+def _is_fixture_tool(name: str) -> bool:
+    return name.startswith(MCP_PREFIXES) or name in _fixture_schemas()
+
+
 def _tool_catalog(attributes: dict[str, Any], spans: list[dict[str, Any]]) -> dict[str, Any]:
     """Preserve captured schemas and fill dynamic MCP catalog gaps explicitly."""
     catalog = dict(attributes.get("tool_catalog", {}))
-    registry = ToolRegistry(
-        EnterpriseWorld.from_path(ROOT / "fixtures" / "world-v2.json"),
-        catalog="extended",
-    )
-    fixture_schemas: dict[str, dict[str, Any]] = {}
-    for schema in registry.schemas():
-        suffix = schema["name"].replace(".", "_")
+    fixture_schemas = dict(_fixture_schemas())
+    for name, schema in _fixture_schemas().items():
+        suffix = name.replace(".", "_")
         for prefix in MCP_PREFIXES:
-            fixture_schemas[f"{prefix}{suffix}"] = schema["inputSchema"]
+            fixture_schemas[f"{prefix}{suffix}"] = schema
     for span in spans:
         name = span.get("tool_name")
         if not isinstance(name, str):
             continue
-        if not name.startswith(MCP_PREFIXES):
+        if not _is_fixture_tool(name):
             # The public corpus keeps the call name as trajectory evidence but
             # redacts its payload. Do not retain a schema that would make the
             # explicit redaction look like a malformed original call.
@@ -67,7 +76,7 @@ def _source_prompt(attributes: dict[str, Any]) -> str:
 def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str, Any]:
     attributes = trace.get("attributes", {})
     spans = sorted(trace.get("root_spans", []), key=lambda span: span.get("start_time", ""))
-    prompt = attributes.get("prompt", "")
+    prompt = _source_prompt(attributes)
     steps: list[dict[str, Any]] = [
         {
             "step_id": 1,
@@ -80,7 +89,7 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
         if span.get("kind") != "TOOL" or not isinstance(span.get("tool_name"), str):
             continue
         tool_name = span["tool_name"]
-        fixture_tool = tool_name.startswith(MCP_PREFIXES)
+        fixture_tool = _is_fixture_tool(tool_name)
         tool_call = span.get("tool_call") if isinstance(span.get("tool_call"), dict) else {}
         call_id = str(tool_call.get("call_id") or span.get("id") or len(steps))
         arguments = span.get("input", {})
@@ -136,13 +145,14 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
             "observed_verdict": attributes.get("observed_verdict"),
             "metrics": attributes.get("metrics", {}),
             "trajectory_contract": attributes.get("trajectory_contract", {}),
+            "evaluator_results": trace.get("evaluator_results", {}),
             # Preserve the catalog Relay captured so a later Insights pass can
             # distinguish a real unknown tool from missing instrumentation.
             "tool_catalog": _tool_catalog(attributes, spans),
             "collection": collection,
             "collection_ordinal": ordinal,
             "normalization": {
-                "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+                "source_format": "NeMo canonical trace JSONL derived from Relay",
                 "source_trace_id": trace_id,
                 "losses": [
                     "Span nesting was flattened into sequential ATIF steps.",
@@ -173,6 +183,7 @@ def main() -> int:
         if scenario.get("behavior_family")
     }
     index = []
+    public_traces = []
     ordinal = 0
     for source in args.source:
         label, separator, raw_path = source.partition("=")
@@ -186,6 +197,12 @@ def main() -> int:
             ordinal += 1
             filename = f"trace-{ordinal:03d}--{label}.atif.json"
             atif = convert(trace, collection=label, ordinal=ordinal)
+            from pa_style_mock_mcp.insights import atif_to_insights_trace
+            public_trace = atif_to_insights_trace(
+                atif, logical_case_id=case_id,
+                evaluator_results=trace.get("evaluator_results", {}),
+            )
+            public_traces.append(public_trace)
             (args.output / filename).write_text(
                 json.dumps(atif, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
             )
@@ -202,6 +219,10 @@ def main() -> int:
     (args.output / "index.json").write_text(
         json.dumps({"schema": "enterprise-trace-corpus-v2", "traces": index}, indent=2)
         + "\n",
+        encoding="utf-8",
+    )
+    (args.output / "insights.jsonl").write_text(
+        "".join(json.dumps(trace, separators=(",", ":")) + "\n" for trace in public_traces),
         encoding="utf-8",
     )
     print(json.dumps({"output": str(args.output), "traces": len(index)}))

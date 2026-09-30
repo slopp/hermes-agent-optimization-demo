@@ -3,7 +3,7 @@ trace:
   filesystem:
     path: traces/world-v3/production/insights.jsonl
 output_path: .runs/trace-analyst-output.yml
-model: openai/nvidia/nvidia/nemotron-3-ultra
+model: openai/nvidia/nemotron-3-ultra
 api_base: https://integrate.api.nvidia.com/v1
 max_tokens: 16384
 evidence_streams:

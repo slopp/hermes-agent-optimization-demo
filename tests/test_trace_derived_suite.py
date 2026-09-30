@@ -55,6 +55,17 @@ class TraceDerivedSuiteTest(unittest.TestCase):
         suite["generation"]["source_trace_count"] = 12
         self.assertTrue(any("source_trace_count" in error for error in validate(suite)))
 
+    def test_draft_runs_do_not_establish_human_review(self) -> None:
+        suite = self.suite()
+        suite["generation"]["review_status"] = "pending_human_review"
+        self.assertTrue(any("human review" in error for error in validate(suite)))
+        self.assertEqual(validate(suite, require_review=False), [])
+
+    def test_unknown_review_status_is_never_accepted(self) -> None:
+        suite = self.suite()
+        suite["generation"]["review_status"] = "reviewed_by_model"
+        self.assertTrue(validate(suite, require_review=False))
+
     def test_held_out_case_must_reference_development_behavior(self) -> None:
         suite = self.suite()
         suite["cases"][1]["provenance"]["held_out_from_case_ids"] = ["missing"]

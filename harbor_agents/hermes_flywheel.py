@@ -31,9 +31,9 @@ ARM_CONFIG = {
     },
     "candidate": {
         "profile": ROOT / "profiles" / "candidate-soul.md",
-        "max_turns": 12,
-        "toolsets": ["skills"],
-        "tool_search": "auto",
+        "max_turns": 60,
+        "toolsets": ["hermes-cli"],
+        "tool_search": "off",
     },
 }
 

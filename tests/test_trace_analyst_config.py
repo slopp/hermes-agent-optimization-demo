@@ -12,7 +12,7 @@ class TraceAnalystConfigTest(unittest.TestCase):
         ethos_path = root / ethos["ethos_path"]
 
         self.assertTrue(ethos_path.is_file())
-        self.assertIn("permission to send", ethos_path.read_text())
+        self.assertIn("authorization to send", ethos_path.read_text())
         self.assertTrue(config["evidence_streams"]["anomaly_and_patterns"])
         self.assertTrue(config["evidence_streams"]["tool_issues"])
 

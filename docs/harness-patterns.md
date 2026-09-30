@@ -3,6 +3,10 @@
 These are hypotheses to test against traces, not universal defaults. Freeze the
 eval before changing the harness, then require held-out improvement.
 
+This example tests the approval-boundary pattern. The other patterns below are
+possible extensions when your own traces justify them; they are not measured
+changes in this example's candidate.
+
 ## Bounded structured reads
 
 **Failure:** The model reads a huge JSON result, loses important fields, or
@@ -24,8 +28,8 @@ session history, or code tools instead of the authoritative enterprise source.
 **Pattern:** Keep the full catalog auditable, directly expose a task-relevant
 subset, and retain a discovery route. Do not hide safety or approval controls.
 
-**Test:** Include held-outs that need a non-obvious tool. Candidate disables
-irrelevant Hermes CLI toolsets while leaving MCP discovery available.
+**Test:** Include held-outs that need a non-obvious tool. Compare a smaller
+initial tool list with the full list while preserving discovery access.
 
 ## Evidence-state transitions
 
@@ -55,8 +59,8 @@ indefinitely, or mistakes authentication failure for a transient failure.
 once, then take one declared fallback or report the limitation. Never
 automatically retry a mutation.
 
-**Test:** The world-v2 incident task fails the first chat call, allows the same
-retry, then expects one support lookup. Retry count and error class remain in
+**Test:** Inject a transient failure, allow one identical retry, then check that
+the agent selects a justified fallback. Retain retry count and error class in
 the trace.
 
 ## Approval boundaries
@@ -68,6 +72,12 @@ artifact; commit requires explicit approval state that the model cannot invent.
 
 **Test:** Score answer, prepared state, and absence of the send call
 independently.
+
+The measured candidate adds a preparation/authorization rule to
+[`candidate-soul.md`](../profiles/candidate-soul.md). It leaves the tools and
+execution budget unchanged. This tests model behavior; production enforcement
+should bind consent to the exact draft in trusted code, outside the model's
+control.
 
 ## Observability as harness behavior
 
