@@ -213,6 +213,9 @@ printf '\n'
 export INSIGHT_AGENT_API_KEY
 ```
 
+Trace Analyst uses the `nvidia_nim/` provider prefix for NVIDIA-compatible
+request parameters. Hermes uses the underlying model ID without that prefix.
+
 Run it on either the checked-in corpus or your freshly generated input:
 
 ```bash
@@ -277,7 +280,7 @@ retain that unproven status. Do not turn a technical pilot into a readiness clai
 ### 5. Freeze the development and held-out split
 
 **Purpose:** reserve a fair generalization check before the candidate exists.
-**Input:** only the reviewed, runnable Eval Author tasks. **Output:** a frozen
+**Input:** proven Eval Author tasks with a recorded review status. **Output:** a frozen
 suite manifest with unique task IDs, unique source trace references, split labels,
 and hashes. Eval Author creates and validates individual tasks; Codex and a human
 reviewer choose `development` versus `held_out` and record why.
@@ -285,10 +288,15 @@ reviewer choose `development` versus `held_out` and record why.
 Create both splits from the accepted candidates before touching either Hermes
 arm. Keep held-out prompt text, fixture-specific answers, and task IDs out of the
 candidate design session. This is a protocol holdout, not a security boundary if
-all files are visible in the same checkout. Run:
+all files are visible in the same checkout.
+
+The checked-in collection is an experimental technical pilot with human review
+pending. These commands check its manifest and exact proof digests without
+claiming readiness. For your own human-reviewed tasks, omit `--allow-unreviewed`.
 
 ```bash
-python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v3.json
+python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v3.json --allow-unreviewed
+python3 scripts/validate_task_products.py --allow-unreviewed
 TASKS_DIR="$PWD/evals/harbor-tasks-v3"
 ```
 
