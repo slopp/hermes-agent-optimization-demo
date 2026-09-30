@@ -26,6 +26,56 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(f"artifact-chain validation failed: {message}")
 
 
+def validate_run(root: Path, summary: dict[str, Any], case_ids: set[str], arm: str,
+                 attempts: int) -> tuple[dict[str, int], set[str]]:
+    require(bool(summary.get("job_finished_at")), "measured job is not terminal")
+    require(summary.get("runtime", {}).get("name") == "openshell-hermes-flywheel",
+            "measured agent runtime is not OpenShell Hermes")
+    trials = summary.get("trials", [])
+    require(len(trials) == len(case_ids) * attempts, "retained measured trial denominator differs")
+    counts: Counter[str] = Counter()
+    passed: Counter[str] = Counter()
+    names: set[str] = set()
+    common_fingerprints: set[str] = set()
+    for trial in trials:
+        task_id = str(trial.get("task", "")).rsplit("/", 1)[-1]
+        name = trial.get("trial")
+        require(task_id in case_ids and isinstance(name, str) and name not in names,
+                "measured task/trial identity is missing, unexpected, or duplicated")
+        names.add(name)
+        counts[task_id] += 1
+        reward = trial.get("reward")
+        require(reward in (0, 1) and not trial.get("exception"), "invalid reward or runtime exception")
+        passed[task_id] += int(reward)
+        require(trial.get("arm") == arm, "measured arm differs from comparison")
+        require(trial.get("verifier_environment_mode") == "separate", "measured verifier was not separate")
+        require(trial.get("relay_atof") is True and trial.get("relay_atif") is True,
+                "measured trial lacks complete Relay capture")
+        proof = json.loads((root / "evals/task-proofs" / task_id / "result.json").read_text())
+        require(trial.get("task_checksum") == proof["technical_validation"]["task_checksum"],
+                f"{task_id}: measured Harbor checksum differs from the proven task")
+        fingerprint = trial.get("runtime_fingerprint") or {}
+        require(fingerprint.get("schema") == "hermes-runtime-fingerprint-v1", "missing runtime fingerprint")
+        require(fingerprint.get("arm") == arm, "runtime fingerprint arm mismatch")
+        require(bool(trial.get("requested_model"))
+                and fingerprint.get("requested_model") == trial["requested_model"], "model identity mismatch")
+        for field, relative in (("profile_sha256", f"profiles/{arm}-soul.md"),
+                                ("policy_sha256", "openshell/policy.yaml"),
+                                ("fixture_sha256", "fixtures/world-v2.json")):
+            require(fingerprint.get(field) == digest(root / relative), f"runtime {field} drift")
+        expected_mcp = {name: digest(root / "src/pa_style_mock_mcp" / name)
+                        for name in ("tools.py", "world.py")}
+        require(fingerprint.get("mcp_implementation_sha256") == expected_mcp,
+                "measured host MCP implementation drift")
+        common_fingerprints.add(json.dumps({key: value for key, value in fingerprint.items()
+                                           if key not in ("arm", "profile_sha256")}, sort_keys=True))
+    require(set(counts) == case_ids and all(value == attempts for value in counts.values()),
+            "measured task repetition counts differ")
+    require(summary.get("counts", {}).get("passed") == sum(passed.values()),
+            "run summary pass count differs from individual Harbor rewards")
+    return dict(passed), common_fingerprints
+
+
 def validate(root: Path, *, require_review: bool = True) -> None:
     chain_path = root / "results" / "artifact-chain.json"
     chain = json.loads(chain_path.read_text(encoding="utf-8"))
@@ -59,6 +109,8 @@ def validate(root: Path, *, require_review: bool = True) -> None:
         "production_corpus", "production_insights", "eval_suite",
         "baseline_development_traces", "baseline_development_insights",
         "candidate_proposal", "candidate_profile", "measured_ab",
+        "baseline_development_run", "candidate_development_run",
+        "baseline_held_out_run", "candidate_held_out_run",
     }
     require(required_stages <= stage_ids, f"missing chain stages: {sorted(required_stages - stage_ids)}")
 
@@ -131,6 +183,7 @@ def validate(root: Path, *, require_review: bool = True) -> None:
     require(measured.get("schema") == "hermes-harbor-ab-comparison-v3", "invalid measured A/B schema")
     attempts = measured.get("attempts_per_task_per_arm")
     require(isinstance(attempts, int) and attempts >= 3, "A/B requires at least three attempts per task and arm")
+    fingerprints: set[str] = set()
     for split, cases_on_split in (("development", dev_cases), ("held_out", held_cases)):
         record = measured.get(split, {})
         require(record.get("regressed_tasks") == [], f"{split} has per-task regressions or lacks a regression check")
@@ -138,10 +191,19 @@ def validate(root: Path, *, require_review: bool = True) -> None:
         require(record.get("attempts_per_task_per_arm") == attempts, f"{split} attempt count differs")
         for arm in ("baseline", "candidate"):
             summary = record.get(arm, {})
+            run = json.loads(stage_paths[f"{arm}_{split}_run"].read_text())
+            trial_passes, run_fingerprints = validate_run(
+                root, run, {case["id"] for case in cases_on_split}, arm, attempts
+            )
+            fingerprints.update(run_fingerprints)
+            require(summary.get("passed") == sum(trial_passes.values()), "A/B aggregate differs from Harbor rewards")
+            require(all(summary.get("per_task", {}).get(task_id, {}).get("passed") == passed
+                        for task_id, passed in trial_passes.items()), "A/B per-task score differs from Harbor rewards")
             require(summary.get("trials") == len(cases_on_split) * attempts, f"{split}/{arm} trial denominator is incomplete")
             require(summary.get("exceptions") == 0, f"{split}/{arm} contains infrastructure exceptions")
             require(set(summary.get("per_task", {})) == {case["id"] for case in cases_on_split},
                     f"{split}/{arm} per-task results differ from the suite")
+    require(len(fingerprints) == 1, "model/provider/config/world/policy differs across measured arms or trials")
     require(measured["development"]["candidate_improved"], "candidate must improve development pass rate")
     require(measured["held_out"]["candidate_improved"], "candidate must improve held-out pass rate")
     require(measured.get("acceptance", {}).get("both_splits_improve") is True, "A/B acceptance must record both-split improvement")

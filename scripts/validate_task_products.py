@@ -37,14 +37,18 @@ def task_digest(root: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
-def validate(root: Path, *, require_review: bool = True) -> list[str]:
-    suite = json.loads((root / "evals/flywheel-eval-set-v3.json").read_text())
+def validate(root: Path, *, require_review: bool = True, suite_path: Path | None = None,
+             tasks_dir: Path | None = None, proofs_dir: Path | None = None) -> list[str]:
+    suite = json.loads((suite_path or root / "evals/flywheel-eval-set-v3.json").read_text())
     errors = []
     for case in suite["cases"]:
         task_id = case["id"]
-        task = root / case["provenance"]["harbor_task_ref"]
-        receipt = json.loads((root / "evals/task-proofs" / task_id / "result.json").read_text())
-        reproduction = json.loads((root / "evals/task-proofs" / task_id / "reproducibility.json").read_text())
+        task = (tasks_dir / task_id) if tasks_dir else root / case["provenance"]["harbor_task_ref"]
+        if task.resolve() != (root / case["provenance"]["harbor_task_ref"]).resolve():
+            errors.append(f"{task_id}: selected task differs from manifest reference")
+        proof_dir = (proofs_dir or root / "evals/task-proofs") / task_id
+        receipt = json.loads((proof_dir / "result.json").read_text())
+        reproduction = json.loads((proof_dir / "reproducibility.json").read_text())
         actual_hash = task_digest(task)
         proof = receipt["technical_validation"]
         if any(record.get("task_tree_sha256") != actual_hash for record in (proof, reproduction, receipt["reproducibility"])):
@@ -78,8 +82,12 @@ def validate(root: Path, *, require_review: bool = True) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-unreviewed", action="store_true")
+    parser.add_argument("--suite", type=Path)
+    parser.add_argument("--tasks-dir", type=Path)
+    parser.add_argument("--proofs-dir", type=Path)
     args = parser.parse_args()
-    errors = validate(ROOT, require_review=not args.allow_unreviewed)
+    errors = validate(ROOT, require_review=not args.allow_unreviewed, suite_path=args.suite,
+                      tasks_dir=args.tasks_dir, proofs_dir=args.proofs_dir)
     if errors:
         raise SystemExit("\n".join(errors))
     print("Published task hashes and technical proof receipts match.")

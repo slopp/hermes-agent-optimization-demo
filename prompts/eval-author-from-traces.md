@@ -5,6 +5,10 @@ Use the skills installed from `NVIDIA-NeMo/labs-eval-author`. Begin with its
 Use Codex as the coding agent; do not treat Eval Author as a standalone
 automatic trace-to-eval CLI.
 
+Use the corpus and report paths supplied in the current authoring request.
+The paths below are defaults for the saved example only; do not substitute a
+saved report for a fresh analysis or mix source corpora.
+
 ## Evidence
 
 - Production Trace Analyst report: `results/production-insights.yml`

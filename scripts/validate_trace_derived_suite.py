@@ -70,7 +70,9 @@ def validate(suite: dict[str, Any], *, require_review: bool = True) -> list[str]
             errors.append(f"case {case_id} needs human-reviewed relevant experience")
         if not isinstance(case.get("behavior_family"), str) or not case["behavior_family"]:
             errors.append(f"case {case_id} needs its reviewed behavior family")
-        if provenance.get("harbor_task_ref") != f"evals/harbor-tasks-v3/{case_id}":
+        task_ref = provenance.get("harbor_task_ref")
+        task_path = Path(task_ref) if isinstance(task_ref, str) else None
+        if not task_path or task_path.is_absolute() or ".." in task_path.parts or task_path.name != case_id:
             errors.append(f"case {case_id} needs its Harbor task reference")
         case_kind = case.get("case_kind")
         if case_kind == "development":

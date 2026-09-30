@@ -74,6 +74,27 @@ class TaskProductsTest(unittest.TestCase):
             self.assertTrue(any("host MCP tools.py differs" in error
                                 for error in validate(root, require_review=False)))
 
+    def test_custom_collection_and_manifest_must_agree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            task = self.make_product(root)
+            collection = root / ".runs/authored/tasks"
+            collection.mkdir(parents=True)
+            task.rename(collection / "demo-task")
+            proofs = root / ".runs/authored/proofs"
+            root.joinpath("evals/task-proofs").rename(proofs)
+            suite = json.loads(root.joinpath("evals/flywheel-eval-set-v3.json").read_text())
+            suite["cases"][0]["provenance"]["harbor_task_ref"] = ".runs/authored/tasks/demo-task"
+            manifest = root / ".runs/authored/suite.json"
+            manifest.write_text(json.dumps(suite))
+            self.assertEqual(validate(root, require_review=False, suite_path=manifest,
+                                      tasks_dir=collection, proofs_dir=proofs), [])
+            suite["cases"][0]["provenance"]["harbor_task_ref"] = "some-other-collection/demo-task"
+            manifest.write_text(json.dumps(suite))
+            self.assertTrue(any("selected task differs" in error for error in
+                                validate(root, require_review=False, suite_path=manifest,
+                                         tasks_dir=collection, proofs_dir=proofs)))
+
 
 if __name__ == "__main__":
     unittest.main()

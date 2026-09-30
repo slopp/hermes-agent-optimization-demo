@@ -156,9 +156,10 @@ The checked-in `traces/world-v3/production/` corpus is the reproducible default.
 Inspect its size and diversity:
 
 ```bash
-python3 scripts/validate_trace_corpus.py traces/world-v3/production/index.json
+TRACE_CORPUS="$PWD/traces/world-v3/production"
+python3 scripts/validate_trace_corpus.py "$TRACE_CORPUS/index.json"
 jq '{trace_count: (.traces | length), families: ([.traces[].behavior_family] | unique)}' \
-  traces/world-v3/production/index.json
+  "$TRACE_CORPUS/index.json"
 ```
 
 To create fresh traces instead, run the unchanged baseline against the same
@@ -178,6 +179,7 @@ Hermes uses it from a short-lived OpenShell sandbox under the allowlist policy:
   --matrix experiments/production-trace-matrix-v3.json \
   --output .runs/production-corpus
 python3 scripts/validate_trace_corpus.py .runs/production-corpus/index.json
+TRACE_CORPUS="$PWD/.runs/production-corpus"
 ```
 
 Do not increase trace count by repeating the same requests. Fix infrastructure
@@ -219,12 +221,15 @@ request parameters. Hermes uses the underlying model ID without that prefix.
 Run it on either the checked-in corpus or your freshly generated input:
 
 ```bash
+PRODUCTION_INSIGHTS="$PWD/.runs/production-insights.yml"
 insight-agent --config configs/trace-analyst.yaml \
-  --trace.filesystem.path traces/world-v3/production/insights.jsonl \
-  --output-path .runs/production-insights.yml
+  --trace.filesystem.path "$TRACE_CORPUS/insights.jsonl" \
+  --output-path "$PRODUCTION_INSIGHTS"
 ```
 
-If you regenerated the corpus, substitute `.runs/production-insights-input.jsonl`.
+If you skip this analysis, set
+`PRODUCTION_INSIGHTS="$PWD/results/production-insights.yml"` and retain the
+checked-in corpus; a saved report does not describe newly generated traces.
 Read the terminal's **Completed** and **Skipped** evidence-stream summary and
 inspect `.runs/production-insights.yml`. The checked-in report remains at
 `results/production-insights.yml` for comparison.
@@ -265,6 +270,14 @@ artifacts. Eval Author's NOP/Oracle proofs validate task behavior; they do not
 measure Hermes. The candidate Harbor trials in later steps use the same real
 Streamable HTTP MCP service hosted outside OpenShell.
 
+Give Codex your actual `TRACE_CORPUS` and `PRODUCTION_INSIGHTS` paths, overriding
+the prompt template's saved-example paths. Print these and paste them into the
+authoring request:
+
+```bash
+printf 'Corpus: %s/index.json\nProduction Insights: %s\n' "$TRACE_CORPUS" "$PRODUCTION_INSIGHTS"
+```
+
 Review each proposed task and the proposed count `Y`. Tasks must have a
 trace-backed request, objective expectations, valid ground truth, and no
 unresolved privacy, environment, or tool-access decisions. Do not put speculative
@@ -295,9 +308,12 @@ pending. These commands check its manifest and exact proof digests without
 claiming readiness. For your own human-reviewed tasks, omit `--allow-unreviewed`.
 
 ```bash
-python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v3.json --allow-unreviewed
-python3 scripts/validate_task_products.py --allow-unreviewed
+SUITE="$PWD/evals/flywheel-eval-set-v3.json"
 TASKS_DIR="$PWD/evals/harbor-tasks-v3"
+PROOFS_DIR="$PWD/evals/task-proofs"
+python3 scripts/validate_trace_derived_suite.py "$SUITE" --allow-unreviewed
+python3 scripts/validate_task_products.py --suite "$SUITE" \
+  --tasks-dir "$TASKS_DIR" --proofs-dir "$PROOFS_DIR" --allow-unreviewed
 ```
 
 If a proposed task fails proof, revise or reject it before freezing the split.
@@ -306,8 +322,14 @@ paths, proof state, reviewer, split, and artifact digests in the manifest.
 
 The command above selects the checked-in task trees. If you authored new tasks,
 have Codex assemble the reviewed exports into a collection containing one task
-directory per manifest case, and set `TASKS_DIR` to that collection. Use the
-exact proven/exported tasks in all runs; rebuilding task files after proof can
+directory and one proof-receipt directory per manifest case, with the matching
+suite manifest. Set all three variables to those outputs, for example
+`SUITE="$PWD/.runs/authored-eval/suite.json"`,
+`TASKS_DIR="$PWD/.runs/authored-eval/tasks"`, and
+`PROOFS_DIR="$PWD/.runs/authored-eval/proofs"`, then rerun both validators.
+Each manifest `harbor_task_ref` must point to its actual task directory relative
+to this repo. Keep every authored case ID and split—not the example's four IDs.
+Use the exact proven/exported tasks in all runs; rebuilding task files after proof can
 invalidate their digests. For an explicitly unreviewed technical pilot, the suite
 validator supports `--allow-unreviewed`; this does not mark the tasks ready or
 replace the human review step.
@@ -322,6 +344,7 @@ ATOF/ATIF traces. No candidate changes are allowed yet.
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 3 \
+  --suite "$SUITE" \
   --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1 \
   --job-name baseline-development-k3
@@ -333,6 +356,10 @@ ATOF/ATIF traces. No candidate changes are allowed yet.
 Set `--attempts` to the same `K ≥ 3` for every task. Inspect exceptions and
 missing Relay exports; infrastructure failures are not agent failures. Keep the
 entire `Y_dev × K` set rather than selecting only failures.
+Run model-consuming stages sequentially: do not run Trace Analyst alongside
+Harbor jobs using the same API key. If provider retries exhaust with HTTP 429,
+retain that job as infrastructure-invalid and rerun the full affected arm/split
+under a new job name after quota recovers; do not selectively rerun low rewards.
 
 ### 7. Run Trace Analyst on scored baseline development traces
 
@@ -359,6 +386,9 @@ insight-agent --config configs/trace-analyst.yaml \
 Read the report together with Harbor's per-task verifier reports and the actual
 Relay trajectories. Preserve successes as counter-evidence. A pattern in one
 failure is not automatically a general harness rule.
+The saved `results/baseline-development-insights.yml` is a skip option only for
+the saved experiment. Newly authored tasks or new baseline runs require a new
+report over their own scored traces.
 
 ### 8. Build and freeze a candidate from both reports
 
@@ -403,14 +433,17 @@ environment input changed. Run candidate development and both held-out arms now:
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split development --attempts 3 --job-name candidate-development-k3 \
+  --suite "$SUITE" \
   --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split held-out --attempts 3 --job-name baseline-heldout-k3 \
+  --suite "$SUITE" \
   --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split held-out --attempts 3 --job-name candidate-heldout-k3 \
+  --suite "$SUITE" \
   --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 ```
@@ -438,12 +471,12 @@ so and keep it as a hypothesis rather than declaring victory.
 .harbor-venv/bin/python scripts/summarize_harbor_job.py \
   .runs/harbor/candidate-heldout-k3
 .harbor-venv/bin/python scripts/compare_harbor_jobs.py \
-  --suite evals/flywheel-eval-set-v3.json --attempts 3 \
+  --suite "$SUITE" --attempts 3 \
   --baseline-development .runs/harbor/baseline-development-k3 \
   --candidate-development .runs/harbor/candidate-development-k3 \
   --baseline-held-out .runs/harbor/baseline-heldout-k3 \
   --candidate-held-out .runs/harbor/candidate-heldout-k3 \
-  --output results/measured-ab-v3.json
+  --output .runs/measured-ab.json
 ```
 
 The checked-in `results/` artifacts should include the exact corpus, task split,
@@ -453,7 +486,10 @@ PYTHON=.harbor-venv/bin/python` checks provenance, exact proof digests, frozen
 membership, and denominators, and requires recorded human review. For the
 checked-in experimental suite with review pending, use `make validate-pilot
 PYTHON=.harbor-venv/bin/python` to check technical integrity without claiming
-readiness. Repeated model samples are not seed-paired statistical trials.
+readiness. Those targets validate the checked-in reference chain, not a fresh
+experiment's results. Your new comparison is `.runs/measured-ab.json`; inspect
+its acceptance decision and per-task results without overwriting saved evidence.
+Repeated model samples are not seed-paired statistical trials.
 
 ## Secondary path: just try Trace Analyst
 

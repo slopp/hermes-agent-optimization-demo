@@ -71,6 +71,14 @@ class TraceDerivedSuiteTest(unittest.TestCase):
         suite["cases"][1]["provenance"]["held_out_from_case_ids"] = ["missing"]
         self.assertTrue(any("development behavior parent" in error for error in validate(suite)))
 
+    def test_custom_task_collection_is_supported_but_unsafe_paths_are_not(self) -> None:
+        suite = self.suite()
+        for case in suite["cases"]:
+            case["provenance"]["harbor_task_ref"] = f".runs/authored/tasks/{case['id']}"
+        self.assertEqual(validate(suite), [])
+        suite["cases"][0]["provenance"]["harbor_task_ref"] = "../coverage-task"
+        self.assertTrue(any("Harbor task reference" in error for error in validate(suite)))
+
 
 if __name__ == "__main__":
     unittest.main()
