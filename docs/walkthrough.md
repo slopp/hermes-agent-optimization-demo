@@ -187,14 +187,18 @@ For the checked-in corpus, use its companion canonical input at
 and **Skipped** evidence-stream summary and inspect `results/production-insights.yml`.
 The file is YAML, not JSON; each finding should name supporting trace IDs. Verify
 those IDs and examples in the corpus. A skipped stream or no findings is a result
-to investigate, not a successful optimization signal.
+to investigate, not a successful optimization signal. This demo enables the
+ethos-divergence stream with the fictional assistant's operating rules in
+`configs/enterprise-assistant-ethos.md`; edit that file to reflect your agent's
+real policies before using the same stream on your own traces.
 
 ### 4. Ask Codex and Eval Author to propose and prove Harbor tasks
 
 **Purpose:** convert useful production findings and representative trace evidence
 into executable, independently graded Harbor tasks. **Inputs:** the full corpus,
 production Insights, `ETHOS.md`, and the tool/fixture implementation. **Output:**
-private task drafts, proofs, and a proposed eval-set manifest. `Y` is not fixed:
+private task drafts, proofs, and a proposed eval-set manifest. Inputs include
+`configs/enterprise-assistant-ethos.md`. `Y` is not fixed:
 keep only distinct cases with grounded expectations and a viable environment.
 
 Install the public [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author)

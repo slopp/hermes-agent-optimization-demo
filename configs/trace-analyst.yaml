@@ -10,5 +10,6 @@ evidence_streams:
   anomaly_and_patterns: true
   tool_issues: true
   eval_failure_patterns: true
-  ethos_divergence: false
+  ethos_divergence:
+    ethos_path: configs/enterprise-assistant-ethos.md
   user_sentiment: false
