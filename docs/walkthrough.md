@@ -88,6 +88,7 @@ before continuing. Then:
 ```bash
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
 cd hermes-agent-optimization-demo
+mkdir -p .runs
 docker info >/dev/null
 
 uv venv .harbor-venv --python 3.12
@@ -125,12 +126,20 @@ printf 'NVIDIA Build API key: '
 read -rs NVIDIA_API_KEY
 printf '\n'
 export NVIDIA_API_KEY
+curl --fail-with-body -sS https://integrate.api.nvidia.com/v1/chat/completions \
+  -H "Authorization: Bearer $NVIDIA_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"nvidia/nemotron-3-ultra-550b-a55b","messages":[{"role":"user","content":"Reply with OK."}],"max_tokens":256,"reasoning_effort":"none","stream":false}' \
+  -o .runs/provider-smoke.json && jq '{model,choices}' .runs/provider-smoke.json
 openshell profile lint -f openshell/provider-nvidia.yaml
 openshell profile import -f openshell/provider-nvidia.yaml
 openshell provider create --name hermes-nvidia --type hermes-nvidia-flex \
   --credential NVIDIA_API_KEY
 unset NVIDIA_API_KEY
 ```
+
+Stop if the smoke request fails. The public [Build model ID](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b-infer)
+is `nvidia/nemotron-3-ultra-550b-a55b`; both Hermes runners and Trace Analyst
+use it by default. Keep the same provider and model ID for both measured arms.
 
 The checked-in profile permits the model endpoint; the separate OpenShell policy
 allows only the local host-bridge MCP port. Harbor verifier containers
