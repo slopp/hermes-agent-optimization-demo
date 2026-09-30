@@ -249,6 +249,40 @@ private task drafts, proofs, and a proposed eval-set manifest. Inputs include
 `configs/enterprise-assistant-ethos.md`. `Y` is not fixed:
 keep only distinct cases with grounded expectations and a viable environment.
 
+If this host does not already have Node.js 22.20+ and Codex, install the
+[official Node binary](https://nodejs.org/en/download/archive/v22.23.3) and
+[Codex CLI](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex):
+
+```bash
+case "$(uname -m)" in
+  x86_64) node_arch=x64 ;; aarch64) node_arch=arm64 ;;
+  *) echo 'Use a Linux x64 or arm64 host.'; exit 1 ;;
+esac
+node_setup_dir=$(mktemp -d)
+node_archive="node-v22.23.3-linux-$node_arch.tar.xz"
+(cd "$node_setup_dir" &&
+  curl -fSLO "https://nodejs.org/dist/v22.23.3/$node_archive" &&
+  curl -fSLO https://nodejs.org/dist/v22.23.3/SHASUMS256.txt &&
+  sha256sum --check --ignore-missing SHASUMS256.txt) || {
+    echo 'Node download verification failed.'; exit 1;
+  }
+mkdir -p "$HOME/.local/lib/node"
+tar -xJf "$node_setup_dir/$node_archive" -C "$HOME/.local/lib/node"
+export PATH="$HOME/.local/lib/node/node-v22.23.3-linux-$node_arch/bin:$HOME/.local/bin:$PATH"
+npm install --prefix "$HOME/.local" --global @openai/codex@0.158.0
+node --version
+codex --version
+```
+
+Repeat the `PATH` export if you reconnect. Codex uses your own ChatGPT/OpenAI
+account, not the NVIDIA model key. Check authentication and, if needed, complete
+the [headless login](https://developers.openai.com/codex/auth#login-on-headless-devices)
+in your local browser:
+
+```bash
+codex login status || codex login --device-auth
+```
+
 Install the public [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author)
 skills into this repo for Codex:
 
