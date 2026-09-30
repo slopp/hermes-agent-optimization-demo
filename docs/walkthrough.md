@@ -94,7 +94,7 @@ uv venv .harbor-venv --python 3.12
 uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
 .harbor-venv/bin/harbor --version
 make test PYTHON=.harbor-venv/bin/python
-make validate PYTHON=.harbor-venv/bin/python
+make validate-fixture PYTHON=.harbor-venv/bin/python FIXTURE=fixtures/world-v2.json
 
 curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | \
   OPENSHELL_VERSION=v0.1.2 sh
@@ -280,13 +280,20 @@ all files are visible in the same checkout. Run:
 
 ```bash
 python3 scripts/validate_trace_derived_suite.py evals/flywheel-eval-set-v3.json
-python3 scripts/materialize_harbor_tasks.py --suite evals/flywheel-eval-set-v3.json \
-  --output .runs/task-build
+TASKS_DIR="$PWD/evals/harbor-tasks-v3"
 ```
 
 If a proposed task fails proof, revise or reject it before freezing the split.
 Record `D`, `H`, source trace IDs, supporting Insights refs, Eval Author task
 paths, proof state, reviewer, split, and artifact digests in the manifest.
+
+The command above selects the checked-in task trees. If you authored new tasks,
+have Codex assemble the reviewed exports into a collection containing one task
+directory per manifest case, and set `TASKS_DIR` to that collection. Use the
+exact proven/exported tasks in all runs; rebuilding task files after proof can
+invalidate their digests. For an explicitly unreviewed technical pilot, the suite
+validator supports `--allow-unreviewed`; this does not mark the tasks ready or
+replace the human review step.
 
 ### 6. Measure the unchanged baseline on development tasks
 
@@ -298,6 +305,7 @@ ATOF/ATIF traces. No candidate changes are allowed yet.
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 3 \
+  --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1 \
   --job-name baseline-development-k3
 .harbor-venv/bin/python scripts/summarize_harbor_job.py \
@@ -378,12 +386,15 @@ environment input changed. Run candidate development and both held-out arms now:
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split development --attempts 3 --job-name candidate-development-k3 \
+  --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split held-out --attempts 3 --job-name baseline-heldout-k3 \
+  --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split held-out --attempts 3 --job-name candidate-heldout-k3 \
+  --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 ```
 
