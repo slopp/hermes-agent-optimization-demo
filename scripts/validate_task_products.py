@@ -67,6 +67,11 @@ def validate(root: Path, *, require_review: bool = True) -> list[str]:
             errors.append(f"{task_id}: verifier differs from frozen expectations")
         if task.joinpath("environment/world.json").read_bytes() != root.joinpath("fixtures/world-v2.json").read_bytes():
             errors.append(f"{task_id}: task fixture differs from host MCP fixture")
+        for name in ("tools.py", "world.py"):
+            packaged = task / "environment/pa_style_mock_mcp" / name
+            host = root / "src/pa_style_mock_mcp" / name
+            if packaged.read_bytes() != host.read_bytes():
+                errors.append(f"{task_id}: host MCP {name} differs from the proven implementation")
     return errors
 
 

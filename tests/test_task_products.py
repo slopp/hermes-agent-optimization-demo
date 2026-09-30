@@ -16,6 +16,10 @@ class TaskProductsTest(unittest.TestCase):
         (root / "fixtures").mkdir()
         (root / "fixtures/world-v2.json").write_text('{}')
         (task / "environment/world.json").write_text('{}')
+        for parent in (task / "environment/pa_style_mock_mcp", root / "src/pa_style_mock_mcp"):
+            parent.mkdir(parents=True)
+            for name in ("tools.py", "world.py"):
+                (parent / name).write_text("# shared deterministic implementation\n")
         (root / "evals/flywheel-eval-set-v3.json").write_text(json.dumps({"cases": [{
             "id": "demo-task", "input": "Prepare a draft", "expectations": {"outbox_count": 0},
             "provenance": {"harbor_task_ref": "evals/harbor-tasks-v3/demo-task"},
@@ -61,6 +65,14 @@ class TaskProductsTest(unittest.TestCase):
             task.joinpath("link").symlink_to(task / "instruction.md")
             with self.assertRaises(ValueError):
                 task_digest(task)
+
+    def test_host_dispatcher_drift_is_rejected_without_editing_task(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_product(root)
+            root.joinpath("src/pa_style_mock_mcp/tools.py").write_text("# easier mock behavior\n")
+            self.assertTrue(any("host MCP tools.py differs" in error
+                                for error in validate(root, require_review=False)))
 
 
 if __name__ == "__main__":
