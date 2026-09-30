@@ -145,7 +145,7 @@ def atof_events_to_atif_trajectories(
                 "trajectory_id": turn_id,
                 "agent": {
                     "name": "Hermes-enterprise-world",
-                    "version": "nemoclaw-baseline-v1",
+                    "version": "tutorial-baseline-v1",
                     "model_name": model_name,
                 },
                 "final_metrics": {

@@ -234,10 +234,10 @@ class InsightsAdapterTests(unittest.TestCase):
         self.assertEqual(trace["attributes"]["final_answer"], "")
         self.assertEqual(trace["root_spans"], [])
 
-    def test_matches_matrix_prompt_before_nemoclaw_runtime_context(self) -> None:
+    def test_matches_matrix_prompt_before_runtime_context(self) -> None:
         events = [
             {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn", "timestamp": "2026-09-11T12:00:00+00:00"},
-            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it\n\nNemoClaw runtime context:\n- sandbox"}]}}},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it\n\nHermes runtime context:\n- sandbox"}]}}},
             {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "llm", "parent_uuid": "turn", "data": {}},
             {"kind": "scope", "scope_category": "end", "category": "function", "name": "hermes.turn", "uuid": "turn", "timestamp": "2026-09-11T12:00:01+00:00", "data": {}},
         ]
@@ -246,12 +246,12 @@ class InsightsAdapterTests(unittest.TestCase):
 
         self.assertEqual(trace["attributes"]["logical_case_id"], "find")
         self.assertEqual(trace["attributes"]["prompt"], "Find it")
-        self.assertNotIn("NemoClaw runtime context", trace["attributes"]["prompt"])
+        self.assertNotIn("runtime context", trace["attributes"]["prompt"])
 
     def test_keeps_original_matrix_prompt_when_retry_adds_continuation(self) -> None:
         events = [
             {"kind": "scope", "scope_category": "start", "category": "function", "name": "hermes.turn", "uuid": "turn"},
-            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "first", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it\n\nNemoClaw runtime context:\n- sandbox"}]}}},
+            {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "first", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "Find it\n\nHermes runtime context:\n- sandbox"}]}}},
             {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "first", "parent_uuid": "turn", "data": {}},
             {"kind": "scope", "scope_category": "start", "category": "llm", "name": "openai.chat_completions", "uuid": "retry", "parent_uuid": "turn", "data": {"content": {"messages": [{"role": "user", "content": "[System: Continue where you left off.]"}]}}},
             {"kind": "scope", "scope_category": "end", "category": "llm", "name": "openai.chat_completions", "uuid": "retry", "parent_uuid": "turn", "data": {"choices": [{"message": {"content": "done"}}]}},

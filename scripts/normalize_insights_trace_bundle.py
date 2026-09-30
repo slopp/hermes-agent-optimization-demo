@@ -123,7 +123,7 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
         "trajectory_id": trace_id,
         "agent": {
             "name": "Hermes-enterprise-world",
-            "version": "nemoclaw-baseline",
+            "version": "tutorial-baseline",
             "model_name": model,
         },
         "final_metrics": {
