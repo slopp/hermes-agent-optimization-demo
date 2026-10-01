@@ -42,6 +42,7 @@ def validate(index_path: Path) -> list[str]:
 
     seen_paths: set[str] = set()
     seen_ids: set[str] = set()
+    indexed_prompts: dict[str, str] = {}
     prompts: list[str] = []
     families: Counter[str] = Counter()
     for record in records:
@@ -85,6 +86,29 @@ def validate(index_path: Path) -> list[str]:
             errors.append(f"{raw_path}: indexed prompt differs from the recorded user request")
         else:
             prompts.append(prompt.casefold())
+            indexed_prompts[trace_id] = prompt
+
+    if bundle_path.is_file():
+        try:
+            bundle = [json.loads(line) for line in bundle_path.read_text().splitlines() if line.strip()]
+        except ValueError:
+            errors.append("Insights input bundle must contain valid JSONL")
+        else:
+            input_ids = [trace.get("id") for trace in bundle if isinstance(trace, dict)]
+            if (len(input_ids) != len(bundle) or len(input_ids) != len(records)
+                    or any(not isinstance(value, str) or not value for value in input_ids)
+                    or len(set(input_ids)) != len(input_ids) or set(input_ids) != seen_ids):
+                errors.append("Insights input IDs/count differ from indexed source traces")
+            for trace in bundle:
+                if not isinstance(trace, dict):
+                    continue
+                attributes = trace.get("attributes") or {}
+                if not isinstance(attributes, dict):
+                    errors.append("Insights input attributes must be an object")
+                    continue
+                prompt = attributes.get("task_text") or attributes.get("prompt")
+                if prompt != indexed_prompts.get(trace.get("id")):
+                    errors.append("Insights input prompt differs from indexed source trace")
 
     if len(set(prompts)) < MIN_DISTINCT_REQUESTS:
         errors.append(

@@ -33,7 +33,10 @@ def make_corpus(root: Path, *, repeated_prompt: bool = False) -> Path:
             }
         )
     index_path = root / "index.json"
-    (root / "insights.jsonl").write_text('{}\n')
+    (root / "insights.jsonl").write_text("".join(
+        json.dumps({"id": record["trace_id"], "attributes": {"task_text": record["prompt"]}}) + "\n"
+        for record in records
+    ))
     index_path.write_text(json.dumps({"schema": "enterprise-trace-corpus-v2", "traces": records,
         "insights_sha256": hashlib.sha256((root / "insights.jsonl").read_bytes()).hexdigest()}))
     return index_path
@@ -69,6 +72,28 @@ class TraceCorpusTest(unittest.TestCase):
             index_path = make_corpus(Path(raw))
             (Path(raw) / "insights.jsonl").write_text('{"changed":true}\n')
             self.assertTrue(any("bundle digest" in error for error in validate(index_path)))
+
+    def test_rehashed_input_cannot_drop_a_source_trace(self):
+        with tempfile.TemporaryDirectory() as raw:
+            index_path = make_corpus(Path(raw))
+            path = Path(raw) / "insights.jsonl"
+            path.write_text("\n".join(path.read_text().splitlines()[1:]) + "\n")
+            index = json.loads(index_path.read_text())
+            index["insights_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            index_path.write_text(json.dumps(index))
+            self.assertTrue(any("IDs/count" in error for error in validate(index_path)))
+
+    def test_rehashed_input_cannot_substitute_a_source_request(self):
+        with tempfile.TemporaryDirectory() as raw:
+            index_path = make_corpus(Path(raw))
+            path = Path(raw) / "insights.jsonl"
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            rows[0]["attributes"]["task_text"] = "Different request"
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            index = json.loads(index_path.read_text())
+            index["insights_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            index_path.write_text(json.dumps(index))
+            self.assertTrue(any("prompt differs" in error for error in validate(index_path)))
 
 
 if __name__ == "__main__":
