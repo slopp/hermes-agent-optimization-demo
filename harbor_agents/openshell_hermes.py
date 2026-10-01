@@ -407,6 +407,21 @@ exit "$hermes_rc"
                             # Retain the partial session and Relay export while
                             # the sandbox still exists, then propagate cancellation.
                             run_error = exc
+                            if isinstance(exc, asyncio.CancelledError):
+                                # run.sh normally exports after Hermes exits.
+                                # A Harbor cancellation can arrive first; take
+                                # a read-only session snapshot before teardown.
+                                try:
+                                    await self._host_command(
+                                        [self.openshell_bin, "sandbox", "exec", "--name", sandbox,
+                                         "--workdir", "/workspace/run", "--timeout", "30",
+                                         "--no-login-shell", "--no-tty", "--", "/bin/bash", "-c",
+                                         "HERMES_HOME=/workspace/run/hermes hermes sessions export "
+                                         "/workspace/run/artifacts/hermes-session.jsonl --source cli"],
+                                        timeout=45, check=False,
+                                    )
+                                except Exception as collection_error:
+                                    exc.add_note(f"Partial session export failed: {collection_error}")
 
                         for name in ("hermes-session.jsonl", "hermes.txt"):
                             await self._download_optional(

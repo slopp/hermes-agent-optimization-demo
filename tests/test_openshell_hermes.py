@@ -48,8 +48,11 @@ class OpenShellArtifactFailureTest(unittest.IsolatedAsyncioTestCase):
 
             async def command(args, **kwargs):
                 if "exec" in args:
-                    events.append("cancel")
-                    raise failure
+                    if args[-1] == "run.sh":
+                        events.append("cancel")
+                        raise failure
+                    events.append("export")
+                    self.assertIn("hermes sessions export", args[-1])
                 if "delete" in args:
                     events.append("delete")
                 return 0, "", ""
@@ -67,7 +70,7 @@ class OpenShellArtifactFailureTest(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(asyncio.CancelledError) as caught:
                 await agent.execute_openshell("Prepare a draft.", Path(temp) / "artifacts")
             self.assertIs(caught.exception, failure)
-            self.assertEqual(events, ["cancel", "download", "download", "download", "delete"])
+            self.assertEqual(events, ["cancel", "export", "download", "download", "download", "delete"])
             agent._stop_remote_mcp.assert_awaited_once()
 
     async def test_collected_artifacts_are_published_before_failure_cleanup(self):
