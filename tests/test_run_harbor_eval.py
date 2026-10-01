@@ -61,6 +61,7 @@ class RunHarborEvalTest(unittest.TestCase):
             "harbor_agents.openshell_hermes:OpenShellHermesFlywheel", command
         )
         self.assertIn("openshell_image=hermes-flywheel-openshell:0.3", command)
+        self.assertEqual(command[command.index("--agent-timeout-multiplier") + 1], "2.0")
         self.assertIn(
             "provider_base_url=https://inference.example.test/v1", command
         )

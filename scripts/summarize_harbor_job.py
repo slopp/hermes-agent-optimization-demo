@@ -47,6 +47,10 @@ def main() -> int:
                 "task_checksum": result.get("task_checksum"),
                 "verifier_environment_mode": result.get("verifier_environment_mode"),
                 "requested_model": result.get("config", {}).get("agent", {}).get("model_name"),
+                "agent_timeout_multiplier": (
+                    result.get("config", {}).get("agent_timeout_multiplier")
+                    or result.get("config", {}).get("timeout_multiplier", 1.0)
+                ),
                 "arm": result.get("config", {}).get("agent", {}).get("kwargs", {}).get("arm"),
                 "started_at": result.get("started_at"),
                 "finished_at": result.get("finished_at"),

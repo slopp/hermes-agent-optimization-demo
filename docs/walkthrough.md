@@ -149,7 +149,12 @@ remain separately isolated and no-network.
 Both arms use a shared six-attempt model-API budget (`agent.api_max_retries` in
 `harbor_agents/hermes_flywheel.py`) with Hermes' existing backoff. This is
 transport resilience, not the candidate optimization or six eval repetitions.
-The OpenShell model run remains capped at 360 seconds. An exhausted retry or
+The OpenShell model run remains capped at 360 seconds. The runner applies
+Harbor's `--agent-timeout-multiplier 2` equally to both arms: the task's 300-second
+agent phase becomes 600 seconds to accommodate sandbox setup and artifact
+collection around that model run. This changes neither the task content nor
+the isolated verifier timeout. Keep this multiplier identical in every measured
+job; the artifact check rejects mixed timeout budgets. An exhausted retry or
 timeout is still an infrastructure-invalid trial; this setting cannot fix a
 hard quota limit. Keep the same budget in both arms and do not mix results
 collected with different runtime fingerprints.

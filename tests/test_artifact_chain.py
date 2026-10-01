@@ -69,6 +69,7 @@ class ArtifactChainTest(unittest.TestCase):
                                        "task_checksum": proof["technical_validation"]["task_checksum"],
                                        "verifier_environment_mode": "separate",
                                        "requested_model": "nvidia/example", "relay_atof": True,
+                                       "agent_timeout_multiplier": 2.0,
                                        "relay_atif": True, "relay_trajectory_ids": [f"{task_id}-{k}"],
                                        "runtime_fingerprint": fingerprint})
                 summary = {"job_finished_at": "done", "runtime": {"name": "openshell-hermes-flywheel"},
@@ -122,6 +123,20 @@ class ArtifactChainTest(unittest.TestCase):
             stage["sha256"] = digest(path)
             (root / "results/artifact-chain.json").write_text(json.dumps(chain))
             with self.assertRaisesRegex(SystemExit, "Insights input differs"):
+                self.check(root)
+
+    def test_mixed_harbor_timeout_budgets_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            chain, _ = self.prepare(root)
+            stage = next(item for item in chain["stages"] if item["id"] == "candidate_held_out_run")
+            path = root / stage["path"]
+            summary = json.loads(path.read_text())
+            summary["trials"][0]["agent_timeout_multiplier"] = 1.0
+            path.write_text(json.dumps(summary))
+            stage["sha256"] = digest(path)
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            with self.assertRaisesRegex(SystemExit, "differs across measured arms"):
                 self.check(root)
 
     def test_frozen_candidate_drift_is_rejected_even_with_updated_stage_hash(self):

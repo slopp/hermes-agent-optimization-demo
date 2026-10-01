@@ -43,6 +43,8 @@ def main() -> int:
     )
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--agent-timeout-multiplier", type=float, default=2.0,
+                        help="Shared Harbor agent-phase budget multiplier (includes sandbox/artifact overhead).")
     parser.add_argument("--harbor", default="harbor")
     parser.add_argument("--jobs-dir", type=Path, default=ROOT / ".runs" / "harbor")
     parser.add_argument("--job-name")
@@ -60,6 +62,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1:
         parser.error("--attempts and --concurrency must be positive")
+    if args.agent_timeout_multiplier <= 0:
+        parser.error("--agent-timeout-multiplier must be positive")
 
     suite = json.loads(args.suite.read_text(encoding="utf-8"))
     case_kind = "held_out" if args.split == "held-out" else "development"
@@ -91,6 +95,8 @@ def main() -> int:
         str(args.attempts),
         "--n-concurrent",
         str(args.concurrency),
+        "--agent-timeout-multiplier",
+        str(args.agent_timeout_multiplier),
         "--yes",
     ]
     if args.runtime == "openshell":

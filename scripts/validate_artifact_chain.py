@@ -67,8 +67,13 @@ def validate_run(root: Path, summary: dict[str, Any], case_ids: set[str], arm: s
                         for name in ("tools.py", "world.py")}
         require(fingerprint.get("mcp_implementation_sha256") == expected_mcp,
                 "measured host MCP implementation drift")
-        common_fingerprints.add(json.dumps({key: value for key, value in fingerprint.items()
-                                           if key not in ("arm", "profile_sha256")}, sort_keys=True))
+        timeout_multiplier = trial.get("agent_timeout_multiplier")
+        require(isinstance(timeout_multiplier, (int, float)) and timeout_multiplier > 0,
+                "missing or invalid Harbor agent-phase timeout multiplier")
+        common = {key: value for key, value in fingerprint.items()
+                  if key not in ("arm", "profile_sha256")}
+        common["harbor_agent_timeout_multiplier"] = timeout_multiplier
+        common_fingerprints.add(json.dumps(common, sort_keys=True))
     require(set(counts) == case_ids and all(value == attempts for value in counts.values()),
             "measured task repetition counts differ")
     require(summary.get("counts", {}).get("passed") == sum(passed.values()),
