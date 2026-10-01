@@ -2,6 +2,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 from harbor_agents.openshell_utils import final_answer, sandbox_name
 
@@ -30,6 +32,42 @@ class OpenShellHelpersTest(unittest.TestCase):
             }
         )
         self.assertEqual(final_answer(session), "grounded answer")
+
+
+@unittest.skipIf(OpenShellHermesFlywheel is None, "Harbor is not installed")
+class OpenShellArtifactFailureTest(unittest.IsolatedAsyncioTestCase):
+    async def test_collected_artifacts_are_published_before_failure_cleanup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            agent = OpenShellHermesFlywheel(logs_dir=Path(temp) / "logs", arm="baseline")
+            failure = RuntimeError("provider HTTP 429")
+            captured = []
+
+            async def execute(instruction, artifacts):
+                artifacts.mkdir(parents=True)
+                (artifacts / "runtime-fingerprint.json").write_text('{"arm":"baseline"}')
+                raise failure
+
+            async def publish(environment, artifacts):
+                captured.append(json.loads((artifacts / "runtime-fingerprint.json").read_text()))
+
+            agent.execute_openshell = AsyncMock(side_effect=execute)
+            agent._publish_artifacts = AsyncMock(side_effect=publish)
+            with self.assertRaises(RuntimeError) as caught:
+                await agent.run("Prepare a draft.", object(), SimpleNamespace())
+            self.assertIs(caught.exception, failure)
+            self.assertEqual(captured, [{"arm": "baseline"}])
+            agent._publish_artifacts.assert_awaited_once()
+
+    async def test_publication_error_does_not_mask_the_original_run_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            agent = OpenShellHermesFlywheel(logs_dir=Path(temp) / "logs", arm="baseline")
+            failure = RuntimeError("original provider failure")
+            agent.execute_openshell = AsyncMock(side_effect=failure)
+            agent._publish_artifacts = AsyncMock(side_effect=OSError("artifact upload failed"))
+            with self.assertRaises(RuntimeError) as caught:
+                await agent.run("Prepare a draft.", object(), SimpleNamespace())
+            self.assertIs(caught.exception, failure)
+            self.assertIn("artifact upload failed", " ".join(failure.__notes__))
 
 
 @unittest.skipIf(OpenShellHermesFlywheel is None, "Harbor is not installed")

@@ -456,5 +456,15 @@ exit "$hermes_rc"
         }
         with tempfile.TemporaryDirectory(prefix="hermes-openshell-") as temp:
             artifact_dir = Path(temp) / "artifacts"
-            await self.execute_openshell(instruction, artifact_dir)
-            await self._publish_artifacts(environment, artifact_dir)
+            try:
+                await self.execute_openshell(instruction, artifact_dir)
+            except BaseException as run_error:
+                # Retain already collected diagnostics before the temporary
+                # directory is removed, without replacing the original failure.
+                try:
+                    await self._publish_artifacts(environment, artifact_dir)
+                except Exception as publication_error:
+                    run_error.add_note(f"Artifact publication also failed: {publication_error}")
+                raise
+            else:
+                await self._publish_artifacts(environment, artifact_dir)
