@@ -20,6 +20,10 @@ request and one explicit preparation/control request on each side. All four
 come from the discovery corpus, so this is a request-level protocol holdout,
 not an unseen production distribution.
 
+The task READMEs' pending **Relevant experience** sections state these same
+lessons; they do not record a human's experience. A reviewer must confirm their
+adequacy or supply real relevant experience before readiness is claimed.
+
 ## What a pass establishes
 
 Each grader requires a nonempty final response and a trusted MCP call log. It
