@@ -65,13 +65,6 @@ patternsâ€”tool downsampling, bounded JSON reads and evidence-state managementâ€
 described in [harness patterns](docs/harness-patterns.md), not claimed as measured
 improvements here.
 
-Eval Author does not prescribe a suite size or automatically choose the split;
-Codex proposes cases from the evidence. The saved suite is a technical pilot
-with human task review pending. Three attempts per task test repeatability, not
-statistical significance; held-out requests come from the discovery corpus.
-Original design reports and [independent verification reports](docs/results.md#evidence-and-hypothesis)
-remain distinct.
-
 ## Repository map
 
 | Folder | Purpose |
