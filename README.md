@@ -59,8 +59,8 @@ readiness. See the [reference evidence and limits](docs/results.md).
 
 Follow the [walkthrough](docs/walkthrough.md) for prerequisites, copyable host
 setup commands, the 10-step flywheel, optional trace regeneration, and the
-secondary Trace-Analyst-only path. The ideal full-run host is fresh Ubuntu 24.04
-with native Docker, at least 4 vCPUs, 16 GB RAM, 50 GB free disk, and a working
+secondary Trace-Analyst-only path. The recommended full-run host is fresh Ubuntu
+24.04 with native Docker, 8 vCPUs, 32 GB RAM, 100 GB free disk, and a working
 OpenShell gateway; a Brev CPU instance is a convenient option. Harbor's isolated
 verifier requires a Linux kernel with `CONFIG_NFT_FIB_INET`, so Docker Desktop is
 not the supported full-run environment.

@@ -53,9 +53,10 @@ checked-in traces, the CLI, and a model key.
 Times depend on model latency and image downloads. Using saved artifacts teaches
 the process; reproducing the result requires fresh baseline and candidate runs.
 
-Use a fresh Ubuntu 24.04 Linux host with native Docker, 4+ vCPUs, 16+ GB RAM,
-50+ GB free disk, and a working systemd user session. An 8-vCPU Brev CPU instance
-is a convenient setup. Harbor 0.22.0's isolated verifier requires Linux
+Use a fresh Ubuntu 24.04 Linux host with native Docker and a working systemd
+user session. Recommended: an 8-vCPU Brev CPU instance with 32 GB RAM and
+100 GB free disk. Smaller hosts need at least 4 vCPUs, 16 GB RAM and 50 GB free
+disk, and may take longer to build images. Harbor 0.22.0's isolated verifier requires Linux
 `CONFIG_NFT_FIB_INET`; Docker Desktop's LinuxKit VM is not supported for the full
 run. Install OpenShell 0.1.2 for the current checked-in policy and use the same
 host for Harbor, OpenShell, Relay artifacts, and the local MCP server.
@@ -233,6 +234,9 @@ Trace Analyst uses the `nvidia_nim/` provider prefix for NVIDIA-compatible
 request parameters. Hermes uses the underlying model ID without that prefix.
 
 Run it on either the checked-in corpus or your freshly generated input:
+
+For real traces, use an endpoint approved for your data and redact anything it
+must not receive. The shipped corpus is synthetic.
 
 ```bash
 PRODUCTION_INSIGHTS="$PWD/.runs/production-insights.yml"
