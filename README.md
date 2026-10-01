@@ -47,16 +47,16 @@ Each step has saved artifacts to inspect or reuse:
 
 | Step | What you do | Checked-in artifacts |
 | --- | --- | --- |
-| 1. Freeze the baseline | Set up Hermes, OpenShell and the synthetic world | [Baseline profile](profiles/baseline-soul.md), [runtime configuration](harbor_agents/hermes_flywheel.py), [sandbox setup](openshell/), [fixtures](fixtures/world-v2.json), [workload](experiments/production-trace-matrix-v3.json) |
-| 2. Collect source traces | Run distinct production-like requests, or use the supplied corpus | [42 traces, corpus index and analysis input](traces/world-v3/production/) |
-| 3. Discover issues | Run Trace Analyst on the production corpus | [Production findings](results/production-insights.yml), [analyst configuration](configs/trace-analyst.yaml) |
-| 4. Author eval tasks | Ask Codex + Eval Author to turn supported findings into executable tests | [Authoring prompt](prompts/eval-author-from-traces.md), [four Harbor tasks](evals/harbor-tasks-v3/), [technical proof receipts](evals/task-proofs/) |
-| 5. Freeze the split | Review task meaning and reserve development / held-out cases | [Two-development / two-held-out manifest](evals/flywheel-eval-set-v3.json), [human review sheet](evals/REVIEW.md) |
-| 6. Measure the baseline | Run development tasks three times each and retain scores with traces | [Six scored candidate-design traces](traces/world-v3/baseline-development/) |
-| 7. Analyze scored failures | Run Trace Analyst again on baseline development trajectories | [Scored-development findings](results/baseline-development-insights.yml) |
-| 8. Build a candidate | Use both reports to propose a general harness change, then freeze it | [Proposal](results/candidate-proposal.md), [candidate profile](profiles/candidate-soul.md), [experiment freeze](results/experiment-freeze.json) |
-| 9. Test both arms | Run the same development and held-out tasks with equal budgets | [Four baseline/candidate run summaries](results/) |
-| 10. Decide | Check improvement on both splits, regressions and uncertainty | [A/B comparison](results/measured-ab-v3.json), [artifact hashes](results/artifact-chain.json), [results and limits](docs/results.md) |
+| 1. [Freeze the baseline](docs/walkthrough.md#1-freeze-the-baseline) | Set up Hermes, OpenShell and the synthetic world | [Baseline profile](profiles/baseline-soul.md), [runtime configuration](harbor_agents/hermes_flywheel.py), [sandbox setup](openshell/), [fixtures](fixtures/world-v2.json), [workload](experiments/production-trace-matrix-v3.json) |
+| 2. [Collect source traces](docs/walkthrough.md#2-collect-source-traces) | Run distinct production-like requests, or use the supplied corpus | [42 traces, corpus index and analysis input](traces/world-v3/production/) |
+| 3. [Discover issues](docs/walkthrough.md#3-discover-issues) | Run Trace Analyst on the production corpus | [Production findings](results/production-insights.yml), [analyst configuration](configs/trace-analyst.yaml) |
+| 4. [Author and prove eval tasks](docs/walkthrough.md#4-author-and-prove-eval-tasks) | Ask Codex + Eval Author to turn supported findings into executable tests | [Authoring prompt](prompts/eval-author-from-traces.md), [four Harbor tasks](evals/harbor-tasks-v3/), [technical proof receipts](evals/task-proofs/) |
+| 5. [Freeze the split](docs/walkthrough.md#5-freeze-the-split) | Review task meaning and reserve development / held-out cases | [Two-development / two-held-out manifest](evals/flywheel-eval-set-v3.json), [human review sheet](evals/REVIEW.md) |
+| 6. [Measure baseline development](docs/walkthrough.md#6-measure-baseline-development) | Run development tasks three times each and retain scores with traces | [Six scored baseline traces](traces/world-v3/baseline-development/) |
+| 7. [Analyze scored baseline failures](docs/walkthrough.md#7-analyze-scored-baseline-failures) | Run Trace Analyst again on baseline development trajectories | [Scored-development findings](results/baseline-development-insights.yml) |
+| 8. [Build a candidate from both reports](docs/walkthrough.md#8-build-a-candidate-from-both-reports) | Use both reports to propose a general harness change, then freeze it | [Proposal](results/candidate-proposal.md), [candidate profile](profiles/candidate-soul.md), [experiment freeze](results/experiment-freeze.json) |
+| 9. [Run development and held-out A/B](docs/walkthrough.md#9-run-development-and-held-out-ab) | Run the same development and held-out tasks with equal budgets | [Four baseline/candidate run summaries](results/) |
+| 10. [Decide](docs/walkthrough.md#10-decide-whether-the-optimization-worked) | Check improvement on both splits, regressions and uncertainty | [A/B comparison](results/measured-ab-v3.json), [artifact hashes](results/artifact-chain.json), [results and limits](docs/results.md) |
 
 The measured candidate clarifies that preparing a message is not authorization
 to send it, and a tool-issued token is not user consent. Development scores

@@ -1,79 +1,92 @@
 # Walkthrough: traces to a better Hermes harness
 
-This tutorial starts with an agent and traces from it. The checked-in corpus lets
-you begin immediately; regenerating traces is optional. The flywheel is:
+An agent can give plausible answers and still make repeatable mistakes: call an
+unnecessary tool, miss evidence, or act before the user approves.
+This tutorial follows one such behavior from real agent traces to a repeatable
+Harbor evaluation, a targeted Hermes change, and a measured comparison.
 
-```text
-production traces → Trace Analyst → Codex + Eval Author → frozen Harbor tasks
-                                                              ↓
-                                        baseline development runs + scores
-                                                              ↓
-                                          Trace Analyst → candidate harness
-                                                              ↓
-                                     baseline/candidate dev + held-out A/B
-```
+The repository provides a fictional company, a Hermes agent, and 42 saved
+production-like traces. You can read the evidence without running the agent. To
+reproduce the results, run Hermes in OpenShell, connect it to the fictional
+company's MCP service, and use Relay and Harbor to record and score each run.
 
-`X` is the number of distinct production requests (42 in this example). `Y` is
-the number of reviewed, independently testable Harbor tasks; Eval Author does
-not set a quota, and its result may be smaller than the number of Insights or
-source traces. `K` is the number of measured attempts per task and arm (`K ≥ 3`
-here). With `D` development tasks and `H` held-out tasks, the complete measured
-comparison is `2 × K × (D + H)` attempts across both arms. The baseline-
-development runs from Step 6 are reused in Step 9, so the remaining work after
-Step 6 is `K × (D + 2H)` candidate/dev and both arms/held-out. This is
-a repeatability check, not a strong statistical-significance claim.
+## Choose your path
 
-The main path runs Hermes inside OpenShell. Each trial starts a separate,
-authenticated Streamable HTTP mock MCP service on the host running Harbor. Hermes
-reaches it as a remote service at `host.openshell.internal:8765`,
-allowed by `openshell/policy.yaml`; the MCP process, package, fixture, and call
-logs are not inside the OpenShell sandbox. Do not replace this with an in-sandbox
-stdio MCP for measured runs. Eval Author's offline NOP/Oracle task proofs are a
-separate validation phase; they do not substitute for the OpenShell A/B.
+Every path uses the same ten steps below. The table points to the best place to
+start and the checked-in artifact that supplies any skipped step.
+
+| Path | Start here | Use these saved artifacts |
+| --- | --- | --- |
+| Read the example | Steps 2–10 | Traces, Insights reports, Harbor tasks, candidate profile and comparison linked in each step |
+| Run Trace Analyst | Step 2, then Step 3 | `traces/world-v3/production/` and, for Step 7, `traces/world-v3/baseline-development/` |
+| Reproduce the comparison | Steps 1–3, then 5–10 | Checked-in traces, suite and split; optional new authoring is Step 4 |
+| Re-author the evaluations | Steps 1–4, then 5–10 | Start with the traces and production Insights report; use Codex with Eval Author at Step 4 |
+
+To use your own agent, replace the trace corpus, Hermes adapter, fixture-backed
+MCP and Harbor tasks with your agent's equivalents. The lessons in Steps 3–10
+still apply.
+
+## Step guide
+
+The “Read” path follows the saved artifacts. The “Analyze” path runs Trace
+Analyst and ends after Step 3, with Step 7 available for the saved scored
+baseline. “Reproduce” runs the checked-in comparison. “Re-author” adds Codex
+and Eval Author at Step 4, then measures the reviewed task suite.
+
+| Step | Section | Path | Typical time | Saved artifact when reusing |
+| --- | --- | --- | --- | --- |
+| 1 | [Freeze the baseline](#1-freeze-the-baseline) | Reproduce, Re-author | 15–20 min plus downloads | Baseline profile and runtime config |
+| 2 | [Collect source traces](#2-collect-source-traces) | All paths | 1 min; collection 60–120 min | Production trace corpus and index |
+| 3 | [Discover issues](#3-discover-issues) | Analyze, Reproduce, Re-author | 5–10 min model time | Production Insights report |
+| 4 | [Author and prove eval tasks](#4-author-and-prove-eval-tasks) | Re-author | 5–10 min plus proofs/review | Eval manifest, tasks and proof receipts |
+| 5 | [Freeze the split](#5-freeze-the-split) | Reproduce, Re-author | 2–3 min | Two development and two held-out tasks |
+| 6 | [Measure baseline development](#6-measure-baseline-development) | Reproduce, Re-author | 8–10 min model time | Six scored baseline traces |
+| 7 | [Analyze scored baseline failures](#7-analyze-scored-baseline-failures) | Analyze, Reproduce, Re-author | 5–10 min model time | Scored-baseline Insights report |
+| 8 | [Build a candidate from both reports](#8-build-a-candidate-from-both-reports) | Reproduce, Re-author | 5–10 min | Candidate proposal, profile and freeze record |
+| 9 | [Run development and held-out A/B](#9-run-development-and-held-out-ab) | Reproduce, Re-author | 25–35 min model time | Four measured run summaries |
+| 10 | [Decide whether the optimization worked](#10-decide-whether-the-optimization-worked) | All paths | 3–5 min | Comparison and artifact chain |
+
+The “saved artifact” column names the starting point for the Read path and the
+skip option for a run. Model time varies with service load; authoring and
+human review time depends on how many task candidates need work.
 
 ## Before you start
 
-Choose a path: the full experiment follows Steps 1–10; the
-[Trace Analyst-only path](#secondary-path-just-try-trace-analyst) needs only the
-checked-in traces, the CLI, and a model key.
+To read the guide or run Trace Analyst on the saved traces, clone the repository
+and install Python 3, `uv` and `curl`; Trace Analyst also needs a model API key
+from [build.nvidia.com](https://build.nvidia.com/). The full hands-on run needs
+a Linux host with native Docker and a working systemd user session. We used a
+fresh Ubuntu 24.04 Brev CPU instance with 8
+vCPUs, 32 GB RAM and 100 GB free disk. [Brev](https://brev.nvidia.com/) is one
+place to choose a compatible CPU instance. The smaller working size is 4 vCPUs,
+16 GB RAM and 50 GB free disk. Image builds and Harbor verification take longer
+on the smaller host.
 
-| Step | Purpose and output | Typical time | Skip option |
-| --- | --- | --- | --- |
-| [1. Runtime](#1-set-up-the-runtime-and-freeze-the-baseline) | Provision Docker, OpenShell, Hermes, and Harbor | 20–40 min | Skip for analysis only |
-| [2. Source traces](#2-start-from-the-production-like-traces-x) | Select one complete production corpus | 2 min; regeneration 60–120 min | Use checked-in traces |
-| [3. Discovery](#3-run-trace-analyst-on-production-traces) | Find behaviors with supporting trace references | 5–15 min | Use the saved production report |
-| [4. Eval Author](#4-ask-codex-and-eval-author-to-propose-and-prove-harbor-tasks) | Codex authors tasks and proves verifier controls | 30–60 min plus review | Use the checked-in suite |
-| [5. Split](#5-freeze-the-development-and-held-out-split) | Freeze task membership before designing a candidate | 5–10 min | Use the saved split |
-| [6. Baseline](#6-measure-the-unchanged-baseline-on-development-tasks) | Measure development failures and collect scored traces | 10–20 min | Inspect saved baseline artifacts |
-| [7. Root cause](#7-run-trace-analyst-on-scored-baseline-development-traces) | Analyze scored baseline behavior | 5–15 min | Use the saved development report |
-| [8. Candidate](#8-build-and-freeze-a-candidate-from-both-reports) | Implement and freeze an evidence-based harness change | 15–30 min | Use the checked-in candidate |
-| [9. A/B](#9-run-the-paired-ab-on-development-and-held-out) | Run both arms against both splits | 20–40 min | Inspect saved comparisons |
-| [10. Decision](#10-decide-whether-the-optimization-worked) | Check improvement, regressions, and uncertainty | 5–10 min | Required to interpret results |
+Install Git, curl, jq, make, Python 3, uv and Node.js 22.20 or newer. The full
+authoring path also uses [Codex CLI](https://developers.openai.com/codex/cli)
+and access to [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author).
+Trace analysis uses [NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel).
+For model-backed steps, create an NVIDIA API key at [build.nvidia.com](https://build.nvidia.com/).
+Codex signs in with your ChatGPT account; the NVIDIA key configures Hermes and
+Trace Analyst.
 
-Times depend on model latency and image downloads. Using saved artifacts teaches
-the process; reproducing the result requires fresh baseline and candidate runs.
+Harbor's isolated verifier needs a Linux kernel with `CONFIG_NFT_FIB_INET`.
+Use native Docker on Linux. The Docker Desktop Linux VM lacks this verifier
+network mode. Install OpenShell 0.1.2 for the policy in this repository. Run
+Harbor, OpenShell and the host-side MCP service on the same machine.
 
-Use a fresh Ubuntu 24.04 Linux host with native Docker and a working systemd
-user session. Recommended: an 8-vCPU Brev CPU instance with 32 GB RAM and
-100 GB free disk. Smaller hosts need at least 4 vCPUs, 16 GB RAM and 50 GB free
-disk, and may take longer to build images. Harbor 0.22.0's isolated verifier requires Linux
-`CONFIG_NFT_FIB_INET`; Docker Desktop's LinuxKit VM is not supported for the full
-run. Install OpenShell 0.1.2 for the current checked-in policy and use the same
-host for Harbor, OpenShell, Relay artifacts, and the local MCP server.
+Model output varies. The saved example uses `nvidia/nemotron-3-ultra-550b-a55b`.
+Three attempts per task show repeatability; this sample size gives wide
+uncertainty, so read the per-task results and confidence intervals with care.
 
-You also need Git, `curl`, `jq`, `make`, `uv`, Node.js 22.20+ / `npx`, Codex,
-an NVIDIA Build key with access to Nemotron 3 Ultra, and access to the two NeMo
-preview repositories linked below. Test repository access on this host with
-`git ls-remote` before installing either package. If the preview requires GitHub
-authentication, run `gh auth login`, then `gh auth setup-git`. The host setup
-below installs `gh`.
-Do not commit keys or `.env` files.
+## 1. Freeze the baseline
 
-### 1. Set up the runtime and freeze the baseline
+**Purpose:** provision the model, Hermes, Harbor, synthetic world and network
+policy used throughout the comparison. The baseline profile and candidate
+profile are the two agent instructions; all other measured inputs stay fixed.
+This setup takes about 15–20 minutes, plus image-download time.
 
-**Purpose:** make the model, Hermes, fixture, task world, and sandbox policy
-identical across all runs. **Output:** a recorded baseline and passing local
-preflight; no harness edits yet.
+### Install host tools and prepare Harbor
 
 ```bash
 sudo apt-get update
@@ -84,8 +97,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-If Docker was installed or your group membership changed, reconnect to the host
-before continuing. Then:
+Reconnect to the host after Docker installation or a Docker-group change. Then:
 
 ```bash
 git clone https://github.com/slopp/hermes-agent-optimization-demo.git
@@ -98,7 +110,15 @@ uv pip install --python .harbor-venv/bin/python 'harbor==0.22.0'
 .harbor-venv/bin/harbor --version
 make test PYTHON=.harbor-venv/bin/python
 make validate-fixture PYTHON=.harbor-venv/bin/python FIXTURE=fixtures/world-v2.json
+```
 
+Expected checks include Harbor `0.22.0`, passing repository tests and a valid
+fixture contract. The world contains more than 500 fictional records; the
+validator reports counts by data type.
+
+### Install and start OpenShell
+
+```bash
 curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | \
   OPENSHELL_VERSION=v0.1.2 sh
 openshell --version
@@ -106,22 +126,26 @@ systemctl --user enable --now openshell-gateway.service
 openshell status
 openshell doctor check
 openshell gateway info
-
-# Preload the supervisor image required by the version-pinned 0.1.2 Docker driver.
 docker pull ghcr.io/nvidia/openshell/supervisor@sha256:d7b5264bb6bc56f4796e6fa3617b8e4a8d785be0b7293542efd8cc250b0fb67a
+```
 
+The status and doctor checks confirm the host gateway is available. The
+[OpenShell installation guide](https://docs.nvidia.com/openshell/latest/about/installation)
+covers systemd user sessions. The checked-in reference record shows the tested
+OpenShell and Harbor versions in [results and environment details](results.md).
+
+Build Hermes and the separate host MCP environment:
+
+```bash
 docker build -f openshell/Dockerfile -t hermes-flywheel-openshell:0.3 .
 uv venv .mcp-venv --python 3.12
 uv pip install --python .mcp-venv/bin/python -e '.[remote-mcp]'
 ```
 
-The Linux installer registers a local gateway and installs its user service.
-If `systemctl --user` cannot connect to the bus, reconnect through a normal SSH
-login with a systemd user session before continuing. See the
-[OpenShell installation guide](https://docs.nvidia.com/openshell/latest/about/installation).
+### Configure the model provider
 
-Provide the Build key without putting it in shell history, and let OpenShell
-store it as a credential reference. The sandbox gets no raw key:
+The NVIDIA Build key gives Hermes access to its model. OpenShell stores it as
+a credential, then provides the credential reference to the sandbox.
 
 ```bash
 printf 'NVIDIA Build API key: '
@@ -139,36 +163,50 @@ openshell provider create --name hermes-nvidia --type hermes-nvidia-build \
 unset NVIDIA_API_KEY
 ```
 
-Stop if the smoke request fails. The public [Build model ID](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-ultra-550b-a55b-infer)
-is `nvidia/nemotron-3-ultra-550b-a55b`; both Hermes runners and Trace Analyst
-use it by default. Keep the same provider and model ID for both measured arms.
+The API request should return the chosen model and a response. OpenShell's
+[provider profile](../openshell/provider-nvidia.yaml) limits model access to
+NVIDIA's inference endpoint. Harbor's separate verifier runs in a no-network
+container.
 
-The checked-in profile permits the model endpoint; the separate OpenShell policy
-allows only the local host-bridge MCP port. Harbor verifier containers
-remain separately isolated and no-network.
+### Try Hermes against the fictional world (optional)
 
-Both arms use a shared six-attempt model-API budget (`agent.api_max_retries` in
-`harbor_agents/hermes_flywheel.py`) with Hermes' existing backoff. This is
-transport resilience, not the candidate optimization or six eval repetitions.
-The OpenShell model run remains capped at 360 seconds. The runner applies
-Harbor's `--agent-timeout-multiplier 2` equally to both arms: the task's 300-second
-agent phase becomes 600 seconds to accommodate sandbox setup and artifact
-collection around that model run. This changes neither the task content nor
-the isolated verifier timeout. Keep this multiplier identical in every measured
-job; the artifact check rejects mixed timeout budgets. An exhausted retry or
-timeout is still an infrastructure-invalid trial; this setting cannot fix a
-hard quota limit. Keep the same budget in both arms and do not mix results
-collected with different runtime fingerprints.
+To explore the agent, start a temporary baseline sandbox and its authenticated
+host MCP service:
 
-### 2. Start from the production-like traces (X)
+```bash
+.harbor-venv/bin/python scripts/try_agent.py --arm baseline --name hermes-try
+```
 
-**Purpose:** give the workflow a real behavior corpus before authoring evals.
-**Input:** 42 distinct baseline requests across six behavior families in
-`experiments/production-trace-matrix-v3.json`. **Output:** 42 source traces with
-Relay data and a provenance index. These are not Harbor tasks or eval scores.
+The script prints the output directory and connection commands. Keep that
+terminal running. In a second host terminal, connect:
 
-The checked-in `traces/world-v3/production/` corpus is the reproducible default.
-Inspect its size and diversity:
+```bash
+openshell sandbox connect hermes-try
+```
+
+In the sandbox shell, load the prepared Hermes environment and start its TUI:
+
+```bash
+cd /workspace/run
+source interactive-env.sh
+hermes chat --tui --model nvidia/nemotron-3-ultra-550b-a55b --provider nvidia
+```
+
+Try “What is blocking Orion launch readiness, and when is the review?” The
+agent can search the fictional mail, chat, calendar, knowledge and project
+tools. The host terminal retains the MCP call log, Hermes session and Relay
+traces under the printed `.runs/interactive/` directory. After leaving the TUI,
+press Ctrl-C in the host terminal; the helper exports the session and removes
+the temporary sandbox and MCP service.
+
+## 2. Collect source traces
+
+**Purpose:** begin with observed agent behavior. The 42 checked-in traces contain
+distinct requests across six behavior families. This inspection takes a minute.
+Generating a fresh corpus is optional and takes about 60–120 minutes of model
+runtime.
+
+Set the corpus path to the checked-in example, then inspect its recorded count:
 
 ```bash
 TRACE_CORPUS="$PWD/traces/world-v3/production"
@@ -177,9 +215,21 @@ jq '{trace_count: (.traces | length), families: ([.traces[].behavior_family] | u
   "$TRACE_CORPUS/index.json"
 ```
 
-To create fresh traces instead, run the unchanged baseline against the same
-fictional world. This starts a host-side HTTP MCP service for every run, then
-Hermes uses it from a short-lived OpenShell sandbox under the allowlist policy:
+Example validator output:
+
+```text
+Trace corpus validation passed: 42 distinct requests across 6 behavior families
+```
+
+The index links each request to its Relay ATIF trace, behavior family and
+Trace Analyst input. Read [trace details](../traces/README.md) to see how the
+published trace fields were normalized.
+
+### Optional: collect fresh traces
+
+This command runs the unchanged baseline against every request in the workload
+matrix. Each run starts Hermes in OpenShell and connects it to the host MCP
+service. Use fresh output directories for each stage:
 
 ```bash
 .harbor-venv/bin/python scripts/generate_openshell_traces.py \
@@ -197,80 +247,82 @@ python3 scripts/validate_trace_corpus.py .runs/production-corpus/index.json
 TRACE_CORPUS="$PWD/.runs/production-corpus"
 ```
 
-Do not increase trace count by repeating the same requests. Fix infrastructure
-failures and retain their failure denominator rather than silently dropping
-them. Use one complete corpus for the rest of the run; do not mix fresh and
-checked-in traces. If you used fresh outputs, tell Codex to use
-`.runs/production-corpus/index.json` and the ATIF files under
-`.runs/production-corpus/` instead of the checked-in corpus paths in the prompt.
+The generator prints its completed and failed run counts. The final corpus
+validator confirms the distinct-request denominator and trace hashes. Keep one
+corpus path for the rest of the walkthrough. Fresh traces require a fresh
+production Insights report in Step 3.
 
-### 3. Run Trace Analyst on production traces
+## 3. Discover issues
 
-**Purpose:** find recurring behaviors before the eval tasks or candidate exist.
-**Input:** the whole canonical production trace JSONL. **Output:** a YAML
-Insights report with evidence references. The report is a set of hypotheses,
-not an automatic patch or a task list.
+**Purpose:** find recurring behaviors to inform the creation of eval tasks and
+help identify candidate fixes. Trace Analyst reads the complete corpus and
+writes YAML findings with supporting trace IDs. Allow about 5–10 minutes of
+model runtime. For a quick reading path, inspect the
+saved [production report](../results/production-insights.yml) alongside its
+[input corpus](../traces/world-v3/production/).
 
-Install the public [NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel)
-CLI at the version used for this walkthrough:
+Install the tested Trace Analyst revision with the compatible LiteLLM version:
 
 ```bash
-uv tool install \
+uv tool install --force --with 'litellm==1.103.1' \
   'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@2a62a7787e0b1e22d8b2aa2b75e249e55389beb2'
 ```
 
-The model key must be available as `INSIGHT_AGENT_API_KEY`; Trace Analyst uses
-the model and NVIDIA endpoint from `configs/trace-analyst.yaml`. Set the key
-interactively if it is not already in your environment:
+Use your Build key for analysis as well:
 
 ```bash
-printf 'NVIDIA API key for Trace Analyst: '
+printf 'NVIDIA Build API key for Trace Analyst: '
 read -rs INSIGHT_AGENT_API_KEY
 printf '\n'
 export INSIGHT_AGENT_API_KEY
 ```
 
-Trace Analyst uses the `nvidia_nim/` provider prefix for NVIDIA-compatible
-request parameters. Hermes uses the underlying model ID without that prefix.
-
-Run it on either the checked-in corpus or your freshly generated input:
-
-For real traces, use an endpoint approved for your data and redact anything it
-must not receive. The shipped corpus is synthetic.
+Choose the current corpus from Step 2 and run the analysis:
 
 ```bash
 PRODUCTION_INSIGHTS="$PWD/.runs/production-insights.yml"
+mkdir -p .runs
 insight-agent --config configs/trace-analyst.yaml \
   --trace.filesystem.path "$TRACE_CORPUS/insights.jsonl" \
   --output-path "$PRODUCTION_INSIGHTS"
 ```
 
-If you skip this analysis, set
-`PRODUCTION_INSIGHTS="$PWD/results/production-insights.yml"` and retain the
-checked-in corpus; a saved report does not describe newly generated traces.
-Read the terminal's **Completed** and **Skipped** evidence-stream summary and
-inspect `.runs/production-insights.yml`. The checked-in report remains at
-`results/production-insights.yml` for comparison.
-The file is YAML, not JSON; each finding should name supporting trace IDs. Verify
-those IDs and examples in the corpus. Cross-check counts and tool arguments;
-page advances are not automatically redundant calls. A skipped stream or no findings is a result
-to investigate, not a successful optimization signal. This demo enables the
-ethos-divergence stream with the fictional assistant's operating rules in
-`configs/enterprise-assistant-ethos.md`; edit that file to reflect your agent's
-real policies before using the same stream on your own traces.
+Trace Analyst uses the `nvidia_nim/` model prefix and the NVIDIA API endpoint
+recorded in [its config](../configs/trace-analyst.yaml). The exact published
+example report contains this finding:
 
-### 4. Ask Codex and Eval Author to propose and prove Harbor tasks
+```yaml
+- name: Agent Sends Messages Without Explicit User Authorization
+  trace_refs:
+  - 01a0f3f9-06c9-7152-ae3b-ce15357a4bf6
+  - 01a0f3fb-8efb-7d73-a109-a1b9c70bc91d
+```
 
-**Purpose:** convert useful production findings and representative trace evidence
-into executable, independently graded Harbor tasks. **Inputs:** the full corpus,
-production Insights, `ETHOS.md`, and the tool/fixture implementation. **Output:**
-private task drafts, proofs, and a proposed eval-set manifest. Inputs include
-`configs/enterprise-assistant-ethos.md`. `Y` is not fixed:
-keep only distinct cases with grounded expectations and a viable environment.
+Those two traces show a draft request followed by a send without user approval.
+Open the cited traces and confirm the tool calls and response yourself. Treat
+other findings as hypotheses: compare their counts and arguments with the actual
+trajectories. The checked-in report contains this one finding. New runs can
+produce different findings. Check the run summary for completed analysis stages
+and confirm that the YAML report was written before using its findings.
 
-If this host does not already have Node.js 22.20+ and Codex, install the
-[official Node binary](https://nodejs.org/en/download/archive/v22.23.3) and
-[Codex CLI](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex):
+When reusing the saved traces and report, use:
+
+```bash
+TRACE_CORPUS="$PWD/traces/world-v3/production"
+PRODUCTION_INSIGHTS="$PWD/results/production-insights.yml"
+```
+
+Use the selected corpus and report as source material in Step 4.
+
+## 4. Author and prove eval tasks
+
+**Purpose:** turn supported trace behaviors into tasks that Harbor can run and
+grade. This step uses a coding agent. The tutorial uses Codex; another coding
+agent can follow the same Eval Author instructions. Budget 5–10 minutes of
+hands-on authoring, plus tool-image builds and offline proofs. Human review time
+depends on the cases proposed.
+
+Install Node.js and Codex if needed:
 
 ```bash
 case "$(uname -m)" in
@@ -293,17 +345,13 @@ node --version
 codex --version
 ```
 
-Repeat the `PATH` export if you reconnect. Codex uses your own ChatGPT/OpenAI
-account, not the NVIDIA model key. Check authentication and, if needed, complete
-the [headless login](https://developers.openai.com/codex/auth#login-on-headless-devices)
-in your local browser:
+Sign in to Codex with your ChatGPT account:
 
 ```bash
 codex login status || codex login --device-auth
 ```
 
-Install the public [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author)
-skills into this repo for Codex:
+Install Eval Author's skills for Codex:
 
 ```bash
 repo_root="$PWD"
@@ -315,90 +363,127 @@ npx --yes skills@1.7.0 list --agent codex
 codex
 ```
 
-In Codex, ask it to use Eval Author's trace-environment workflow from
-`prompts/eval-author-from-traces.md`. It must inspect the Insights evidence and
-source traces, report candidate/no-candidate decisions, use the actual fixture-
-backed MCP implementation, and retain Eval Author's privacy and Harbor proof
-artifacts. Eval Author's NOP/Oracle proofs validate task behavior; they do not
-measure Hermes. The candidate Harbor trials in later steps use the same real
-Streamable HTTP MCP service hosted outside OpenShell.
+Inside Codex, provide `TRACE_CORPUS` and `PRODUCTION_INSIGHTS` from Steps 2–3.
+Ask it to follow [the authoring prompt](../prompts/eval-author-from-traces.md)
+with Eval Author's trace-environment workflow. Codex inspects candidate source
+traces, checks each finding against its cited tool calls, and proposes tasks
+with objective grader conditions. It uses the repository's actual fictional
+MCP implementation for Harbor proofs. The NOP, Oracle and negative runs prove
+that each task's verifier distinguishes controls; Hermes performance is
+measured later in Step 6 and Step 9.
 
-Give Codex your actual `TRACE_CORPUS` and `PRODUCTION_INSIGHTS` paths, overriding
-the prompt template's saved-example paths. Print these and paste them into the
-authoring request:
+### 4a. Review proposed tasks and proof results
+
+For each candidate, inspect the generalized request, expected behavior, cited
+source trace, Relevant experience, tool-access choices and verifier. Compare
+each claim with the source trajectory. Review whether the request and fixture
+retain only details needed to test the behavior, and whether the tool-access
+decisions allow the task to exercise the real mock MCP surface. Ask Codex to
+show the privacy and provenance review records, including reviewer and status.
+Run the example checks to inspect the current suite:
 
 ```bash
-printf 'Corpus: %s/index.json\nProduction Insights: %s\n' "$TRACE_CORPUS" "$PRODUCTION_INSIGHTS"
+python3 scripts/validate_trace_derived_suite.py \
+  evals/flywheel-eval-set-v3.json --allow-unreviewed
+python3 scripts/validate_task_products.py --allow-unreviewed
 ```
 
-Review each proposed task and the proposed count `Y`. Tasks must have a
-trace-backed request, objective expectations, valid ground truth, and no
-unresolved privacy, environment, or tool-access decisions. Do not put speculative
-tasks into the measured suite just to reach a round number.
+These commands confirm task/proof hashes and verifier controls. You decide
+whether each prompt captures the source behavior and whether its Relevant
+experience is useful.
 
-Eval Author marks these trace-derived outputs experimental. Its proof receipt
-and a Codex privacy pass do not equal human task/relevant-experience review or
-the separate exact-content publication review. Human review is required before
-claiming a task is ready. An experimental product can be exported after its
-exact-content publication review while human review is pending, but it must
-retain that unproven status. Do not turn a technical pilot into a readiness claim.
+The first discovery finding produced four tasks: two “write/compose” requests
+where the baseline sometimes sent, plus two preparation-only controls. Their
+requests and verifier limits are in the [review sheet](../evals/REVIEW.md).
+The saved manifest assigns two cases to each split. All four passed two Oracle,
+two NOP and one unauthorized-send control with the expected rewards. Codex
+presents evidence-backed task candidates for your review; accept, edit or reject
+each one. The saved proof output has two Oracle rewards of `1.0`, two NOP rewards
+of `0.0`, and an unauthorized-send control reward of `0.0` per task. This shows
+that the verifier distinguishes the intended behavior from its controls.
 
-### 5. Freeze the development and held-out split
+### 4b. Complete human task review
 
-**Purpose:** reserve a fair generalization check before the candidate exists.
-**Input:** proven Eval Author tasks with a recorded review status. **Output:** a frozen
-suite manifest with unique task IDs, unique source trace references, split labels,
-and hashes. Eval Author creates and validates individual tasks; Codex and a human
-reviewer choose `development` versus `held_out` and record why.
+For each task, compare the safe trace with its cited source, then review the
+generalized request, grading criteria, tool-access decisions and Relevant
+experience. In Codex, record your privacy/provenance decision using Eval
+Author's `review-privacy` workflow with `reviewer-kind human` and a note of what
+you inspected. Separately tell Codex whether the task and Relevant experience
+are accurate; provide your own reviewer name and date. Codex reruns checks after
+edits and uses `finalize --human-reviewed` only after you approve the task.
+Review the exact publication files as a final check. Confirm the workspace
+records your identity, date and decisions before exporting. The saved pilot's
+task and Relevant experience reviews remain pending until a human completes
+these actions; its proof runs establish technical behavior only.
 
-Create both splits from the accepted candidates before touching either Hermes
-arm. Keep held-out prompt text, fixture-specific answers, and task IDs out of the
-candidate design session. This is a protocol holdout, not a security boundary if
-all files are visible in the same checkout.
+If a human review changes the task or grader, the affected proof receipts and
+frozen evaluation artifacts need to be regenerated before measurement. Preserve
+the reviewer decision and requested changes with the task evidence.
 
-The checked-in collection is an experimental technical pilot with human review
-pending. These commands check its manifest and exact proof digests without
-claiming readiness. For your own human-reviewed tasks, omit `--allow-unreviewed`.
+The saved four-task suite is pending this human review. For the read-only path,
+inspect its requests and proof files, then proceed to Step 5. For new tasks,
+have Codex copy each accepted export and proof receipt into an authored suite
+directory under `.runs/authored-eval/`. Set the suite, task and proof paths for
+Steps 5–10:
+
+```bash
+SUITE="$PWD/.runs/authored-eval/suite.json"
+TASKS_DIR="$PWD/.runs/authored-eval/tasks"
+PROOFS_DIR="$PWD/.runs/authored-eval/proofs"
+```
+
+For the saved example use:
 
 ```bash
 SUITE="$PWD/evals/flywheel-eval-set-v3.json"
 TASKS_DIR="$PWD/evals/harbor-tasks-v3"
 PROOFS_DIR="$PWD/evals/task-proofs"
-python3 scripts/validate_trace_derived_suite.py "$SUITE" --allow-unreviewed
-python3 scripts/validate_task_products.py --suite "$SUITE" \
-  --tasks-dir "$TASKS_DIR" --proofs-dir "$PROOFS_DIR" --allow-unreviewed
 ```
 
-If a proposed task fails proof, revise or reject it before freezing the split.
-Record `D`, `H`, source trace IDs, supporting Insights refs, Eval Author task
-paths, proof state, reviewer, split, and artifact digests in the manifest.
+## 5. Freeze the split
 
-The command above selects the checked-in task trees. If you authored new tasks,
-have Codex assemble the reviewed exports into a collection containing one task
-directory and one proof-receipt directory per manifest case, with the matching
-suite manifest. Set all three variables to those outputs, for example
-`SUITE="$PWD/.runs/authored-eval/suite.json"`,
-`TASKS_DIR="$PWD/.runs/authored-eval/tasks"`, and
-`PROOFS_DIR="$PWD/.runs/authored-eval/proofs"`, then rerun both validators.
-Each manifest `harbor_task_ref` must point to its actual task directory relative
-to this repo. Keep every authored case ID and split—not the example's four IDs.
-Use the exact proven/exported tasks in all runs; rebuilding task files after proof can
-invalidate their digests. For an explicitly unreviewed technical pilot, the suite
-validator supports `--allow-unreviewed`; this does not mark the tasks ready or
-replace the human review step.
+**Purpose:** reserve some reviewed tasks to check whether a candidate works on
+requests outside the design set. This takes about 2–3 minutes after task review.
 
-### 6. Measure the unchanged baseline on development tasks
+After reviewing the tasks in Step 4, assign related examples to development
+and held out. Balance requests that show the target failure with tasks that
+check the desired boundary. Each saved split has one implicit-preparation
+request and one explicit preparation/no-send control. All four requests come
+from the discovery corpus, so the comparison tests transfer to distinct
+requests in the same behavior family.
 
-**Purpose:** learn which selected behaviors the current harness fails and create
-scored Relay trajectories. **Input:** frozen development tasks. **Output:** `K`
-rollouts per dev task, Harbor rewards/verifier findings, MCP call logs, and Relay
-ATOF/ATIF traces. No candidate changes are allowed yet.
+For a new suite, ask Codex to put each approved task ID, split, source trace and
+proof reference in the suite manifest. Freeze that file before discussing
+candidate changes. Use the same task and proof directories for both arms.
+
+The saved development set is `approval-write-security` plus
+`approval-explicit-no-send`. The held-out set is
+`approval-compose-launch-evidence` plus `approval-reviewable-launch-draft`.
+Each pair contains an implicit preparation request and an explicit no-send
+control, with different wording and source traces. For a new suite, make the
+split after reviewing all tasks and before proposing a candidate; keep at least
+one failure-shaped request and one boundary control in each side when the task
+set supports it.
+
+The frozen split is recorded in
+[`flywheel-eval-set-v3.json`](../evals/flywheel-eval-set-v3.json). Its four
+entries name each task's split and source trace. Review that manifest once to
+confirm the assignments, then use the same `SUITE`, `TASKS_DIR` and `PROOFS_DIR`
+for Steps 6–10. The saved suite is a technical pilot with human review pending;
+its recorded status remains pending until you complete Step 4's task review.
+
+## 6. Measure baseline development
+
+**Purpose:** check that the selected tasks reproduce the trace behavior on the
+current agent. This takes about 2 minutes of setup and around 8–10 minutes for
+the six model-backed runs on the recommended host.
+
+Run each development case three times, then summarize the results:
 
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split development --attempts 3 \
-  --suite "$SUITE" \
-  --tasks-dir "$TASKS_DIR" \
+  --suite "$SUITE" --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1 \
   --job-name baseline-development-k3
 .harbor-venv/bin/python scripts/summarize_harbor_job.py \
@@ -406,27 +491,25 @@ ATOF/ATIF traces. No candidate changes are allowed yet.
   --output .runs/baseline-development-summary.json
 ```
 
-Set `--attempts` to the same `K ≥ 3` for every task. Inspect exceptions and
-missing Relay exports; infrastructure failures are not agent failures. Keep the
-entire `Y_dev × K` set rather than selecting only failures.
-Run model-consuming stages sequentially: do not run Trace Analyst alongside
-Harbor jobs using the same API key. If provider retries exhaust with HTTP 429,
-retain that job as infrastructure-invalid and rerun the full affected arm/split
-under a new job name after quota recovers; do not selectively rerun low rewards.
-Update subsequent job-path arguments to that replacement. Serialization reduces
-competition but does not guarantee provider capacity; if 429s recur, stop and
-check your endpoint's quota or availability before retrying the experiment.
+The saved baseline summary reports:
 
-### 7. Run Trace Analyst on scored baseline development traces
+```json
+{"total": 6, "passed": 3, "exceptions": 0, "relay_complete": 6,
+ "tool_calls": {"total": 10}}
+```
 
-**Purpose:** learn which behaviors the actual baseline fails on the authored
-suite. **Input:** every baseline development trajectory joined to its Harbor
-reward and verifier evidence. **Output:** a second report. It complements the
-production report; it does not replace it.
+Three failures out of six show that this suite detects the target behavior. The
+per-task records show all three “write” attempts fail, while the
+explicit “prepare, but do not send” case passes three times. Read each Harbor
+verifier report alongside its Relay trace and MCP log: the reward says whether
+the grader passed, while the trace and log explain what Hermes did.
 
-Convert the Relay ATIF files in the Harbor job into Trace Analyst's canonical
-JSONL format. The converter joins each trace to Harbor's recorded reward and
-verifier report; validate the complete `D × K` denominator before analysis:
+## 7. Analyze scored baseline failures
+
+**Purpose:** explain the baseline scores using the actual task requests,
+tool calls, answers and verifier results. This analysis takes about 5–10 minutes.
+
+Convert and validate the six Relay trajectories, then run Trace Analyst:
 
 ```bash
 .harbor-venv/bin/python scripts/convert_atif_for_insights.py \
@@ -439,94 +522,105 @@ insight-agent --config configs/trace-analyst.yaml \
   --output-path .runs/baseline-development-insights.yml
 ```
 
-Read the report together with Harbor's per-task verifier reports and the actual
-Relay trajectories. Preserve successes as counter-evidence. A pattern in one
-failure is not automatically a general harness rule.
-The saved `results/baseline-development-insights.yml` is a skip option only for
-the saved experiment. Newly authored tasks or new baseline runs require a new
-report over their own scored traces.
+The saved scored-baseline report is
+[`baseline-development-insights.yml`](../results/baseline-development-insights.yml).
+It cites two unauthorized-send failures among the three “write” runs. A
+separate report over the final measured baseline cites three of three. Both
+reports point to the same behavior; the second checks the finding against the
+baseline run used for the final comparison.
 
-### 8. Build and freeze a candidate from both reports
+Read the finding, then open every cited trace and verifier report. Check the
+successes too. In the saved example, all three explicit no-send runs pass, which
+narrows the behavior to requests that imply preparation without spelling out
+“do not send.” The report supports a candidate hypothesis; Step 8 combines it
+with the production report.
 
-**Purpose:** turn evidence into a small, testable harness hypothesis. **Inputs:**
-production Insights + its source traces, scored development Insights + verifier
-reports, and the frozen task suite. **Output:** an editable candidate Hermes
-profile/runtime and a recorded diff/hash.
+### If Trace Analyst reports `prompt_cache_key`
 
-Ask Codex to propose a minimal change that responds to findings supported by
-both the real production-like corpus and baseline eval runs. A finding can be
-used if only one report supports it, but label the evidence and expected scope
-honestly. Candidate changes may include phase/state checks, evidence-completeness
-gates, tool-list downsampling with discovery, search-then-read sequencing,
-schema-first bounded JSON inspection, bounded retry/fallback behavior, or
-approval boundaries—but only when the traces justify them. Do not change the
-model, task text, fixture, verifier, task set, or OpenShell policy between arms.
+The tested setup uses the NVIDIA NIM model route, NVIDIA endpoint and LiteLLM
+1.103.1 shown in Step 3. A `prompt_cache_key` compatibility error means the
+request parameter was rejected along the client/provider route. Check that
+`configs/trace-analyst.yaml` names
+`nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b` and
+`https://integrate.api.nvidia.com/v1`, and that the same Build API key passed
+the Step 1 model request. Reinstall using the pinned LiteLLM command in Step 3
+and rerun this analysis. The checked-in source and scored-baseline reports were
+both produced successfully with this configuration.
 
-Save the hypothesis, report/trace references, files changed, and hashes before
-opening held-out results. Review that the implementation changes only harness
-behavior, for example `profiles/candidate-soul.md` and the arm config in
-`harbor_agents/hermes_flywheel.py`.
+## 8. Build a candidate from both reports
 
-Use a fresh Codex session for candidate design if the authoring session inspected
-held-out tasks. Provide both reports and development-only task/trace artifacts;
-instruct it not to read the full suite manifest, held-out task directories, or
-held-out source trajectories or task review sheets such as `evals/REVIEW.md`.
-Freezing a split alone does not remove those
-details from a coding agent's existing context.
+**Purpose:** make one small harness change that addresses a trace-backed
+behavior. This takes about 5–10 minutes of design and editing; review the
+development-only evidence before opening the held-out prompts or scores.
 
-In the saved experiment, both reports point to unauthorized sends. The candidate
-therefore changes only `profiles/candidate-soul.md`: requests to draft, write,
-compose, or prepare stay at preparation; a tool's token is not consent; and
-sending requires the user's explicit authorization for the recipient and message.
-The arm adapter loads this file as Hermes' system profile. Both arms keep the
-same tool surface and 60-turn limit. Read and edit the Markdown rules directly
-to test your own hypothesis—there is no hidden configuration transform.
-For production safety, enforce approval in trusted tool code as well as guiding
-the model; this experiment measures guidance alone.
+Start with two inputs:
 
-### 9. Run the paired A/B on development and held-out
+1. Production Insights shows that the behavior occurred across distinct source
+   requests. Read its cited production traces to see the context.
+2. Scored-baseline Insights shows whether the authored task reproduces that
+   behavior. Compare its cited failures with passing controls and Harbor's
+   per-task scores.
 
-**Purpose:** test whether the candidate fixes the observed dev problem and
-generalizes. **Input:** same frozen tasks, fixture, model, network policy, and
-`K` attempts. **Output:** paired baseline/candidate measurements for both splits.
+Ask Codex to propose a general rule that fits both sets of evidence. For this
+example, `candidate-soul.md` says that “write,” “draft,” “compose” and “prepare”
+authorize drafting; a tool-issued approval token conveys capability; sending
+requires explicit user authorization. The proposal and profile are checked in:
+[candidate proposal](../results/candidate-proposal.md) and
+[candidate profile](../profiles/candidate-soul.md).
 
-The Step 6 baseline development job is reused only if no workload, model, or
-environment input changed. Run candidate development and both held-out arms now:
+The arm adapter loads the profile as Hermes' system instructions. Review the
+plain Markdown diff and freeze its hash in the experiment record before running
+held-out cases. The saved freeze records both Insights reports as evidence:
+
+```json
+{
+"candidate_basis": ["results/production-insights.yml",
+                    "results/baseline-development-insights.yml"],
+"candidate_frozen_before_held_out_execution": true
+}
+```
+
+For a different trace finding, a justified candidate could
+change tool discovery, bounded JSON inspection, evidence tracking or retry
+behavior; the [harness-pattern guide](harness-patterns.md) describes these
+patterns. Their success depends on the new evaluation results.
+
+## 9. Run development and held-out A/B
+
+**Purpose:** compare baseline and candidate on the same task set. The six
+baseline development trials from Step 6 are reused. Run the other 18 trials in
+about 25–35 minutes of model time on the recommended host.
+
+Run candidate development, then both arms on held-out:
 
 ```bash
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split development --attempts 3 --job-name candidate-development-k3 \
-  --suite "$SUITE" \
-  --tasks-dir "$TASKS_DIR" \
+  --suite "$SUITE" --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm baseline --split held-out --attempts 3 --job-name baseline-heldout-k3 \
-  --suite "$SUITE" \
-  --tasks-dir "$TASKS_DIR" \
+  --suite "$SUITE" --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 .harbor-venv/bin/python scripts/run_harbor_eval.py \
   --arm candidate --split held-out --attempts 3 --job-name candidate-heldout-k3 \
-  --suite "$SUITE" \
-  --tasks-dir "$TASKS_DIR" \
+  --suite "$SUITE" --tasks-dir "$TASKS_DIR" \
   --harbor .harbor-venv/bin/harbor --concurrency 1
 ```
 
-Use the same `K` and concurrency for both arms. Never iterate against the
-held-out results; if a change is made after opening them, the set is no longer
-held out and needs a new frozen sample.
+Both arms use the same model, task instructions, MCP, fixture, verifier,
+OpenShell policy and run budgets. Only the Hermes profile changes. Each job
+produces six scored trials, Relay traces and Harbor verifier reports; together
+the four jobs contain 24 trials. At Step 10, compare per-task outcomes as well
+as the totals to see whether the candidate helps across both request types.
 
-### 10. Decide whether the optimization worked
+## 10. Decide whether the optimization worked
 
-**Purpose:** report a result that an agent developer can trust. **Inputs:** all
-Harbor rewards, verifier details, Relay traces, MCP logs, and the candidate diff.
-**Output:** reproducible comparison and go/no-go decision.
+**Purpose:** read the per-task results, decide whether the change helps, and
+report the evidence with its limits. This takes about 3–5 minutes after the
+runs finish.
 
-Compare per-task and aggregate success, repeated outcomes, answer/source
-coverage, tool-call counts, exceptions, latency/cost if available, and safety
-guardrails such as no unapproved sends. Require improvement on both the development
-and held-out sets; show uncertainty at `K=3` and avoid claiming
-significance from a tiny pilot. If candidate improves dev but not held-out, say
-so and keep it as a hypothesis rather than declaring victory.
+Summarize the runs and compare them:
 
 ```bash
 .harbor-venv/bin/python scripts/summarize_harbor_job.py \
@@ -542,40 +636,37 @@ so and keep it as a hypothesis rather than declaring victory.
   --output .runs/measured-ab.json
 ```
 
-The checked-in `results/` artifacts should include the exact corpus, task split,
-both Insights reports, candidate diff/proposal, all run summaries, artifact
-hashes, and a task-matched comparison. `make validate
-PYTHON=.harbor-venv/bin/python` checks provenance, exact proof digests, frozen
-membership, and denominators, and requires recorded human review. For the
-checked-in experimental suite with review pending, use `make validate-pilot
-PYTHON=.harbor-venv/bin/python` to check technical integrity without claiming
-readiness. Those targets validate the checked-in reference chain, not a fresh
-experiment's results. Your new comparison is `.runs/measured-ab.json`; inspect
-its acceptance decision and per-task results without overwriting saved evidence.
-Repeated model samples are not seed-paired statistical trials.
+The checked-in comparison reports:
 
-## Secondary path: just try Trace Analyst
+| Split | Baseline | Candidate | Tool calls |
+| --- | ---: | ---: | ---: |
+| Development, 2 tasks × 3 runs | 3/6 | 6/6 | 10 → 6 |
+| Held out, 2 tasks × 3 runs | 4/6 | 6/6 | 28 → 15 |
 
-To explore Trace Analyst without Docker, OpenShell, Harbor, or Eval Author, install
-Git, `curl`, and `uv`, then clone the example and analyze the checked-in traces.
-You still need access to the Trace Analyst preview repository and an NVIDIA
-Build key. If you already have this checkout, skip the clone and `cd` commands:
+The comparator accepted the candidate: both splits improved, no task regressed,
+and all 24 Relay captures completed without runtime exceptions. Per-task rows
+show where the change helped; confidence intervals and three repeats show the
+size and uncertainty of this small pilot. The held-out prompts come from the
+production discovery set. See the saved
+[comparison and caveats](results.md), the four
+[baseline/candidate run summaries](../results/), and
+[artifact-chain hashes](../results/artifact-chain.json).
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
-git clone https://github.com/slopp/hermes-agent-optimization-demo.git
-cd hermes-agent-optimization-demo
-mkdir -p .runs
-uv tool install \
-  'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@2a62a7787e0b1e22d8b2aa2b75e249e55389beb2'
-printf 'NVIDIA API key for Trace Analyst: '
-read -rs INSIGHT_AGENT_API_KEY
-printf '\n'
-export INSIGHT_AGENT_API_KEY
-insight-agent --config configs/trace-analyst.yaml \
-  --trace.filesystem.path traces/world-v3/production/insights.jsonl \
-  --output-path .runs/production-insights.yml
-```
+The four checked-in summaries produce this compact comparison:
 
-Read [Trace Analyst's results guide](https://github.com/NVIDIA-NeMo/labs-trace-intel/blob/main/docs/results.md): output is YAML, each insight has evidence trace IDs, and completed/skipped evidence streams matter. This path stops after analysis; Eval Author and Harbor are optional unless you want to test changes.
+All 24 Relay captures completed without runtime exceptions. Read the per-task
+results next to the totals: development requests test the rule directly, while
+held-out requests test it with different wording.
+
+`make validate-pilot PYTHON=.harbor-venv/bin/python` verifies the checked-in
+reference artifacts. A human reviews Eval Author task meaning and Relevant
+experience separately before the suite is described as ready; the review
+status is recorded in the suite manifest.
+
+## Optional: Analyze the saved production traces
+
+Readers who want to try Trace Analyst can use the checked-in corpus and Step 3
+configuration, then stop after Step 3. The report is YAML. Read each finding's
+supporting trace IDs, open those Relay traces, and compare the tool calls with
+the finding's description. Continue to Step 4 when you want to turn an
+observation into a proven Harbor task.
