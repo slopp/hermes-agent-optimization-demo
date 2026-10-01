@@ -9,11 +9,18 @@ It also binds the exact trace and analysis-input bytes with SHA-256 digests.
 Public projections redact non-fixture tool payloads and declare normalization
 losses. Recorded token usage is preserved when available; missing totals are
 omitted rather than inferred as zero.
+Public projections retain requests, tool observations and final answers, not
+every intermediate assistant/LLM message. Use the walkthrough's model selector
+for new runs; recorded identifiers are preserved as provenance.
 
 `world-v3/baseline-development/insights.jsonl` contains every repeated baseline
 development rollout joined to its Harbor reward and verifier findings. It is
 the second Trace Analyst input and must contain exactly `D × K` traces with at
 least three per development task.
+
+`world-v3/verification-baseline-development/` holds the independent baseline
+input joined to the measured reference comparison. It corroborates the frozen
+candidate; it does not replace the original design traces above.
 
 Validate a corpus and scored bundle with:
 

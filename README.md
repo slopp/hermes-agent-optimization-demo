@@ -66,6 +66,7 @@ verifier requires a Linux kernel with `CONFIG_NFT_FIB_INET`, so Docker Desktop i
 not the supported full-run environment.
 
 Supporting detail: [fixture world](fixtures/README.md),
+[trace artifacts](traces/README.md),
 [harness patterns](docs/harness-patterns.md), and
 [extending the environment for RL](docs/gym-extension.md).
 

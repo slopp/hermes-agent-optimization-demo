@@ -1,6 +1,6 @@
 # Fixtures
 
-`world-v2.json` is the canonical tutorial world: 504 deterministic records
+`world-v2.json` is the canonical tutorial world: over 500 deterministic records
 across people, mail, chat, calendar, knowledge, files, project tasks,
 analytics, and support. It also fixes connector state, time, pagination
 pressure, a large structured file, and one transient fault. Every MCP session
