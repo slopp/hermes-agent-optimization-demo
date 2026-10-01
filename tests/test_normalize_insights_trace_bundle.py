@@ -44,6 +44,24 @@ class NormalizeInsightsTraceBundleTest(unittest.TestCase):
         self.assertIn("redacted", call["arguments"])
         self.assertEqual(atif["extra"]["tool_catalog"]["terminal"], {})
 
+    def test_preserves_recorded_usage_and_model_without_inventing_zero_totals(self):
+        trace = {"id": "measured", "attributes": {
+            "task_text": "Prepare a draft", "agent": {"model_name": "recorded-model"},
+            "final_metrics": {"total_prompt_tokens": 123, "total_completion_tokens": 45},
+        }, "root_spans": []}
+        atif = convert(trace, collection="development", ordinal=1)
+        self.assertEqual(atif["agent"]["model_name"], "recorded-model")
+        self.assertEqual(atif["final_metrics"]["total_prompt_tokens"], 123)
+        self.assertEqual(atif["final_metrics"]["total_completion_tokens"], 45)
+        self.assertEqual(atif["final_metrics"]["total_steps"], len(atif["steps"]))
+
+    def test_marks_missing_usage_unknown_instead_of_reporting_zero(self):
+        atif = convert({"id": "unknown", "attributes": {"agent": None}, "root_spans": []},
+                       collection="development", ordinal=1)
+        self.assertNotIn("total_prompt_tokens", atif["final_metrics"])
+        self.assertNotIn("total_completion_tokens", atif["final_metrics"])
+        self.assertTrue(atif["extra"]["normalization"]["uncertainties"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -115,7 +115,9 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
                 },
             }
         )
-    model = attributes.get("model")
+    model = attributes.get("model") or (attributes.get("agent") or {}).get("model_name")
+    source_metrics = attributes.get("final_metrics")
+    metrics = dict(source_metrics) if isinstance(source_metrics, dict) else {}
     steps.append(
         {
             "step_id": len(steps) + 1,
@@ -126,6 +128,7 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
         }
     )
     trace_id = str(trace["id"])
+    metrics["total_steps"] = len(steps)
     return {
         "schema_version": "ATIF-v1.7",
         "session_id": trace_id,
@@ -135,11 +138,7 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
             "version": "tutorial-baseline",
             "model_name": model,
         },
-        "final_metrics": {
-            "total_prompt_tokens": 0,
-            "total_completion_tokens": 0,
-            "total_steps": len(steps),
-        },
+        "final_metrics": metrics,
         "extra": {
             "logical_case_id": attributes.get("logical_case_id"),
             "observed_verdict": attributes.get("observed_verdict"),
@@ -157,7 +156,13 @@ def convert(trace: dict[str, Any], *, collection: str, ordinal: int) -> dict[str
                 "losses": [
                     "Span nesting was flattened into sequential ATIF steps.",
                     "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+                    "total_steps counts the projected public trajectory, not the original span tree.",
                 ],
+                "uncertainties": (
+                    (["Model identity was not recorded by the source."] if model in (None, "unknown") else [])
+                    + (["Token totals were unavailable in mapped source metrics; they were not inferred as zero."]
+                       if not isinstance(source_metrics, dict) else [])
+                ),
             },
         },
         "steps": steps,

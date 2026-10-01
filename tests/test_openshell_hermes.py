@@ -1,3 +1,4 @@
+import asyncio
 import json
 import tempfile
 import unittest
@@ -36,6 +37,39 @@ class OpenShellHelpersTest(unittest.TestCase):
 
 @unittest.skipIf(OpenShellHermesFlywheel is None, "Harbor is not installed")
 class OpenShellArtifactFailureTest(unittest.IsolatedAsyncioTestCase):
+    async def test_harbor_cancellation_downloads_evidence_before_deleting_sandbox(self):
+        with tempfile.TemporaryDirectory() as temp:
+            agent = OpenShellHermesFlywheel(
+                logs_dir=Path(temp) / "logs", arm="baseline",
+                model_name="nvidia/nemotron-3-ultra-550b-a55b",
+            )
+            failure = asyncio.CancelledError("Harbor agent deadline")
+            events = []
+
+            async def command(args, **kwargs):
+                if "exec" in args:
+                    events.append("cancel")
+                    raise failure
+                if "delete" in args:
+                    events.append("delete")
+                return 0, "", ""
+
+            async def download(sandbox, remote, local):
+                events.append("download")
+                if remote.endswith("hermes-session.jsonl"):
+                    local.write_text('{"messages":[]}')
+                return True
+
+            agent._start_remote_mcp = AsyncMock(return_value=(object(), object()))
+            agent._stop_remote_mcp = AsyncMock()
+            agent._host_command = AsyncMock(side_effect=command)
+            agent._download_optional = AsyncMock(side_effect=download)
+            with self.assertRaises(asyncio.CancelledError) as caught:
+                await agent.execute_openshell("Prepare a draft.", Path(temp) / "artifacts")
+            self.assertIs(caught.exception, failure)
+            self.assertEqual(events, ["cancel", "download", "download", "download", "delete"])
+            agent._stop_remote_mcp.assert_awaited_once()
+
     async def test_collected_artifacts_are_published_before_failure_cleanup(self):
         with tempfile.TemporaryDirectory() as temp:
             agent = OpenShellHermesFlywheel(logs_dir=Path(temp) / "logs", arm="baseline")

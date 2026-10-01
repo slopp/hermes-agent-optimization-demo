@@ -116,9 +116,11 @@ class OpenShellHermesFlywheel(HermesFlywheel):
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 process.communicate(), timeout=timeout
             )
-        except TimeoutError:
+        except (TimeoutError, asyncio.CancelledError) as exc:
             process.kill()
             await process.wait()
+            if isinstance(exc, asyncio.CancelledError):
+                raise
             raise RuntimeError(
                 f"Host command timed out after {timeout}s: {shlex.join(command)}"
             ) from None
@@ -339,7 +341,7 @@ exit "$hermes_rc"
     async def execute_openshell(self, instruction: str, artifact_dir: Path) -> None:
         """Run one unscored agent turn and retain its deployment artifacts."""
         sandbox = sandbox_name(self.session_id, self.arm)
-        run_error: RuntimeError | None = None
+        run_error: BaseException | None = None
         artifact_dir.mkdir(parents=True, exist_ok=True)
         async with _remote_mcp_port() as mcp_port:
             token = secrets.token_urlsafe(32)
@@ -400,7 +402,10 @@ exit "$hermes_rc"
                                 ],
                                 timeout=390,
                             )
-                        except RuntimeError as exc:
+                        except (RuntimeError, asyncio.CancelledError) as exc:
+                            # Harbor can cancel before OpenShell's own timeout.
+                            # Retain the partial session and Relay export while
+                            # the sandbox still exists, then propagate cancellation.
                             run_error = exc
 
                         for name in ("hermes-session.jsonl", "hermes.txt"):
