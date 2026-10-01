@@ -41,8 +41,12 @@ control (3/3 to 2/3). It invents launch-plan details rather than drafting about
 the requested outstanding artifact. The conservative per-task regression gate
 therefore rejects this cycle. The candidate was not tuned against that result.
 
-The public-provider comparison and fresh-host walkthrough are still being
-verified. These are not a completed public reference run.
+The public-provider comparison is incomplete. A fresh Ubuntu host reproduced
+all twenty offline controls and the production Insights finding, but its
+six-attempt baseline job had one exhausted HTTP 429 exception. Serial execution
+and a successful small API smoke did not guarantee sustained endpoint capacity.
+That job is infrastructure-invalid; it cannot supply a baseline score or an
+optimization claim. The full public reference run remains unverified.
 Task controls and human review are separate gates: passing NOP, Oracle, and
 negative controls establishes technical behavior, not human approval of the task.
 The [task review sheet](../evals/REVIEW.md) describes each request, relevant
