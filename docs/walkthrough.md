@@ -557,9 +557,16 @@ Repeated model samples are not seed-paired statistical trials.
 ## Secondary path: just try Trace Analyst
 
 To explore Trace Analyst without Docker, OpenShell, Harbor, or Eval Author, install
-it from its public repository and analyze the checked-in production traces:
+Git, `curl`, and `uv`, then clone the example and analyze the checked-in traces.
+You still need access to the Trace Analyst preview repository and an NVIDIA
+Build key. If you already have this checkout, skip the clone and `cd` commands:
 
 ```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+git clone https://github.com/slopp/hermes-agent-optimization-demo.git
+cd hermes-agent-optimization-demo
+mkdir -p .runs
 uv tool install \
   'insight-agent @ git+https://github.com/NVIDIA-NeMo/labs-trace-intel.git@2a62a7787e0b1e22d8b2aa2b75e249e55389beb2'
 printf 'NVIDIA API key for Trace Analyst: '

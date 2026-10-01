@@ -19,7 +19,7 @@ up state. Pin a tested Gym revision because its APIs evolve.
 | `ToolRegistry.schemas()` | resource-server tool definitions |
 | `ToolRegistry.call()` | shared dispatcher |
 | Harbor task `tests/expected.json` and `tests/verify.py` | measured grading contract to preserve |
-| `flywheel-eval-set-v3.json` | reviewed development and held-out task source |
+| `flywheel-eval-set-v3.json` | development and held-out task source; human review still required |
 
 The Gym adapter should contain only lifecycle and wire-format code. MCP and Gym
 must import the same world and registry. Extract the Harbor grading contract
