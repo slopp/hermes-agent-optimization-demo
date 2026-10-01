@@ -45,6 +45,9 @@ The public-provider comparison and fresh-host walkthrough are still being
 verified. These are not a completed public reference run.
 Task controls and human review are separate gates: passing NOP, Oracle, and
 negative controls establishes technical behavior, not human approval of the task.
+The [task review sheet](../evals/REVIEW.md) describes each request, relevant
+experience, and the grader's deliberately narrow scope without requiring a
+reviewer to interpret JSON contracts.
 
 ## Limits
 

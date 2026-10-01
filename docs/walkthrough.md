@@ -451,7 +451,8 @@ behavior, for example `profiles/candidate-soul.md` and the arm config in
 Use a fresh Codex session for candidate design if the authoring session inspected
 held-out tasks. Provide both reports and development-only task/trace artifacts;
 instruct it not to read the full suite manifest, held-out task directories, or
-held-out source trajectories. Freezing a split alone does not remove those
+held-out source trajectories or task review sheets such as `evals/REVIEW.md`.
+Freezing a split alone does not remove those
 details from a coding agent's existing context.
 
 In the saved experiment, both reports point to unauthorized sends. The candidate
