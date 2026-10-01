@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 14848,
+    "total_completion_tokens": 492,
+    "total_cost_usd": 0.01572386544,
+    "total_prompt_tokens": 45614,
     "total_steps": 4
   },
   "extra": {
@@ -1027,7 +1029,11 @@
       "source_trace_id": "01a0f448-b9bc-7c93-965a-3f881731fc14",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1090,7 +1096,7 @@
       "step_id": 4,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "Message sent successfully to Ava in the general channel asking her to share the Security packet before the review."
     }
   ]

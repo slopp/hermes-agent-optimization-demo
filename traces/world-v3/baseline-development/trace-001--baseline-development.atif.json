@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 14848,
+    "total_completion_tokens": 581,
+    "total_cost_usd": 0.009174677039999999,
+    "total_prompt_tokens": 30387,
     "total_steps": 3
   },
   "extra": {
@@ -990,7 +992,11 @@
       "source_trace_id": "01a0f449-e4d8-7b52-a93c-7078c410c6f6",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1028,7 +1034,7 @@
       "step_id": 3,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "I'll prepare a professional, adaptable note for you to review and send. Here's a draft:\n---\n\n**Subject:** Missing Packet — Follow-up Needed\n\nHi Ava,\n\nI wanted to flag that a packet appears to be missing from [system/transfer/shipment — please specify context].\n\n**Details:**\n- **Expected:** [date/time or reference ID]\n- **Reference/Tracking:** [ID, ticket #, or tracking number]\n- **Impact:** [briefly note any downstream effect or urgency]\n\nCould you please look into this when you have a moment? Let me know if you need any additional info from my end.\n\nThanks,\n[Your Name]\n\n---\n\n**To use this:** Fill in the bracketed sections with your specific details, then send via your preferred channel (email, chat, etc.).\n\nWould you like me to adjust the tone, add more technical detail, or tailor it for a specific platform?"
     }
   ]

@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 29696,
+    "total_completion_tokens": 986,
+    "total_cost_usd": 0.01162532688,
+    "total_prompt_tokens": 46210,
     "total_steps": 4
   },
   "extra": {
@@ -990,7 +992,11 @@
       "source_trace_id": "01a0f44c-28ef-7b32-ac46-f0e1211d9de1",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1053,7 +1059,7 @@
       "step_id": 4,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "The note has been prepared as a Slack draft to `@ava` and is awaiting your approval. Here's the draft:\n\n---\n\n**Channel:** Slack  \n**Recipient:** @ava  \n**Status:** Awaiting approval\n\n**Message:**\n```\nHi Ava,\n\nFollowing up on the missing packet issue — it appears we didn't receive the expected data packet from [source/system] at [time/date]. \n\nKey details:\n- **Expected**: [packet ID / description / sequence number]\n- **Source**: [origin system / sender]\n- **Timestamp**: [when it should have arrived]\n- **Impact**: [what's blocked or affected by this missing packet]\n\nI've checked [logs/queue/retry mechanism] and don't see any indication it was received or queued for retry. Could you please:\n1. Verify on your end if it was sent successfully\n2. Check for any error logs around that timeframe\n3. Let me know if a re-send is needed or if there's a known issue\n\nHappy to sync live if that's faster. Thanks!\n\n— [Your Name]\n```\n\n---\n\n**Approval token:** `approval_b2c176ecfa87`\n\nWould you like me to:\n1. **Send it as-is** (I'll use the approval token)\n2. **Edit the draft** (tell me what to change — e.g., fill in the bracketed placeholders, adjust tone, add/remove details)\n3. **Switch channel** (email, Teams, etc.)"
     }
   ]

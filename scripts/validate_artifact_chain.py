@@ -8,6 +8,7 @@ import hashlib
 import json
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -173,19 +174,34 @@ def validate(root: Path, *, require_review: bool = True) -> None:
             "held-out membership differs from experiment freeze")
     require(digest(stage_paths["candidate_profile"]) == freeze.get("candidate_profile_sha256"),
             "candidate profile differs from frozen design")
+    require(set(freeze.get("candidate_basis", [])) == {
+        stage_paths[name].relative_to(root).as_posix()
+        for name in ("production_insights", "baseline_development_insights")
+    }, "candidate basis differs from retained design reports")
+    try:
+        frozen_at = datetime.fromisoformat(freeze["recorded_at"]).astimezone(timezone.utc)
+    except (KeyError, TypeError, ValueError):
+        require(False, "missing or invalid candidate freeze timestamp")
 
-    baseline_bundle_path = stage_paths["baseline_development_traces"]
-    baseline_bundle = [
-        json.loads(line)
-        for line in baseline_bundle_path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    counts = Counter(trace.get("attributes", {}).get("logical_case_id") for trace in baseline_bundle)
-    require(set(counts) == {case["id"] for case in dev_cases}, "scored baseline bundle task IDs differ from development split")
-    attempt_counts = set(counts.values())
-    require(len(attempt_counts) == 1 and next(iter(attempt_counts)) >= 3, "baseline dev task attempt counts must match and be K ≥ 3")
-    require(all(trace.get("evaluator_results", {}).get("harbor.reward") in (0, 0.0, 1, 1.0) for trace in baseline_bundle),
-            "baseline bundle must retain a binary Harbor reward on every trace")
+    verification_stages = {"verification_baseline_development_traces", "verification_baseline_development_insights"}
+    require(not (verification_stages & stage_ids) or verification_stages <= stage_ids,
+            "independent verification requires both its baseline bundle and report")
+    bundle_stages = ["baseline_development_traces"]
+    if verification_stages <= stage_ids:
+        bundle_stages.append("verification_baseline_development_traces")
+    for bundle_stage in bundle_stages:
+        baseline_bundle = [json.loads(line) for line in stage_paths[bundle_stage].read_text().splitlines() if line.strip()]
+        counts = Counter(trace.get("attributes", {}).get("logical_case_id") for trace in baseline_bundle)
+        require(set(counts) == {case["id"] for case in dev_cases}, "scored baseline bundle task IDs differ from development split")
+        attempt_counts = set(counts.values())
+        require(len(attempt_counts) == 1 and next(iter(attempt_counts)) >= 3, "baseline dev task attempt counts must match and be K ≥ 3")
+        ids = [trace.get("id") for trace in baseline_bundle]
+        require(all(isinstance(value, str) and value for value in ids) and len(set(ids)) == len(ids),
+                "scored baseline IDs must be nonempty and unique")
+        require(all(trace.get("evaluator_results", {}).get("harbor.reward") in (0, 0.0, 1, 1.0) for trace in baseline_bundle),
+                "baseline bundle must retain a binary Harbor reward on every trace")
+    # When verification is present, its bundle must match the measured run;
+    # the original design bundle/report remain the causal candidate inputs.
 
     measured = json.loads(stage_paths["measured_ab"].read_text(encoding="utf-8"))
     require(measured.get("schema") == "hermes-harbor-ab-comparison-v3", "invalid measured A/B schema")
@@ -200,6 +216,13 @@ def validate(root: Path, *, require_review: bool = True) -> None:
         for arm in ("baseline", "candidate"):
             summary = record.get(arm, {})
             run = json.loads(stage_paths[f"{arm}_{split}_run"].read_text())
+            if split == "held_out":
+                for trial in run.get("trials", []):
+                    try:
+                        started_at = datetime.fromisoformat(trial["started_at"]).astimezone(timezone.utc)
+                    except (KeyError, TypeError, ValueError):
+                        require(False, "missing or invalid held-out trial start timestamp")
+                    require(frozen_at < started_at, "candidate freeze must precede every held-out trial")
             trial_passes, run_fingerprints = validate_run(
                 root, run, {case["id"] for case in cases_on_split}, arm, attempts
             )

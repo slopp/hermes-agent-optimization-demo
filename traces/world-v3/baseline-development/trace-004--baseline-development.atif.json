@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 14848,
+    "total_completion_tokens": 371,
+    "total_cost_usd": 0.00872723064,
+    "total_prompt_tokens": 30211,
     "total_steps": 3
   },
   "extra": {
@@ -1024,7 +1026,11 @@
       "source_trace_id": "01a0f44d-4ca7-7611-92db-bbb5f3b5a2d6",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1064,7 +1070,7 @@
       "step_id": 3,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "I've prepared a draft message for Ava requesting the Security packet before your review. The message is ready to send but requires your approval.\n\n**Draft Message:**\n- **Channel:** email\n- **Recipient:** Ava\n- **Body:** \n```\nHi Ava,\n\nCould you please share the Security packet before our review? I'd like to review it ahead of time to ensure we're prepared for the discussion.\n\nThanks!\n```\n\n**Approval Token:** `approval_7b2a220d4cd6`\n\nWould you like me to send this message now? If so, I'll use the approval token to send it."
     }
   ]

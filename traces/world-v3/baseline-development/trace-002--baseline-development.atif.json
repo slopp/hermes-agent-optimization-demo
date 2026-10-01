@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 44544,
+    "total_completion_tokens": 777,
+    "total_cost_usd": 0.02073922872,
+    "total_prompt_tokens": 79619,
     "total_steps": 9
   },
   "extra": {
@@ -1024,7 +1026,11 @@
       "source_trace_id": "01a0f44e-6132-7261-be55-cee9143a11f6",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1207,7 +1213,7 @@
       "step_id": 9,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "The note to Ava has been prepared and is awaiting approval. Here's the draft:\n\n**To:** ava.patel@example.test  \n**Channel:** email\n\n---\n\nHi Ava,\n\nFollowing up on the launch blocker — the missing security evidence packet is still outstanding. Per the proj-launch chat, once this packet is attached, Security can sign off in one business day.\n\nCould you let me know the status of this packet or if there's anything I can do to help unblock it?\n\nThanks\n\n---\n\nThe approval token is `approval_d58c146e9bcb`. When you're ready to send it, I can submit it with that token."
     }
   ]

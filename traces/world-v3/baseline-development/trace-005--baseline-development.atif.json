@@ -5,11 +5,13 @@
   "agent": {
     "name": "Hermes-enterprise-world",
     "version": "tutorial-baseline",
-    "model_name": null
+    "model_name": "unknown"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
+    "total_cached_tokens": 14848,
+    "total_completion_tokens": 298,
+    "total_cost_usd": 0.015406337039999999,
+    "total_prompt_tokens": 45669,
     "total_steps": 4
   },
   "extra": {
@@ -1030,7 +1032,11 @@
       "source_trace_id": "01a0f44a-fb62-7af3-8060-586d966b27cc",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Model identity was not recorded by the source."
       ]
     }
   },
@@ -1093,7 +1099,7 @@
       "step_id": 4,
       "timestamp": null,
       "source": "agent",
-      "model_name": null,
+      "model_name": "unknown",
       "message": "Your message has been sent to Ava via chat. She should receive it now."
     }
   ]

@@ -67,6 +67,7 @@ class ArtifactChainTest(unittest.TestCase):
                     proof = json.loads((root / f"evals/task-proofs/{task_id}/result.json").read_text())
                     for k in range(3):
                         trials.append({"task": f"suite/{task_id}", "trial": f"{task_id}-{k}",
+                                       "started_at": "2026-10-01T00:00:00+00:00",
                                        "reward": reward, "exception": None, "arm": arm,
                                        "task_checksum": proof["technical_validation"]["task_checksum"],
                                        "verifier_environment_mode": "separate",
@@ -123,6 +124,52 @@ class ArtifactChainTest(unittest.TestCase):
             rows[0]["evaluator_results"]["harbor.reward"] = 1
             path.write_text("".join(json.dumps(row) + "\n" for row in rows))
             stage["sha256"] = digest(path)
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            with self.assertRaisesRegex(SystemExit, "Insights input differs"):
+                self.check(root)
+
+    def test_candidate_freeze_must_precede_real_held_out_trial_start(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            chain, _ = self.prepare(root)
+            stage = next(item for item in chain["stages"] if item["id"] == "baseline_held_out_run")
+            path = root / stage["path"]
+            summary = json.loads(path.read_text())
+            summary["trials"][0]["started_at"] = "2026-09-30T20:00:00+00:00"
+            path.write_text(json.dumps(summary))
+            stage["sha256"] = digest(path)
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            with self.assertRaisesRegex(SystemExit, "freeze must precede"):
+                self.check(root)
+
+    def test_verification_keeps_design_evidence_but_binds_measured_bundle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            chain, _ = self.prepare(root)
+            original = root / "traces/world-v3/baseline-development/insights.jsonl"
+            verification = root / "results/verification-baseline.jsonl"
+            verification.write_bytes(original.read_bytes())
+            rows = [json.loads(line) for line in original.read_text().splitlines()]
+            for row in rows:
+                row["id"] = "design-" + row["id"]
+            original.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            next(stage for stage in chain["stages"] if stage["id"] == "baseline_development_traces")["sha256"] = digest(original)
+            report = root / "results/verification-insights.yml"
+            report.write_text("[]\n")
+            measured_stage = chain["stages"].pop()
+            chain["stages"].extend([
+                {"id": "verification_baseline_development_traces", "path": str(verification.relative_to(root)),
+                 "sha256": digest(verification), "consumes": []},
+                {"id": "verification_baseline_development_insights", "path": str(report.relative_to(root)),
+                 "sha256": digest(report), "consumes": ["verification_baseline_development_traces"]},
+                measured_stage,
+            ])
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            self.check(root)
+            rows = [json.loads(line) for line in verification.read_text().splitlines()]
+            rows[0]["evaluator_results"]["harbor.reward"] = 1
+            verification.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            next(stage for stage in chain["stages"] if stage["id"] == "verification_baseline_development_traces")["sha256"] = digest(verification)
             (root / "results/artifact-chain.json").write_text(json.dumps(chain))
             with self.assertRaisesRegex(SystemExit, "Insights input differs"):
                 self.check(root)
