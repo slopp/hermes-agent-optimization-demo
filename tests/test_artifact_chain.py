@@ -28,6 +28,8 @@ class ArtifactChainTest(unittest.TestCase):
             destination = root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes((REPO / relative).read_bytes())
+        for source in (REPO / "traces/world-v3/production").iterdir():
+            (root / "traces/world-v3/production" / source.name).write_bytes(source.read_bytes())
         suite = json.loads((root / paths["eval_suite"]).read_text())
         measured = {"schema": "hermes-harbor-ab-comparison-v3", "attempts_per_task_per_arm": 3,
                     "acceptance": {"both_splits_improve": True}}

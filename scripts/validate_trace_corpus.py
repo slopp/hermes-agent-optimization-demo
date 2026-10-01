@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from pathlib import Path
@@ -28,6 +29,11 @@ def validate(index_path: Path) -> list[str]:
     index = json.loads(index_path.read_text(encoding="utf-8"))
     if index.get("schema") != "enterprise-trace-corpus-v2":
         errors.append("unsupported corpus schema")
+    bundle_path = index_path.parent / "insights.jsonl"
+    if not bundle_path.is_file():
+        errors.append("missing Insights input bundle")
+    elif index.get("insights_sha256") != hashlib.sha256(bundle_path.read_bytes()).hexdigest():
+        errors.append("Insights input bundle digest differs from index")
     records = index.get("traces")
     if not isinstance(records, list):
         return errors + ["traces must be a list"]
@@ -53,6 +59,8 @@ def validate(index_path: Path) -> list[str]:
         if not trace_path.is_file():
             errors.append(f"missing trace: {raw_path}")
             continue
+        if record.get("sha256") != hashlib.sha256(trace_path.read_bytes()).hexdigest():
+            errors.append(f"{raw_path}: trace digest differs from index")
         trace: dict[str, Any] = json.loads(trace_path.read_text(encoding="utf-8"))
         if trace.get("schema_version") != "ATIF-v1.7":
             errors.append(f"{raw_path}: expected ATIF-v1.7")

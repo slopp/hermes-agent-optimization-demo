@@ -5,6 +5,10 @@ requests recorded by NeMo Relay while the agent ran in OpenShell and called the
 host-side HTTP MCP through `openshell/policy.yaml`. The ATIF files are the
 trace-derived task evidence; `insights.jsonl` is the canonical Trace Analyst
 input; `index.json` records stable IDs, source prompts, and behavior families.
+It also binds the exact trace and analysis-input bytes with SHA-256 digests.
+Public projections redact non-fixture tool payloads and declare normalization
+losses. Recorded token usage is preserved when available; missing totals are
+omitted rather than inferred as zero.
 
 `world-v3/baseline-development/insights.jsonl` contains every repeated baseline
 development rollout joined to its Harbor reward and verifier findings. It is

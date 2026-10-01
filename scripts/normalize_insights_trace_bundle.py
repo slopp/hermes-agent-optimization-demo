@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -214,6 +215,7 @@ def main() -> int:
             index.append(
                 {
                     "path": filename,
+                    "sha256": hashlib.sha256((args.output / filename).read_bytes()).hexdigest(),
                     "trace_id": atif["trajectory_id"],
                     "logical_case_id": case_id,
                     "collection": label,
@@ -221,14 +223,14 @@ def main() -> int:
                     "prompt": _source_prompt(trace.get("attributes", {})),
                 }
             )
-    (args.output / "index.json").write_text(
-        json.dumps({"schema": "enterprise-trace-corpus-v2", "traces": index}, indent=2)
-        + "\n",
-        encoding="utf-8",
-    )
     (args.output / "insights.jsonl").write_text(
         "".join(json.dumps(trace, separators=(",", ":")) + "\n" for trace in public_traces),
         encoding="utf-8",
+    )
+    (args.output / "index.json").write_text(
+        json.dumps({"schema": "enterprise-trace-corpus-v2", "traces": index,
+                    "insights_sha256": hashlib.sha256((args.output / "insights.jsonl").read_bytes()).hexdigest()},
+                   indent=2) + "\n", encoding="utf-8",
     )
     print(json.dumps({"output": str(args.output), "traces": len(index)}))
     return 0

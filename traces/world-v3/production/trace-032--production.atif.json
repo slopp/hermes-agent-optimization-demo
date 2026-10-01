@@ -8,8 +8,6 @@
     "model_name": "nvidia/nvidia/nemotron-3-ultra"
   },
   "final_metrics": {
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
     "total_steps": 19
   },
   "extra": {
@@ -24,6 +22,7 @@
       "required_signals": [],
       "missing_signals": []
     },
+    "evaluator_results": {},
     "tool_catalog": {
       "clarify": {
         "properties": {
@@ -971,11 +970,15 @@
     "collection": "production",
     "collection_ordinal": 32,
     "normalization": {
-      "source_format": "NeMo Insights standalone trace JSONL derived from Relay ATOF",
+      "source_format": "NeMo canonical trace JSONL derived from Relay",
       "source_trace_id": "01a0f3e7-e3ab-7c20-a8c1-0404b6116f3a",
       "losses": [
         "Span nesting was flattened into sequential ATIF steps.",
-        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers."
+        "Non-fixture tool inputs and outputs were replaced by explicit redaction markers.",
+        "total_steps counts the projected public trajectory, not the original span tree."
+      ],
+      "uncertainties": [
+        "Token totals were unavailable in mapped source metrics; they were not inferred as zero."
       ]
     }
   },

@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.validate_task_products import validate as validate_task_products
+from scripts.validate_trace_corpus import validate as validate_trace_corpus
 
 
 def digest(path: Path) -> str:
@@ -120,6 +121,8 @@ def validate(root: Path, *, require_review: bool = True) -> None:
     require(required_stages <= stage_ids, f"missing chain stages: {sorted(required_stages - stage_ids)}")
 
     corpus = json.loads(stage_paths["production_corpus"].read_text(encoding="utf-8"))
+    corpus_errors = validate_trace_corpus(stage_paths["production_corpus"])
+    require(not corpus_errors, f"production corpus integrity: {corpus_errors}")
     source_traces = corpus.get("traces", [])
     require(36 <= len(source_traces) <= 48, "production trace count must be 36–48")
     prompt_values = [str(record.get("prompt", "")).strip().casefold() for record in source_traces]
