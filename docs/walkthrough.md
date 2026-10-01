@@ -248,7 +248,8 @@ Read the terminal's **Completed** and **Skipped** evidence-stream summary and
 inspect `.runs/production-insights.yml`. The checked-in report remains at
 `results/production-insights.yml` for comparison.
 The file is YAML, not JSON; each finding should name supporting trace IDs. Verify
-those IDs and examples in the corpus. A skipped stream or no findings is a result
+those IDs and examples in the corpus. Cross-check counts and tool arguments;
+page advances are not automatically redundant calls. A skipped stream or no findings is a result
 to investigate, not a successful optimization signal. This demo enables the
 ethos-divergence stream with the fictional assistant's operating rules in
 `configs/enterprise-assistant-ethos.md`; edit that file to reflect your agent's
