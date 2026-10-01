@@ -72,6 +72,28 @@ statistical significance; held-out requests come from the discovery corpus.
 Original design reports and [independent verification reports](docs/results.md#evidence-and-hypothesis)
 remain distinct.
 
+## Repository map
+
+| Folder | Purpose |
+| --- | --- |
+| [configs/](configs/) | Trace Analyst settings and the fictional assistant's analysis rules. |
+| [docs/](docs/) | The walkthrough, measured results, harness patterns and future Gym extension. |
+| [evals/](evals/) | Eval-suite manifest, runnable Harbor tasks, proof receipts and human review sheet. |
+| [experiments/](experiments/) | The 42-request workload used to collect production-like traces—not an eval suite. |
+| [fixtures/](fixtures/) | Deterministic fictional company records and initial tool state. |
+| [harbor_agents/](harbor_agents/) | Adapters that run Hermes in OpenShell and deliver answers/tool logs to Harbor. |
+| [openshell/](openshell/) | Sandbox image recipe, network policy and model-provider profile. |
+| [profiles/](profiles/) | Editable baseline and candidate Hermes system instructions. |
+| [prompts/](prompts/) | The authoring request to give Codex when using Eval Author. |
+| [results/](results/) | Saved Insights reports, candidate rationale, run summaries, comparisons and provenance hashes. |
+| [scripts/](scripts/) | Commands for trace collection/conversion, eval execution and validation. |
+| [src/](src/) | The mock MCP implementation, shared world/tool behavior and trace utilities. |
+| [tests/](tests/) | Automated tests for the environment, adapters, runners and artifact checks. |
+| [traces/](traces/) | Checked-in agent trajectories, corpus indexes and Trace Analyst inputs. |
+
+Your own run outputs go under `.runs/`; private Eval Author work goes under
+`.eval-author/`. Both are ignored by Git and are separate from the saved examples.
+
 ## Start here
 
 Follow the [walkthrough](docs/walkthrough.md) for prerequisites, copyable host
