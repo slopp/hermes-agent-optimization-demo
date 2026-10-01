@@ -195,6 +195,24 @@ def validate(root: Path, *, require_review: bool = True) -> None:
             trial_passes, run_fingerprints = validate_run(
                 root, run, {case["id"] for case in cases_on_split}, arm, attempts
             )
+            if split == "development" and arm == "baseline":
+                source_records = {}
+                for trial in run["trials"]:
+                    task_id = trial["task"].rsplit("/", 1)[-1]
+                    for trace_id in trial.get("relay_trajectory_ids", []):
+                        require(trace_id not in source_records, "duplicate measured baseline trace ID")
+                        source_records[trace_id] = (task_id, trial["reward"])
+                bundle_records = {}
+                for trace in baseline_bundle:
+                    trace_id = trace.get("id")
+                    require(isinstance(trace_id, str) and trace_id and trace_id not in bundle_records,
+                            "missing or duplicate scored baseline trace ID")
+                    bundle_records[trace_id] = (
+                        trace["attributes"]["logical_case_id"],
+                        trace["evaluator_results"]["harbor.reward"],
+                    )
+                require(source_records == bundle_records,
+                        "scored Insights input differs from measured baseline trace IDs or rewards")
             fingerprints.update(run_fingerprints)
             require(summary.get("passed") == sum(trial_passes.values()), "A/B aggregate differs from Harbor rewards")
             require(all(summary.get("per_task", {}).get(task_id, {}).get("passed") == passed

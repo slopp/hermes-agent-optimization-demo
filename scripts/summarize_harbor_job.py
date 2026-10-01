@@ -34,6 +34,12 @@ def main() -> int:
         report = _load(report_path) if report_path.exists() else {}
         artifact_root = result_path.parent / "artifacts" / "logs" / "artifacts"
         fingerprint_path = artifact_root / "runtime-fingerprint.json"
+        relay_ids = set()
+        for path in (artifact_root / "relay" / "atif").glob("*.json"):
+            trajectory = _load(path)
+            trace_id = trajectory.get("trajectory_id") or trajectory.get("session_id")
+            if isinstance(trace_id, str) and trace_id:
+                relay_ids.add(trace_id)
         trials.append(
             {
                 "task": result.get("task_name"),
@@ -51,6 +57,7 @@ def main() -> int:
                 "failures": report.get("failures", []),
                 "relay_atof": (artifact_root / "relay" / "atof" / "events.jsonl").exists(),
                 "relay_atif": any((artifact_root / "relay" / "atif").glob("*.json")),
+                "relay_trajectory_ids": sorted(relay_ids),
             }
         )
     numeric = [float(trial["reward"]) for trial in trials if trial["reward"] is not None]

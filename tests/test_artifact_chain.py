@@ -69,12 +69,21 @@ class ArtifactChainTest(unittest.TestCase):
                                        "task_checksum": proof["technical_validation"]["task_checksum"],
                                        "verifier_environment_mode": "separate",
                                        "requested_model": "nvidia/example", "relay_atof": True,
-                                       "relay_atif": True, "runtime_fingerprint": fingerprint})
+                                       "relay_atif": True, "relay_trajectory_ids": [f"{task_id}-{k}"],
+                                       "runtime_fingerprint": fingerprint})
                 summary = {"job_finished_at": "done", "runtime": {"name": "openshell-hermes-flywheel"},
                            "trials": trials, "counts": {"passed": len(trials) * reward}}
                 relative = f"results/{arm}-{split}-summary.json"
                 (root / relative).write_text(json.dumps(summary))
                 paths[f"{arm}_{split}_run"] = relative
+        baseline = [
+            {"id": f"{case['id']}-{k}", "attributes": {"logical_case_id": case["id"]},
+             "evaluator_results": {"harbor.reward": 0}}
+            for case in suite["cases"] if case["case_kind"] == "development" for k in range(3)
+        ]
+        (root / paths["baseline_development_traces"]).write_text(
+            "".join(json.dumps(trace) + "\n" for trace in baseline)
+        )
         paths["measured_ab"] = "results/measured-ab-v3.json"
         chain = {
             "schema": "hermes-agent-optimization-artifact-chain-v3",
@@ -100,6 +109,20 @@ class ArtifactChainTest(unittest.TestCase):
             self.check(root)
             with self.assertRaisesRegex(SystemExit, "human task/split review"):
                 self.check(root, require_review=True)
+
+    def test_scored_insights_cannot_use_a_different_baseline_bundle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            chain, _ = self.prepare(root)
+            stage = next(item for item in chain["stages"] if item["id"] == "baseline_development_traces")
+            path = root / stage["path"]
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            rows[0]["evaluator_results"]["harbor.reward"] = 1
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            stage["sha256"] = digest(path)
+            (root / "results/artifact-chain.json").write_text(json.dumps(chain))
+            with self.assertRaisesRegex(SystemExit, "Insights input differs"):
+                self.check(root)
 
     def test_frozen_candidate_drift_is_rejected_even_with_updated_stage_hash(self):
         with tempfile.TemporaryDirectory() as directory:
