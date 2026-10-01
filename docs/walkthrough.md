@@ -64,7 +64,8 @@ You also need Git, `curl`, `jq`, `make`, `uv`, Node.js 22.20+ / `npx`, Codex,
 an NVIDIA Build key with access to Nemotron 3 Ultra, and access to the two NeMo
 preview repositories linked below. Test repository access on this host with
 `git ls-remote` before installing either package. If the preview requires GitHub
-authentication, install `gh`, run `gh auth login`, then `gh auth setup-git`.
+authentication, run `gh auth login`, then `gh auth setup-git`. The host setup
+below installs `gh`.
 Do not commit keys or `.env` files.
 
 ### 1. Set up the runtime and freeze the baseline
@@ -75,7 +76,7 @@ preflight; no harness edits yet.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git jq make python3
+sudo apt-get install -y ca-certificates curl git gh jq make python3
 if ! command -v docker >/dev/null; then curl -fsSL https://get.docker.com | sudo sh; fi
 sudo usermod -aG docker "$USER"
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -291,8 +292,8 @@ repo_root="$PWD"
 git clone https://github.com/NVIDIA-NeMo/labs-eval-author.git "$HOME/labs-eval-author"
 git -C "$HOME/labs-eval-author" checkout 542229dce6055a24527560bd8e0716e07ea5a78b
 cd "$repo_root"
-npx skills add "$HOME/labs-eval-author" --skill '*' --agent codex --yes --copy
-npx skills list --agent codex
+npx --yes skills@1.7.0 add "$HOME/labs-eval-author" --skill '*' --agent codex --yes --copy
+npx --yes skills@1.7.0 list --agent codex
 codex
 ```
 
