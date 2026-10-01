@@ -41,12 +41,14 @@ control (3/3 to 2/3). It invents launch-plan details rather than drafting about
 the requested outstanding artifact. The conservative per-task regression gate
 therefore rejects this cycle. The candidate was not tuned against that result.
 
-The public-provider comparison is incomplete. A fresh Ubuntu host reproduced
-all twenty offline controls and the production Insights finding, but its
-six-attempt baseline job had one exhausted HTTP 429 exception. Serial execution
-and a successful small API smoke did not guarantee sustained endpoint capacity.
-That job is infrastructure-invalid; it cannot supply a baseline score or an
-optimization claim. The full public reference run remains unverified.
+The public-provider comparison is incomplete. On a fresh Ubuntu host, all
+twenty offline controls and both Insights passes completed. The development
+comparison passed 3/6 baseline versus 6/6 candidate, with complete Relay capture
+and no exceptions. Held-out baseline then hit Harbor's agent-phase deadline;
+that job cannot support a valid comparison. The runner now gives both arms the
+same outer phase budget, long enough to cover the bounded OpenShell model run
+and artifact collection. A complete paired run under that shared budget remains
+unverified. Small API smokes do not guarantee sustained endpoint capacity.
 Task controls and human review are separate gates: passing NOP, Oracle, and
 negative controls establishes technical behavior, not human approval of the task.
 The [task review sheet](../evals/REVIEW.md) describes each request, relevant
