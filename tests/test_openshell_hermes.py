@@ -192,6 +192,8 @@ class OpenShellRuntimeTest(unittest.TestCase):
             self.assertEqual(config["tools"]["tool_search"]["enabled"], "off")
 
     def test_only_profile_fingerprint_changes_between_arms(self) -> None:
+        import yaml
+
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             fingerprints = []
@@ -200,6 +202,8 @@ class OpenShellRuntimeTest(unittest.TestCase):
                                                model_name="nvidia/nemotron-3-ultra-550b-a55b", arm=arm)
                 runtime = root / arm / "run"
                 agent._write_runtime(runtime, "Prepare a draft.")
+                config = yaml.safe_load((runtime / "hermes/config.yaml").read_text())
+                self.assertEqual(config["agent"], {"max_turns": 60, "api_max_retries": 6})
                 fingerprints.append(json.loads((runtime / "artifacts/runtime-fingerprint.json").read_text()))
             self.assertNotEqual(fingerprints[0].pop("profile_sha256"), fingerprints[1].pop("profile_sha256"))
             for record in fingerprints:

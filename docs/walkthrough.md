@@ -146,6 +146,14 @@ The checked-in profile permits the model endpoint; the separate OpenShell policy
 allows only the local host-bridge MCP port. Harbor verifier containers
 remain separately isolated and no-network.
 
+Both arms use a shared six-attempt model-API budget (`agent.api_max_retries` in
+`harbor_agents/hermes_flywheel.py`) with Hermes' existing backoff. This is
+transport resilience, not the candidate optimization or six eval repetitions.
+The OpenShell model run remains capped at 360 seconds. An exhausted retry or
+timeout is still an infrastructure-invalid trial; this setting cannot fix a
+hard quota limit. Keep the same budget in both arms and do not mix results
+collected with different runtime fingerprints.
+
 ### 2. Start from the production-like traces (X)
 
 **Purpose:** give the workflow a real behavior corpus before authoring evals.
