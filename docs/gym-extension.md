@@ -18,12 +18,14 @@ up state. Pin a tested Gym revision because its APIs evolve.
 | `EnterpriseWorld` | session-local mutable state |
 | `ToolRegistry.schemas()` | resource-server tool definitions |
 | `ToolRegistry.call()` | shared dispatcher |
-| `verify_case()` | answer, trajectory, and state reward dimensions |
-| `flywheel-eval-set-v2.json` | development and held-out task source |
+| Harbor task `tests/expected.json` and `tests/verify.py` | measured grading contract to preserve |
+| `flywheel-eval-set-v3.json` | development and held-out task source; human review still required |
 
 The Gym adapter should contain only lifecycle and wire-format code. MCP and Gym
-must import the same world, registry, and verifier so training cannot target an
-easier simulation.
+must import the same world and registry. Extract the Harbor grading contract
+into a shared verifier before training, and prove score parity. The repository's
+`verify_case()` supports fixture contract tests; it is not currently identical
+to the measured Harbor verifier and must not silently replace it.
 
 Use a strict primary reward of 1 only when answer, trajectory, and state all
 pass. Retain tool calls, retries, bytes read, and timeouts as diagnostics.

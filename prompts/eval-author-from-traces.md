@@ -1,36 +1,72 @@
-# Codex prompt: propose Harbor evals from observed traces
+# Codex task: derive a reviewed Harbor suite with NeMo Eval Author
 
-Use the installed `eval-author` skills to help me design evaluations for this
-agent. Read `ETHOS.md` and the complete instructions for every Eval Author skill
-you invoke before taking action.
+Use the skills installed from `NVIDIA-NeMo/labs-eval-author`. Begin with its
+`eval-author` entry skill and select the supported trace-derived Harbor workflow.
+Use Codex as the coding agent; do not treat Eval Author as a standalone
+automatic trace-to-eval CLI.
 
-Our starting evidence is `traces/world-v2/corpus/index.json` and every ATIF file
-it references. Inspect the entire indexed corpus. Do not assume how many behaviors
-or tasks it should produce. Report:
+Use the corpus and report paths supplied in the current authoring request.
+The paths below are defaults for the saved example only; do not substitute a
+saved report for a fresh analysis or mix source corpora.
 
-1. the finite trace denominator you inspected;
-2. the recurring behaviors and gaps supported by trace IDs;
-3. your selection criteria and representative trace choices; and
-4. behaviors you excluded or deferred, with reasons.
+## Evidence
 
-After I approve the plan, apply the trace-derived environment workflow separately
-to each selected trace. Preserve the behavior under test while generalizing
-identities and data. The task must exercise the task-local `enterprise-world` MCP
-server backed by `fixtures/world-v2.json`; do not substitute a frozen answer lookup.
-Classify those calls according to the skill's access taxonomy and prove MCP
-registration, discovery, and invocation.
+- Production Trace Analyst report: `results/production-insights.yml`
+- Corpus index: `traces/world-v3/production/index.json`
+- Every ATIF trace in that index (inspect the complete 36–48 trace denominator)
+- Intended behavior: `ETHOS.md`
+- Tool implementation and fixture: `src/pa_style_mock_mcp/` and `fixtures/world-v2.json`
+- Existing task-materialization contract: `scripts/materialize_harbor_tasks.py`
 
-Use this repository's existing `.harbor-venv/bin/python` and
-`.harbor-venv/bin/harbor` for checks and proof jobs. Do not install or upgrade
-Harbor. Require NOP failure, Oracle success, relevant negative controls, and a
-separate no-network verifier.
+Do not inspect pre-existing candidate profiles or candidate proposals during
+task authoring; harness design is a later stage of the workflow.
 
-Stop at every required human privacy, tool-access, task-meaning, and publication
-review. Show the exact artifact and decision being reviewed; do not attest on my
-behalf or change a review field to bypass a gate.
+Use both the findings and their cited traces. For each finding, verify its cited
+behavior in the original trajectories; note contradictions, successes, and
+uncertainty. Do not turn each trace or each insight into a task automatically.
 
-Keep working state under `.eval-author/`. Do not inspect
-`evals/harbor-tasks-v2/` until after you have presented an independently derived
-task plan. Once approved, compare your proposed contracts with that reference set
-and explain substantive differences. Do not modify application code, harness
-profiles, or held-out tasks while authoring development evals.
+## Authoring request
+
+1. Propose independently testable task candidates grounded in the trace and
+   Insights evidence. Explain why each deserves a regression test and what the
+   verifier can objectively establish from the fictional fixture.
+2. Use Eval Author's trace-environment workflow for selected examples. Retain
+   its private workspaces, ATIF/privacy review, ground-truth provenance,
+   tool-access decisions, Harbor NOP/Oracle/negative controls, checksums, and
+   publication review artifacts. Keep rejected/no-candidate examples in the
+   reported source denominator.
+3. Each candidate task must exercise the actual Streamable HTTP MCP implementation
+   and fictional world from this repo—not exact-call transcript replay. For
+   Eval Author's isolated NOP/Oracle proofs, use the task-local stdio adapter
+   backed by the same implementation and fixture.
+   Measured Hermes runs later must use the separately hosted Streamable HTTP
+   MCP from OpenShell through `openshell/policy.yaml`; do not replace the
+   measured remote MCP with an in-sandbox server.
+4. Do not choose a target task count. `Y` is the number of distinct candidates
+   that remain grounded, provable, and accepted after review. Report the exact
+   count and rationale; do not inflate it with paraphrase-only duplicates.
+5. After all accepted tasks are prepared, propose a development/held-out split
+   and explain the behavior coverage and rationale. A human must approve the
+   task meanings and split before writing `human_reviewed` or freezing the
+   suite. Do not use held-out prompts or expected answers to design the
+   candidate harness.
+
+## Output and stopping point
+
+Keep working material private under `.eval-author/`. Do not edit the agent
+profiles, runtime, source corpus, checked-in public eval suite, or candidate
+implementation during task authoring. Do not claim public-release approval.
+
+Before stopping, report:
+
+- source trace count, IDs, and behavior-family counts;
+- each Insights finding, cited traces, candidate/no-candidate decision, and
+  resulting task ID if any;
+- task proof commands, results, checksums, rejected or blocked items;
+- the proposed `Y`, development/held-out counts, and rationale; and
+- every privacy, tool-access, task-meaning, relevant-experience, or publication
+  decision that still requires a human.
+
+Stop for human review wherever Eval Author requires a human decision. Do not
+silently mark pending decisions complete or materialize measured Harbor tasks
+from unreviewed drafts.

@@ -116,7 +116,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=ROOT / "fixtures" / "world-v2.json")
-    parser.add_argument("--cases", type=Path, default=ROOT / "evals" / "seed-suite-v2.json")
+    parser.add_argument("--cases", type=Path, default=ROOT / "tests" / "fixtures" / "world-contract-cases.json")
     parser.add_argument("--skip-eval", action="store_true", help="Validate only a candidate fixture's structural contract")
     args = parser.parse_args()
     world = load(args.fixture)

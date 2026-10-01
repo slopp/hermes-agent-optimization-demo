@@ -31,9 +31,9 @@ ARM_CONFIG = {
     },
     "candidate": {
         "profile": ROOT / "profiles" / "candidate-soul.md",
-        "max_turns": 12,
-        "toolsets": ["skills"],
-        "tool_search": "auto",
+        "max_turns": 60,
+        "toolsets": ["hermes-cli"],
+        "tool_search": "off",
     },
 }
 
@@ -78,7 +78,10 @@ class HermesFlywheel(Hermes):
             "provider": "auto",
             "toolsets": arm["toolsets"],
             "tools": {"tool_search": {"enabled": arm["tool_search"]}},
-            "agent": {"max_turns": arm["max_turns"]},
+            # Shared transport resilience, not a candidate optimization. Hermes
+            # applies its existing backoff; the OpenShell run timeout still caps
+            # total execution. Exhausted provider errors remain invalid trials.
+            "agent": {"max_turns": arm["max_turns"], "api_max_retries": 6},
             "memory": {"memory_enabled": False, "user_profile_enabled": False},
             "compression": {"enabled": True, "threshold": 0.85},
             "terminal": {"backend": "local", "timeout": 180},

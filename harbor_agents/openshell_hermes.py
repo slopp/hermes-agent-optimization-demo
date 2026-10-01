@@ -9,6 +9,8 @@ service. The adapter copies only verifier artifacts into the Harbor environment.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 import secrets
 import shlex
@@ -26,11 +28,13 @@ from harbor_agents.hermes_flywheel import ARM_CONFIG, HermesFlywheel
 from harbor_agents.openshell_utils import final_answer, sandbox_name
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_IMAGE = "hermes-flywheel-openshell:0.2"
+DEFAULT_IMAGE = "hermes-flywheel-openshell:0.3"
 DEFAULT_PROVIDER = "hermes-nvidia"
 HERMES_VERSION = "0.21.3"
 DEFAULT_MCP_HOST = "host.openshell.internal"
-DEFAULT_MCP_PORTS = (8765, 8766)
+# Keep one policy-approved host endpoint. Concurrent Harbor trials queue here,
+# so a second port never broadens host reachability or risks another service.
+DEFAULT_MCP_PORTS = (8765,)
 _REMOTE_MCP_QUEUES: dict[asyncio.AbstractEventLoop, asyncio.Queue[int]] = {}
 
 
@@ -112,9 +116,11 @@ class OpenShellHermesFlywheel(HermesFlywheel):
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 process.communicate(), timeout=timeout
             )
-        except TimeoutError:
+        except (TimeoutError, asyncio.CancelledError) as exc:
             process.kill()
             await process.wait()
+            if isinstance(exc, asyncio.CancelledError):
+                raise
             raise RuntimeError(
                 f"Host command timed out after {timeout}s: {shlex.join(command)}"
             ) from None
@@ -146,14 +152,14 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         hermes_home = runtime_dir / "hermes"
         (hermes_home / "nemo-relay").mkdir(parents=True)
 
-        if not self.model_name or "/" not in self.model_name:
-            raise ValueError("Model name must be in provider/model format")
-        provider, model = self.model_name.split("/", 1)
-        if provider != "nvidia":
+        if not self.model_name.startswith("nvidia/"):
             raise ValueError(
-                "The tutorial OpenShell profile supports NVIDIA models only; "
-                f"received provider {provider!r}"
+                "The tutorial OpenShell profile supports NVIDIA model IDs only; "
+                f"received {self.model_name!r}"
             )
+        # Keep the provider-native model ID intact rather than stripping or
+        # inferring a provider prefix from it.
+        model = self.model_name
 
         mcp_url = mcp_url or f"http://{self.mcp_host}:{DEFAULT_MCP_PORTS[0]}/mcp"
         config = self._build_config_yaml(model) + f'''mcp_servers:
@@ -168,6 +174,29 @@ class OpenShellHermesFlywheel(HermesFlywheel):
         (hermes_home / "SOUL.md").write_text(
             ARM_CONFIG[self.arm]["profile"].read_text(encoding="utf-8"),
             encoding="utf-8",
+        )
+        fingerprint = {
+            "schema": "hermes-runtime-fingerprint-v1",
+            "arm": self.arm,
+            "requested_model": model,
+            "provider": self.openshell_provider,
+            "provider_base_url": self.provider_base_url or "https://integrate.api.nvidia.com/v1",
+            "openshell_image": self.openshell_image,
+            "harness_config_sha256": hashlib.sha256(
+                self._build_config_yaml(model).encode()
+            ).hexdigest(),
+            "profile_sha256": hashlib.sha256((hermes_home / "SOUL.md").read_bytes()).hexdigest(),
+            "policy_sha256": hashlib.sha256(self.openshell_policy.read_bytes()).hexdigest(),
+            "fixture_sha256": hashlib.sha256((ROOT / "fixtures/world-v2.json").read_bytes()).hexdigest(),
+            "mcp_implementation_sha256": {
+                name: hashlib.sha256((ROOT / "src/pa_style_mock_mcp" / name).read_bytes()).hexdigest()
+                for name in ("tools.py", "world.py")
+            },
+        }
+        # Retain only selected hashes/identifiers, never config credentials or
+        # the session bearer token. The host writes this before agent execution.
+        (runtime_dir / "artifacts/runtime-fingerprint.json").write_text(
+            json.dumps(fingerprint, indent=2) + "\n", encoding="utf-8"
         )
         relay_config = f'''version = 1
 
@@ -223,6 +252,9 @@ exit "$hermes_rc"
         self, artifact_dir: Path, token: str, port: int
     ) -> tuple[asyncio.subprocess.Process, IO[bytes]]:
         """Start one authenticated host-side MCP service for this trial."""
+        # An empty host-owned log is evidence of zero calls. Never accept an
+        # agent-written replacement or infer zero mutations from a missing log.
+        (artifact_dir / "tool-calls.jsonl").touch()
         server_log = (artifact_dir / "mcp-server.log").open("wb")
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT / "src")
@@ -298,7 +330,7 @@ exit "$hermes_rc"
         self, environment: BaseEnvironment, artifact_dir: Path
     ) -> None:
         await environment.exec("mkdir -p /logs/artifacts/relay", timeout_sec=10)
-        for name in ("final-answer.txt", "tool-calls.jsonl", "hermes-session.jsonl"):
+        for name in ("final-answer.txt", "tool-calls.jsonl", "hermes-session.jsonl", "runtime-fingerprint.json"):
             source = artifact_dir / name
             if source.is_file():
                 await environment.upload_file(source, f"/logs/artifacts/{name}")
@@ -309,7 +341,7 @@ exit "$hermes_rc"
     async def execute_openshell(self, instruction: str, artifact_dir: Path) -> None:
         """Run one unscored agent turn and retain its deployment artifacts."""
         sandbox = sandbox_name(self.session_id, self.arm)
-        run_error: RuntimeError | None = None
+        run_error: BaseException | None = None
         artifact_dir.mkdir(parents=True, exist_ok=True)
         async with _remote_mcp_port() as mcp_port:
             token = secrets.token_urlsafe(32)
@@ -324,6 +356,9 @@ exit "$hermes_rc"
                         instruction,
                         mcp_url=f"http://{self.mcp_host}:{mcp_port}/mcp",
                         mcp_token=token,
+                    )
+                    (artifact_dir / "runtime-fingerprint.json").write_bytes(
+                        (runtime_dir / "artifacts/runtime-fingerprint.json").read_bytes()
                     )
                     try:
                         await self._host_command(
@@ -367,8 +402,26 @@ exit "$hermes_rc"
                                 ],
                                 timeout=390,
                             )
-                        except RuntimeError as exc:
+                        except (RuntimeError, asyncio.CancelledError) as exc:
+                            # Harbor can cancel before OpenShell's own timeout.
+                            # Retain the partial session and Relay export while
+                            # the sandbox still exists, then propagate cancellation.
                             run_error = exc
+                            if isinstance(exc, asyncio.CancelledError):
+                                # run.sh normally exports after Hermes exits.
+                                # A Harbor cancellation can arrive first; take
+                                # a read-only session snapshot before teardown.
+                                try:
+                                    await self._host_command(
+                                        [self.openshell_bin, "sandbox", "exec", "--name", sandbox,
+                                         "--workdir", "/workspace/run", "--timeout", "30",
+                                         "--no-login-shell", "--no-tty", "--", "/bin/bash", "-c",
+                                         "HERMES_HOME=/workspace/run/hermes hermes sessions export "
+                                         "/workspace/run/artifacts/hermes-session.jsonl --source cli"],
+                                        timeout=45, check=False,
+                                    )
+                                except Exception as collection_error:
+                                    exc.add_note(f"Partial session export failed: {collection_error}")
 
                         for name in ("hermes-session.jsonl", "hermes.txt"):
                             await self._download_optional(
@@ -423,5 +476,15 @@ exit "$hermes_rc"
         }
         with tempfile.TemporaryDirectory(prefix="hermes-openshell-") as temp:
             artifact_dir = Path(temp) / "artifacts"
-            await self.execute_openshell(instruction, artifact_dir)
-            await self._publish_artifacts(environment, artifact_dir)
+            try:
+                await self.execute_openshell(instruction, artifact_dir)
+            except BaseException as run_error:
+                # Retain already collected diagnostics before the temporary
+                # directory is removed, without replacing the original failure.
+                try:
+                    await self._publish_artifacts(environment, artifact_dir)
+                except Exception as publication_error:
+                    run_error.add_note(f"Artifact publication also failed: {publication_error}")
+                raise
+            else:
+                await self._publish_artifacts(environment, artifact_dir)

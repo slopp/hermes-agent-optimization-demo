@@ -4,50 +4,81 @@ from scripts.validate_trace_derived_suite import validate
 
 
 class TraceDerivedSuiteTest(unittest.TestCase):
-    def test_checked_in_trace_environment_suite_is_valid(self) -> None:
-        suite = {
-            "suite_version": "2.0",
+    def suite(self):
+        return {
+            "suite_version": "3.0",
             "generation": {
                 "method": "codex-with-nemo-eval-author",
-                "selection_rationale": "One recurring behavior anchors each development case.",
-                "review_status": "reference_tasks_checked_in",
-                "source_corpus": "traces/world-v2/corpus/index.json",
-                "source_trace_count": 36,
+                "selection_rationale": "Tasks represent distinct production insights and trace evidence.",
+                "review_status": "human_reviewed",
+                "source_corpus": "traces/world-v3/production/index.json",
+                "source_trace_count": 42,
+                "production_insights": "results/production-insights.yml",
+                "split_frozen_before_candidate": True,
             },
             "cases": [
                 {
-                    "id": "case-1",
-                    "case_kind": "trace_derived",
+                    "id": "coverage-task",
+                    "case_kind": "development",
+                    "behavior_family": "multi_source_coverage",
+                    "input": "Find the launch blocker and review time.",
+                    "expectations": {"required_tools": ["chat.search"]},
+                    "relevant_experience": "A human reviewer describes why cross-source launch evidence matters.",
                     "provenance": {
-                        "trace_ref": "traces/world-v2/corpus/case-1.atif.json",
-                        "harbor_task_ref": "evals/harbor-tasks-v2/case-1",
+                        "trace_ref": "traces/world-v3/production/trace-001.atif.json",
+                        "insight_refs": ["INS-001"],
+                        "harbor_task_ref": "evals/harbor-tasks-v3/coverage-task",
                     },
                 },
                 {
-                    "id": "case-1-held-out",
+                    "id": "coverage-held-out",
                     "case_kind": "held_out",
-                    "provenance": {"held_out_from_case_ids": ["case-1"]},
+                    "behavior_family": "multi_source_coverage",
+                    "input": "Summarize the blocker and scheduled review.",
+                    "expectations": {"required_tools": ["chat.search"]},
+                    "relevant_experience": "A human reviewer describes why this wording is a fair held-out case.",
+                    "provenance": {
+                        "trace_ref": "traces/world-v3/production/trace-002.atif.json",
+                        "insight_refs": ["INS-001"],
+                        "held_out_from_case_ids": ["coverage-task"],
+                        "harbor_task_ref": "evals/harbor-tasks-v3/coverage-held-out",
+                    },
                 },
             ],
         }
 
+    def test_suite_uses_dynamic_case_counts_and_insight_provenance(self) -> None:
+        self.assertEqual(validate(self.suite()), [])
+
+    def test_source_trace_count_must_be_in_supported_range(self) -> None:
+        suite = self.suite()
+        suite["generation"]["source_trace_count"] = 12
+        self.assertTrue(any("source_trace_count" in error for error in validate(suite)))
+
+    def test_draft_runs_do_not_establish_human_review(self) -> None:
+        suite = self.suite()
+        suite["generation"]["review_status"] = "pending_human_review"
+        self.assertTrue(any("human review" in error for error in validate(suite)))
+        self.assertEqual(validate(suite, require_review=False), [])
+
+    def test_unknown_review_status_is_never_accepted(self) -> None:
+        suite = self.suite()
+        suite["generation"]["review_status"] = "reviewed_by_model"
+        self.assertTrue(validate(suite, require_review=False))
+
+    def test_held_out_case_must_reference_development_behavior(self) -> None:
+        suite = self.suite()
+        suite["cases"][1]["provenance"]["held_out_from_case_ids"] = ["missing"]
+        self.assertTrue(any("development behavior parent" in error for error in validate(suite)))
+
+    def test_custom_task_collection_is_supported_but_unsafe_paths_are_not(self) -> None:
+        suite = self.suite()
+        for case in suite["cases"]:
+            case["provenance"]["harbor_task_ref"] = f".runs/authored/tasks/{case['id']}"
         self.assertEqual(validate(suite), [])
+        suite["cases"][0]["provenance"]["harbor_task_ref"] = "../coverage-task"
+        self.assertTrue(any("Harbor task reference" in error for error in validate(suite)))
 
-    def test_wrong_suite_version_is_rejected(self) -> None:
-        suite = {
-            "suite_version": "1.1",
-            "generation": {},
-            "cases": [
-                {"id": "case-1", "case_kind": "trace_derived", "provenance": {"trace_refs": ["intake://trace-1"], "eval_author_case_ref": "task-1"}},
-                {"id": "case-1-held-out", "case_kind": "held_out", "provenance": {"held_out_from_case_ids": ["case-1"], "eval_author_case_ref": "task-2"}},
-            ],
-        }
-        self.assertIn("suite_version must be 2.0", validate(suite))
 
-    def test_held_out_case_must_reference_a_trace_derived_parent(self) -> None:
-        suite = {
-            "suite_version": "2.0",
-            "generation": {"method": "codex-with-nemo-eval-author", "selection_rationale": "A recurring behavior anchors each case.", "review_status": "reference_tasks_checked_in", "source_corpus": "traces/world-v2/corpus/index.json", "source_trace_count": 36},
-            "cases": [{"id": "held-out", "case_kind": "held_out", "provenance": {"held_out_from_case_ids": ["missing"]}}],
-        }
-        self.assertIn("held-out case held-out needs existing held_out_from_case_ids", validate(suite))
+if __name__ == "__main__":
+    unittest.main()

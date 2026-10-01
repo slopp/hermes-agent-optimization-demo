@@ -7,9 +7,28 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_job_result(job_dir: Path, expected_trials: int) -> int:
+    """Harbor's successful CLI exit does not establish successful trial execution."""
+    result_path = job_dir / "result.json"
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"Cannot verify the recorded Harbor job: {result_path}: {exc}", file=sys.stderr)
+        return 1
+    stats = result.get("stats", {})
+    if (not result.get("finished_at")
+            or stats.get("n_completed_trials") != expected_trials
+            or stats.get("n_errored_trials") != 0):
+        print(f"Harbor job is incomplete or infrastructure-invalid: {result_path}. "
+              "Retain its artifacts and inspect trial exceptions before continuing.", file=sys.stderr)
+        return 1
+    return 0
 
 
 def main() -> int:
@@ -22,25 +41,35 @@ def main() -> int:
         default="openshell",
         help="Run Hermes in OpenShell (default) or directly in the Harbor task image.",
     )
-    parser.add_argument("--attempts", type=int, default=1)
+    parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--agent-timeout-multiplier", type=float, default=2.0,
+                        help="Shared Harbor agent-phase budget multiplier (includes sandbox/artifact overhead).")
     parser.add_argument("--harbor", default="harbor")
     parser.add_argument("--jobs-dir", type=Path, default=ROOT / ".runs" / "harbor")
     parser.add_argument("--job-name")
     parser.add_argument(
-        "--model", default="nvidia/nvidia/nemotron-3-ultra-550b-a55b"
+        "--suite", type=Path, default=ROOT / "evals" / "flywheel-eval-set-v3.json"
     )
+    parser.add_argument(
+        "--tasks-dir", type=Path, default=ROOT / "evals" / "harbor-tasks-v3"
+    )
+    parser.add_argument("--model", default="nvidia/nemotron-3-ultra-550b-a55b")
     parser.add_argument("--openshell-bin", default="openshell")
-    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.2")
+    parser.add_argument("--openshell-image", default="hermes-flywheel-openshell:0.3")
     parser.add_argument("--openshell-provider", default="hermes-nvidia")
     parser.add_argument("--provider-base-url", default="")
     args = parser.parse_args()
     if args.attempts < 1 or args.concurrency < 1:
         parser.error("--attempts and --concurrency must be positive")
+    if args.agent_timeout_multiplier <= 0:
+        parser.error("--agent-timeout-multiplier must be positive")
 
-    suite = json.loads((ROOT / "evals" / "flywheel-eval-set-v2.json").read_text())
-    case_kind = "held_out" if args.split == "held-out" else "trace_derived"
+    suite = json.loads(args.suite.read_text(encoding="utf-8"))
+    case_kind = "held_out" if args.split == "held-out" else "development"
     case_ids = [case["id"] for case in suite["cases"] if case["case_kind"] == case_kind]
+    if not case_ids:
+        parser.error(f"the selected suite has no {args.split} cases")
     job_name = args.job_name or f"{args.arm}-{args.split}"
     agent = (
         "harbor_agents.openshell_hermes:OpenShellHermesFlywheel"
@@ -51,7 +80,7 @@ def main() -> int:
         args.harbor,
         "run",
         "-p",
-        str(ROOT / "evals" / "harbor-tasks-v2"),
+        str(args.tasks_dir),
         "-a",
         agent,
         "--ak",
@@ -66,6 +95,8 @@ def main() -> int:
         str(args.attempts),
         "--n-concurrent",
         str(args.concurrency),
+        "--agent-timeout-multiplier",
+        str(args.agent_timeout_multiplier),
         "--yes",
     ]
     if args.runtime == "openshell":
@@ -92,7 +123,10 @@ def main() -> int:
     env["PYTHONPATH"] = (
         f"{ROOT}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else str(ROOT)
     )
-    return subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+    return_code = subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+    if return_code:
+        return return_code
+    return check_job_result(args.jobs_dir / job_name, len(case_ids) * args.attempts)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ try:
 except (ImportError, ModuleNotFoundError):  # OpenShell adapter requires Python 3.12.
     generate_openshell_traces = None
 
+from scripts.production_workload import validate_matrix
+
 
 def arguments(root: Path, *, retries: int) -> argparse.Namespace:
     matrix = root / "matrix.json"
@@ -59,6 +61,18 @@ class AlwaysFailAgent(RetryThenSucceedAgent):
 
 @unittest.skipIf(generate_openshell_traces is None, "OpenShell runtime is unavailable")
 class GenerateOpenShellTracesTest(unittest.IsolatedAsyncioTestCase):
+    def test_matrix_requires_distinct_prompt_rows_and_bounded_size(self) -> None:
+        matrix = {
+            "scenarios": [
+                {"id": f"task-{index}", "prompt": f"Request {index}", "behavior_family": "coverage"}
+                for index in range(36)
+            ]
+        }
+        validate_matrix(matrix)
+        matrix["scenarios"][1]["prompt"] = matrix["scenarios"][0]["prompt"]
+        with self.assertRaisesRegex(ValueError, "prompts must be distinct"):
+            validate_matrix(matrix)
+
     async def test_retries_one_logical_run_without_cancelling_the_batch(self) -> None:
         RetryThenSucceedAgent.calls = 0
         with tempfile.TemporaryDirectory() as raw:

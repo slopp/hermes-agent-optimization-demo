@@ -1,131 +1,148 @@
 {
-  "schema_version": "hermes-flywheel-artifact-chain-v1",
+  "schema": "hermes-agent-optimization-artifact-chain-v3",
+  "review_status": "pending_human_review",
+  "runtime": {
+    "agent_sandbox": "OpenShell",
+    "mcp": {
+      "location": "host_outside_sandbox",
+      "transport": "streamable-http",
+      "host": "host.openshell.internal",
+      "ports": [
+        8765
+      ]
+    }
+  },
   "stages": [
     {
-      "id": "source-traces",
-      "path": "traces/world-v2/corpus/index.json",
-      "sha256": "9c15ad6c161d56c6e43daf9e1cd33d8996c1739f58488ea4b66311779acdf82f",
-      "produces": "36 indexed baseline trajectories"
+      "id": "production_corpus",
+      "path": "traces/world-v3/production/index.json",
+      "sha256": "a2fd89488bcf896ddac7839c9f274a5269e66fd4697d57be9650c0f491f8fff8",
+      "consumes": []
     },
     {
-      "id": "authored-eval-set",
-      "consumes": ["source-traces"],
-      "path": "evals/flywheel-eval-set-v2.json",
-      "sha256": "464902c98b48085becb915f9f5b56f470a833bf6a1d3dccba4d7baefd2e4e7c3",
-      "produces": "six development cases and four held-out cases"
-    },
-    {
-      "id": "scored-baseline",
-      "consumes": ["authored-eval-set"],
-      "path": "traces/world-v2/baseline-eval/insights.jsonl",
-      "sha256": "f82fe1fb07f13788f9b6bde9fddb20d429920e5da1ddb2f67bbe0946adb98a5d",
-      "produces": "six baseline trajectories with Harbor rewards and verifier findings"
-    },
-    {
-      "id": "trace-analysis",
-      "consumes": ["scored-baseline"],
-      "path": "results/trace-analysis.yml",
-      "sha256": "3ecb88eee396865ecc386db18836678adf2ef02487950fd0bfb0466c29f191a5",
-      "produces": "TA-001 with five cited failed traces"
-    },
-    {
-      "id": "candidate-proposal",
-      "consumes": ["trace-analysis", "scored-baseline"],
-      "path": "results/candidate-proposal.md",
-      "sha256": "bb6217996f953eab7776e80d1ac735e8b039025eb79c5b40f4c1dd2f947f8185",
-      "produces": "H-01 through H-08 and a frozen acceptance gate"
-    },
-    {
-      "id": "candidate-profile",
-      "consumes": ["candidate-proposal"],
-      "path": "profiles/candidate-soul.md",
-      "sha256": "87da254ba3ef03dcc988f8b20914f1131154ef5744a5f136bae6a4ee2e080e4d",
-      "produces": "the exact candidate policy used in the measured run"
-    },
-    {
-      "id": "harness-adapter",
-      "consumes": ["candidate-proposal"],
-      "path": "harbor_agents/hermes_flywheel.py",
-      "sha256": "11aaafeb2e508a66b49720c86c481e774377ddbf780f6866744fdb5d9dee57b4",
-      "produces": "baseline and candidate tool-discovery, toolset, and turn-limit controls"
-    },
-    {
-      "id": "measured-result",
-      "consumes": ["authored-eval-set", "candidate-profile", "harness-adapter"],
-      "path": "results/measured-ab-v2.json",
-      "sha256": "6e6362861e4e0ff2f72cb706092f15ec734ca310bdf52fd20ef084ba945322dd",
-      "produces": "development and held-out baseline-versus-candidate measurements"
-    }
-  ],
-  "relationships": [
-    {
-      "finding": "TA-001",
-      "trace_refs": [
-        "01a0ea5c-00d7-7f61-a34c-702aac50efb9",
-        "01a0ea5c-1063-7fa2-a848-ee9c755bca49",
-        "01a0ea5d-bb37-7dc3-9871-bfe8d80eb300",
-        "01a0ea5f-0bb0-7511-81d6-8f3204fef0da",
-        "01a0ea60-c2ee-75b3-bb92-33aaa87f731c"
-      ],
-      "candidate_changes": ["H-01", "H-02", "H-07"]
-    }
-  ],
-  "implementation_checks": [
-    {
-      "id": "H-01",
-      "measured_change": "claim-to-source evidence routing and completeness stop check",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["route each requested claim", "verify coverage"]
-    },
-    {
-      "id": "H-02",
-      "measured_change": "search-then-read before citing record contents",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["Search hits", "read that thread"]
-    },
-    {
-      "id": "H-03",
-      "measured_change": "schema-first bounded structured reads",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["files.read_json", "json_pointer"]
-    },
-    {
-      "id": "H-04",
-      "measured_change": "one identical retry followed by one declared fallback",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["TEMPORARY_UNAVAILABLE", "support.search_tickets"]
-    },
-    {
-      "id": "H-05",
-      "measured_change": "connector-status awareness",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["connectors.get_status"]
-    },
-    {
-      "id": "H-06",
-      "measured_change": "prepare-without-send approval boundary",
-      "artifact": "profiles/candidate-soul.md",
-      "contains": ["actions.prepare_message", "remains unsent"]
-    },
-    {
-      "id": "H-07",
-      "measured_change": "irrelevant local, web, code, and session toolset removal",
-      "artifact": "harbor_agents/hermes_flywheel.py",
-      "contains": [
-        "\"toolsets\": [\"skills\"]",
-        "\"tool_search\": \"off\"",
-        "\"tool_search\": \"auto\""
+      "id": "production_insights",
+      "path": "results/production-insights.yml",
+      "sha256": "4c7f75bcf3ae60149903b66522ad34656a0edd287335f5ea19c1c3567b20a353",
+      "consumes": [
+        "production_corpus"
       ]
     },
     {
-      "id": "H-08",
-      "measured_change": "12-turn runtime cap and eight-MCP-call policy budget",
-      "artifact": "harbor_agents/hermes_flywheel.py",
-      "contains": ["\"max_turns\": 12"]
+      "id": "eval_suite",
+      "path": "evals/flywheel-eval-set-v3.json",
+      "sha256": "d2e3b6e6767a5a0206899674209a61a2d575c26d0dfbde81e5ddf729bff40c81",
+      "consumes": [
+        "production_corpus",
+        "production_insights"
+      ]
+    },
+    {
+      "id": "baseline_development_traces",
+      "path": "traces/world-v3/baseline-development/insights.jsonl",
+      "sha256": "fc5d6590e75651f587a0e1fe4888195df1f076fc4a72fe17d88132021a8e126b",
+      "consumes": [
+        "eval_suite"
+      ]
+    },
+    {
+      "id": "baseline_development_insights",
+      "path": "results/baseline-development-insights.yml",
+      "sha256": "ad22ebe5b6d444392d1a4d82f769a9a4b4318a10438737653239808da4063122",
+      "consumes": [
+        "baseline_development_traces"
+      ]
+    },
+    {
+      "id": "candidate_proposal",
+      "path": "results/candidate-proposal.md",
+      "sha256": "c5ed5e3abbb396e5eea24e73184a14f54a98c28552d5abd445ea1035615d6255",
+      "consumes": [
+        "production_insights",
+        "baseline_development_insights"
+      ]
+    },
+    {
+      "id": "candidate_profile",
+      "path": "profiles/candidate-soul.md",
+      "sha256": "596b2aa2429fe0fdd0473586cb2ff6aeec677ad7afccbfa409778bb91627a261",
+      "consumes": [
+        "candidate_proposal"
+      ]
+    },
+    {
+      "id": "verification_production_insights",
+      "path": "results/verification-production-insights.yml",
+      "sha256": "58999804f6d021a880b66395b8bf88a51eabea3d2999d17c4b04099b11818edb",
+      "consumes": [
+        "production_corpus"
+      ]
+    },
+    {
+      "id": "baseline_development_run",
+      "path": "results/baseline-development-summary.json",
+      "sha256": "1f93b483edfe65221da7b06d2853ecccdb8a872d595e37a033c736d776e0b46a",
+      "consumes": [
+        "eval_suite"
+      ]
+    },
+    {
+      "id": "verification_baseline_development_traces",
+      "path": "traces/world-v3/verification-baseline-development/insights.jsonl",
+      "sha256": "fe05b5b8888f676fde8e4d6037d59b68f2c6432128ebb5f6a94802ee1612320b",
+      "consumes": [
+        "baseline_development_run"
+      ]
+    },
+    {
+      "id": "verification_baseline_development_insights",
+      "path": "results/verification-baseline-development-insights.yml",
+      "sha256": "461b03f7b86dce1c9e63c236f8b379508e7beaa711d43781f1cc28a38989e910",
+      "consumes": [
+        "verification_baseline_development_traces"
+      ]
+    },
+    {
+      "id": "candidate_development_run",
+      "path": "results/candidate-development-summary.json",
+      "sha256": "49decb9def4bf3ad46642cc9aede78857dde0ebddbf9ef803c61bf2ef037eb97",
+      "consumes": [
+        "eval_suite",
+        "candidate_profile"
+      ]
+    },
+    {
+      "id": "baseline_held_out_run",
+      "path": "results/baseline-held-out-summary.json",
+      "sha256": "cad74fe7262d74caf408e2cbbeb98f8084df30b0fb6a3359c217f86986054d83",
+      "consumes": [
+        "eval_suite"
+      ]
+    },
+    {
+      "id": "candidate_held_out_run",
+      "path": "results/candidate-held-out-summary.json",
+      "sha256": "1d8ed87104df72e49e1f9e479596a4999d276f53f97383656136a9cea033d092",
+      "consumes": [
+        "eval_suite",
+        "candidate_profile"
+      ]
+    },
+    {
+      "id": "measured_ab",
+      "path": "results/measured-ab-v3.json",
+      "sha256": "2a903d66111a6166640392e7c1ec899a83b804a499cadd7b84e0805d95a176bd",
+      "consumes": [
+        "baseline_development_run",
+        "candidate_development_run",
+        "baseline_held_out_run",
+        "candidate_held_out_run"
+      ]
     }
   ],
-  "required_outcome": {
-    "development": {"baseline": 0, "candidate": 3, "trials_per_arm": 6},
-    "held_out": {"baseline": 1, "candidate": 2, "trials_per_arm": 4}
-  }
+  "notes": [
+    "Candidate design consumes the original production and development reports; later verification reports corroborate the frozen profile.",
+    "Verification baseline input is joined to the measured baseline native Relay identities, task IDs and Harbor rewards.",
+    "Published report trace links are repository-relative; raw CLI reports are retained privately. Finding text and cited trace IDs are unchanged.",
+    "Technical pilot only: passing controls and an accepted measured comparison do not establish human task review."
+  ]
 }

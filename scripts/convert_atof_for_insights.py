@@ -17,7 +17,13 @@ from pa_style_mock_mcp.jsonl import read_relay_jsonl
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--atof", type=Path, required=True)
+    parser.add_argument(
+        "--atof",
+        type=Path,
+        action="append",
+        required=True,
+        help="Relay ATOF JSONL file or directory containing per-run events.jsonl files; repeatable.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--matrix", type=Path)
     parser.add_argument(
@@ -32,7 +38,20 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    events, recovered_lines = read_relay_jsonl(args.atof)
+    sources: list[Path] = []
+    for source in args.atof:
+        if source.is_dir():
+            sources.extend(sorted(source.rglob("events.jsonl")))
+        else:
+            sources.append(source)
+    if not sources:
+        raise SystemExit("no Relay ATOF JSONL files found")
+    events = []
+    recovered_lines = []
+    for source in sources:
+        source_events, source_recovered = read_relay_jsonl(source)
+        events.extend(source_events)
+        recovered_lines.extend(source_recovered)
     prompt_case_ids = None
     case_required_signals = None
     if args.matrix:

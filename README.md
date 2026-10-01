@@ -1,100 +1,107 @@
-# Optimize a Hermes enterprise-agent harness with NVIDIA NeMo
+# Hermes agent harness optimization demo
 
-This runnable tutorial starts where many agent teams do: an agent and a collection
-of production-like traces. It shows how to turn those traces into executable evals,
-find recurring failures, change the agent harness, and measure whether the change
-generalizes.
+This repository is a hands-on tutorial for improving an enterprise agent harness
+from observed behavior: analyze realistic production traces with NeMo Trace
+Analyst, author Harbor evaluations with a coding agent, analyze scored baseline
+runs, implement a candidate harness, and compare it with the baseline.
 
-```text
-remote mock MCP ← OpenShell-hosted Hermes + Relay traces → Codex + Eval Author
-                              │                              │
-                       network policy                  Harbor tasks
-                              │                              │
-                        baseline rollouts → Trace Analyst → candidate
-                                                             │
-                                              development A/B → held-out A/B
-```
+The fictional agent helps a company prepare a product launch by researching
+across mail, calendar, chat, files, enterprise knowledge, directory, project,
+analytics, support, and connector tools. The deterministic world includes stale
+and current records, ambiguous people, pagination, a large structured evidence
+register, a disconnected connector, and a transient search failure.
 
-Everything needed for the fast path is checked in: 36 starting traces from the
-OpenShell-hosted baseline, a deterministic 504-record fixture, ten trace-derived
-Harbor tasks, a separately hosted Streamable HTTP MCP service, two Hermes profiles,
-and measured reference results. You can reproduce the A/B without regenerating
-either traces or evals; the walkthrough also shows how to replace each checked-in
-input with your own. Eval Author proofs retain a task-local stdio adapter backed by
-the exact same fixture and tool registry.
+The tutorial is grounded in NVIDIA's internal work optimizing a production
+personal assistant for employee research and actions across those kinds of
+systems. The public [Nemotron 3 Ultra harness-profile case study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
+describes related optimization methods.
 
-## Production grounding
+## Fictional MCP tools
 
-The fictional agent is inspired by NVIDIA's work optimizing an internal production
-assistant that helps employees research and act across email, calendars, chat,
-files, enterprise knowledge, directories, and task systems. The tutorial distills
-those problem shapes into synthetic data and deterministic tools. NVIDIA's public
-[Nemotron 3 Ultra harness-profile case study](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
-describes the related optimization methodology.
+The full catalog has 15 tools backed by [deterministic fixtures](fixtures/README.md).
+These are illustrative enterprise-service equivalents, not live integrations.
 
-The fictional world is a company preparing a product launch. It contains current
-and stale projects, ambiguous people, paginated results, a large JSON evidence
-register, a disconnected CRM connector, and one transient incident-search failure.
-
-| Fictional MCP surface | Typical enterprise equivalent |
-| --- | --- |
-| people, mail, calendar | Workday or Entra ID; Outlook or Gmail; enterprise calendars |
-| chat, knowledge, files | Teams or Slack; Confluence or Glean; SharePoint or Drive |
-| projects, analytics, support | Jira or Asana; BI platforms; ServiceNow or Zendesk |
-| connectors, actions | integration health; approval-gated draft and send APIs |
-
-Codex and [NeMo Eval Author](https://github.com/NVIDIA-NeMo/nemo-platform/tree/9eb4fc7ca3e8dada9cfd66c72989ee735616c71f/plugins/nemo-eval-author/skills)
-selected recurring behaviors from the starting traces and
-encoded them as six development tasks. Four separately worded tasks were held back
-until the candidate was frozen. Harbor runs Hermes against the fixture-backed MCP
-server and scores the answer, actual tool calls, call budget, and mutation state.
-Each model-backed trial runs in a short-lived [OpenShell](https://github.com/NVIDIA/OpenShell)
-sandbox with default-deny network access and an endpoint-scoped NVIDIA credential;
-the policy separately allows only the tutorial's authenticated MCP endpoint. Harbor
-remains the task orchestrator and isolated verifier.
-
-## What changed
-
-The baseline uses a generic one-line policy, Hermes' broad built-in tool surface,
-eager MCP exposure, and a 60-turn cap. Its evaluated rollouts showed incomplete
-source coverage, searches cited without reading the selected record, loose retry
-behavior, guessed structured-read arguments, and irrelevant local or web detours.
-
-[NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel) turns those
-scored failures into hypotheses. A checked-in
-[analysis](results/trace-analysis.yml) cites the failed traces, and the
-[candidate proposal](results/candidate-proposal.md) separates its recurring
-Trace Analyst finding from human review of the other verifier failures. The
-candidate implements that proposal in an ordinary editable `SOUL.md`:
-claim-to-source routing, an evidence-completeness check, search-then-read, schema-
-first bounded JSON inspection, exact retry and fallback transitions, connector-
-status awareness, prepare-without-send, tool downsampling, and a 12-turn cap.
-
-| Trace Analyst evidence | Candidate response | Suite-level measurement |
+| Tools | What the agent can do | Enterprise equivalent |
 | --- | --- | --- |
-| Five failed cases skipped available enterprise tools and chose local/session paths, clarification, or unsupported answers | Route claims to authoritative sources; require search-then-read; downsample distracting tools behind discovery | Development: 0/6 → 3/6; held out: 1/4 → 2/4 |
+| `connectors.get_status` | Check connection and authentication state | SaaS connector health / OAuth status |
+| `people.search` | Find employees, including ambiguous names | Microsoft Entra ID / Google Workspace directory |
+| `mail.search`, `mail.read_thread` | Find mail metadata, then read messages | Outlook / Gmail |
+| `chat.search`, `chat.read_thread` | Find chat threads, then read conversations | Slack / Microsoft Teams |
+| `calendar.list_events` | Find meetings and review times | Outlook Calendar / Google Calendar |
+| `knowledge.search` | Search enterprise knowledge | Confluence / SharePoint / enterprise search |
+| `files.search`, `files.read_json` | Find files and inspect bounded JSON sections | SharePoint / Google Drive plus a structured-file reader |
+| `projects.search_tasks` | Find project work and blockers | Jira / Asana |
+| `analytics.query_metrics` | Look up product metrics | Enterprise BI / product analytics |
+| `support.search_tickets` | Find incident and support records | ServiceNow / Zendesk |
+| `actions.prepare_message`, `actions.send_message` | Prepare a draft, then separately execute a send | Email / chat draft-and-send APIs |
 
-| Split (saved OpenShell reference) | Baseline | Candidate | Attempts |
-| --- | ---: | ---: | ---: |
-| Development | 0/6 | 3/6 | one per task |
-| Held out | 1/4 | 2/4 | one per task |
+Hermes and Relay run in OpenShell. The authenticated Streamable HTTP MCP server
+runs outside the sandbox; Hermes reaches it through the checked-in
+[OpenShell policy](openshell/policy.yaml).
 
-These are measured results on a small synthetic benchmark, not a claim that the
-candidate policy is universal. See [results](docs/results.md) for runtime details and
-limitations, and [harness patterns](docs/harness-patterns.md) for the portable
-issue/fix ideas.
+## What's included: the ten-step flywheel
 
-The complete saved evidence chain is machine checked:
+The tutorial uses [NeMo Trace Analyst](https://github.com/NVIDIA-NeMo/labs-trace-intel)
+and Codex with [NeMo Eval Author](https://github.com/NVIDIA-NeMo/labs-eval-author).
+Each step has saved artifacts to inspect or reuse:
 
-`source traces → authored eval set → scored baseline → trace analysis → candidate proposal → candidate profile → measured A/B`
+| Step | What you do | Checked-in artifacts |
+| --- | --- | --- |
+| 1. [Freeze the baseline](docs/walkthrough.md#1-freeze-the-baseline) | Set up Hermes, OpenShell and the synthetic world | [Baseline profile](profiles/baseline-soul.md), [runtime configuration](harbor_agents/hermes_flywheel.py), [sandbox setup](openshell/), [fixtures](fixtures/world-v2.json), [workload](experiments/production-trace-matrix-v3.json) |
+| 2. [Collect source traces](docs/walkthrough.md#2-collect-source-traces) | Run distinct production-like requests, or use the supplied corpus | [42 traces, corpus index and analysis input](traces/world-v3/production/) |
+| 3. [Discover issues](docs/walkthrough.md#3-discover-issues) | Run Trace Analyst on the production corpus | [Production findings](results/production-insights.yml), [analyst configuration](configs/trace-analyst.yaml) |
+| 4. [Author and prove eval tasks](docs/walkthrough.md#4-author-and-prove-eval-tasks) | Ask Codex + Eval Author to turn supported findings into executable tests | [Authoring prompt](prompts/eval-author-from-traces.md), [four Harbor tasks](evals/harbor-tasks-v3/), [technical proof receipts](evals/task-proofs/) |
+| 5. [Freeze the split](docs/walkthrough.md#5-freeze-the-split) | Review task meaning and reserve development / held-out cases | [Two-development / two-held-out manifest](evals/flywheel-eval-set-v3.json), [human review sheet](evals/REVIEW.md) |
+| 6. [Measure baseline development](docs/walkthrough.md#6-measure-baseline-development) | Run development tasks three times each and retain scores with traces | [Six scored baseline traces](traces/world-v3/baseline-development/) |
+| 7. [Analyze scored baseline failures](docs/walkthrough.md#7-analyze-scored-baseline-failures) | Run Trace Analyst again on baseline development trajectories | [Scored-development findings](results/baseline-development-insights.yml) |
+| 8. [Build a candidate from both reports](docs/walkthrough.md#8-build-a-candidate-from-both-reports) | Use both reports to propose a general harness change, then freeze it | [Proposal](results/candidate-proposal.md), [candidate profile](profiles/candidate-soul.md), [experiment freeze](results/experiment-freeze.json) |
+| 9. [Run development and held-out A/B](docs/walkthrough.md#9-run-development-and-held-out-ab) | Run the same development and held-out tasks with equal budgets | [Four baseline/candidate run summaries](results/) |
+| 10. [Decide](docs/walkthrough.md#10-decide-whether-the-optimization-worked) | Check improvement on both splits, regressions and uncertainty | [A/B comparison](results/measured-ab-v3.json), [artifact hashes](results/artifact-chain.json), [results and limits](docs/results.md) |
 
-See [`results/artifact-chain.json`](results/artifact-chain.json), or run
-`python3 scripts/validate_artifact_chain.py`. It verifies artifact hashes,
-cross-references, exact harness controls, denominators, and candidate improvement.
+The measured candidate clarifies that preparing a message is not authorization
+to send it, and a tool-issued token is not user consent. Development scores
+improve from 3/6 to 6/6 and held-out scores from 4/6 to 6/6. Other candidate
+patterns—tool downsampling, bounded JSON reads and evidence-state management—are
+described in [harness patterns](docs/harness-patterns.md), not claimed as measured
+improvements here.
+
+## Repository map
+
+| Folder | Purpose |
+| --- | --- |
+| [configs/](configs/) | Trace Analyst settings and the fictional assistant's analysis rules. |
+| [docs/](docs/) | The walkthrough, measured results, harness patterns and future Gym extension. |
+| [evals/](evals/) | Eval-suite manifest, runnable Harbor tasks, proof receipts and human review sheet. |
+| [experiments/](experiments/) | The 42-request workload used to collect production-like traces—not an eval suite. |
+| [fixtures/](fixtures/) | Deterministic fictional company records and initial tool state. |
+| [harbor_agents/](harbor_agents/) | Adapters that run Hermes in OpenShell and deliver answers/tool logs to Harbor. |
+| [openshell/](openshell/) | Sandbox image recipe, network policy and model-provider profile. |
+| [profiles/](profiles/) | Editable baseline and candidate Hermes system instructions. |
+| [prompts/](prompts/) | The authoring request to give Codex when using Eval Author. |
+| [results/](results/) | Saved Insights reports, candidate rationale, run summaries, comparisons and provenance hashes. |
+| [scripts/](scripts/) | Commands for trace collection/conversion, eval execution and validation. |
+| [src/](src/) | The mock MCP implementation, shared world/tool behavior and trace utilities. |
+| [tests/](tests/) | Automated tests for the environment, adapters, runners and artifact checks. |
+| [traces/](traces/) | Checked-in agent trajectories, corpus indexes and Trace Analyst inputs. |
+
+Your own run outputs go under `.runs/`; private Eval Author work goes under
+`.eval-author/`. Both are ignored by Git and are separate from the saved examples.
 
 ## Start here
 
-Use the [end-to-end walkthrough](docs/walkthrough.md). It offers a quick path using
-the checked-in artifacts, a Trace-Analyst-only path, and an authoring path that uses
-Codex with Eval Author. The [Gym extension](docs/gym-extension.md) explains when to
-turn the same environment into a rollout or training environment.
+Follow the [walkthrough](docs/walkthrough.md) for prerequisites, copyable host
+setup commands, the 10-step flywheel, optional trace regeneration, and the
+secondary Trace-Analyst-only path. The recommended full-run host is fresh Ubuntu
+24.04 with native Docker, 8 vCPUs, 32 GB RAM, 100 GB free disk, and a working
+OpenShell gateway; a Brev CPU instance is a convenient option. Harbor's isolated
+verifier requires a Linux kernel with `CONFIG_NFT_FIB_INET`, so Docker Desktop is
+not the supported full-run environment.
+
+Supporting detail: [fixture world](fixtures/README.md),
+[trace artifacts](traces/README.md),
+[harness patterns](docs/harness-patterns.md), and
+[extending the environment for RL](docs/gym-extension.md).
+
+The public example uses synthetic records throughout. Replace the workload,
+fixtures, trace adapter, and task environment to apply the same method to a real
+agent.
